@@ -1,0 +1,655 @@
+/*-
+ * Copyright (C) 2006 Erik Larsson
+ *           (C) 2004 vu1tur (not the actual code but...)
+ * 
+ * All rights reserved.
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
+import java.io.*;
+//import java.util.LinkedList;
+import org.xml.sax.helpers.DefaultHandler;
+import javax.xml.parsers.SAXParserFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import org.xml.sax.SAXException;
+import java.util.zip.Inflater;
+import java.util.zip.DataFormatException;
+import javax.swing.JOptionPane;
+import javax.swing.JFileChooser;
+import javax.swing.ProgressMonitor;
+
+public class DMGExtractor {
+    public static final String APPNAME = "DMGExtractor 0.5";
+    public static final String BUILDSTRING = "(Build #" + BuildNumber.BUILD_NUMBER + ")";
+    public static final boolean DEBUG = false;
+    // Constants defining block types in the dmg file
+    public static final int BT_ZLIB = 0x80000005;
+    public static final int BT_COPY = 0x00000001;
+    public static final int BT_ZERO = 0x00000002;
+    public static final int BT_END = 0xffffffff;
+    public static final int BT_UNKNOWN = 0x7ffffffe;
+    public static final long PLIST_ADDRESS_1 = 0x1E0;
+    public static final long PLIST_ADDRESS_2 = 0x128;
+    public static final String BACKSPACE79 = "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
+//     public static PrintStream stdout = System.out;
+//     public static PrintStream stderr = System.err;
+    public static BufferedReader stdin = 
+	new BufferedReader(new InputStreamReader(System.in));
+
+    public static boolean verbose = false;
+    public static boolean graphical = false;
+    public static String startupCommand = "java DMGExtractor";
+    public static File dmgFile = null;
+    public static File isoFile = null;
+
+    public static ProgressMonitor progmon;
+    
+    public static void main(String[] args) throws Exception {
+	try {
+	    notmain(args);
+	} catch(Exception e) {
+	    if(graphical)
+		JOptionPane.showMessageDialog(null, "The program encountered an unexpected error: " + e.toString() + 
+					      "\nClosing...", "Error", JOptionPane.ERROR_MESSAGE);
+	    throw e;
+	}
+    }
+    
+    public static void notmain(String[] args) throws Exception {
+	System.setProperty("swing.aatext", "true"); //Antialiased text
+       	try { javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName()); }
+	catch(Exception e) {}
+	
+	if(DEBUG) verbose = true;
+	
+	parseArgs(args);
+
+	printlnVerbose("Processing: " + dmgFile);
+	RandomAccessFile dmgRaf = new RandomAccessFile(dmgFile, "r");
+	RandomAccessFile isoRaf = null;
+	boolean testOnly = false;
+	if(isoFile != null) {
+	    isoRaf = new RandomAccessFile(isoFile, "rw");
+	    isoRaf.setLength(0);
+	    printlnVerbose("Extracting to: " + isoFile);
+	}
+	else {
+	    testOnly = true;
+	    printlnVerbose("Simulating extraction...");
+	}
+	
+	dmgRaf.seek(dmgRaf.length()-PLIST_ADDRESS_1);
+	long addressOccurrence1 = dmgRaf.readLong();
+	dmgRaf.seek(dmgRaf.length()-PLIST_ADDRESS_2);
+	long addressOccurrence2 = dmgRaf.readLong();
+	
+	if(DEBUG) {
+	    println("Read addresses:",
+		    "  " + addressOccurrence1,
+		    "  " + addressOccurrence2);
+	}
+	if(addressOccurrence1 != addressOccurrence2) {
+	    println("Addresses not equal! Assumption broken... =/");
+	    if(!DEBUG)
+		println(addressOccurrence1 + " != " + addressOccurrence2);
+	    System.exit(0);
+	}
+	
+	printlnVerbose("Jumping to address...");
+ 	dmgRaf.seek(addressOccurrence1);
+	byte[] buffer = new byte[(int)(dmgRaf.length()-addressOccurrence1)];
+	dmgRaf.read(buffer);
+
+	InputStream is = new ByteArrayInputStream(buffer);
+
+	NodeBuilder handler = new NodeBuilder();
+	SAXParser saxParser = SAXParserFactory.newInstance().newSAXParser();
+	try {
+	    saxParser.parse(is, handler);
+	} catch(SAXException se) {}
+	
+	XMLNode[] rootNodes = handler.getRoots();
+	if(rootNodes.length != 1) {
+	    println("Could not parse DMG-file!");
+	    System.exit(0);
+	}
+
+	/* Ok, now we have a tree built from the XML-document. Let's walk to the right place. */
+	/* cd plist 
+	   cd dict
+	   cdkey resource-fork (type:dict)
+	   cdkey blkx (type:array) */
+	XMLNode current;
+	XMLElement[] children;
+	boolean keyFound;
+	current = rootNodes[0]; //We are at plist... probably (there should be only one root node)
+	
+	current = current.cd("dict");
+	current = current.cdkey("resource-fork");
+	current = current.cdkey("blkx");
+	printlnVerbose("Found " + current.getChildren().length + " partitions:");
+	
+	byte[] tmp = new byte[0x40000];
+	byte[] otmp = new byte[0x40000];
+
+	byte[] zeroblock = new byte[4096];
+	/* I think java always zeroes its arrays on creation... 
+	   but let's play safe. */
+	for(int y = 0; y < zeroblock.length; ++y)
+	    zeroblock[y] = 0;
+	
+	//long lastOffs = 0;
+	long lastOutOffset = 0;
+	long totalSize = 0;
+	boolean errorsFound = false;
+	reportProgress(0);
+	for(XMLElement xe : current.getChildren()) {
+	    if(progmon != null && progmon.isCanceled()) System.exit(0);
+	    if(xe instanceof XMLNode) {
+		XMLNode xn = (XMLNode)xe;
+		byte[] data = Base64.decode(xn.getKeyValue("Data"));
+		
+		long partitionSize = calculatePartitionSize(data);
+		totalSize += partitionSize;
+		
+		printlnVerbose("  " + xn.getKeyValue("Name"));
+		printlnVerbose("    ID: " + xn.getKeyValue("ID"));
+		printlnVerbose("    Attributes: " + xn.getKeyValue("Attributes"));
+		printlnVerbose("    Partition map data length: " + data.length + " bytes");
+		printlnVerbose("    Partition size: " + partitionSize + " bytes");
+
+		if(DEBUG) {
+		    File dumpFile = new File("data " + xn.getKeyValue("ID") + ".bin");
+		    println("    Dumping partition map to file: " + dumpFile);
+		    
+		    FileOutputStream dump = new FileOutputStream(dumpFile);
+		    dump.write(data);
+		    dump.close();
+		}
+
+		int offset = 0xCC;
+		int blockType = 0;
+		
+		/* Offset of the input data for the current block in the input file */
+		long inOffset;
+		/* Size of the input data for the current block */
+		long inSize;
+		/* Offset of the output data for the current block in the output file */
+		long outOffset;
+		/* Size of the output data (possibly larger than inSize because of
+		   decompression, zero expansion...) */
+		long outSize;
+		
+		//, lastInOffs = 0;
+		int blockCount = 0;
+		long previousPercentage = -1;
+		while(blockType != BT_END) {		    
+		    if(progmon != null && progmon.isCanceled()) System.exit(0);
+		    DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
+		    int bytesSkipped = 0;
+		    while(bytesSkipped < offset)
+			bytesSkipped += dis.skipBytes(offset-bytesSkipped);
+		    
+		    blockType = dis.readInt();
+		    dis.readInt(); //Skip 4 bytes forward
+		    outOffset = dis.readLong()*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
+		    //dis.readInt(); //Skip 4 bytes forward
+		    outSize = dis.readLong()*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
+		    inOffset = dis.readLong();// & 0xffffffffL; //unsigned int -> long
+		    //dis.readInt(); //Skip 4 bytes forward
+		    inSize = dis.readLong();//dis.readInt() & 0xffffffffL; //unsigned int -> long
+		    
+		    outOffset += lastOutOffset;
+		    
+		    if(DEBUG) {
+			println("outOffset=" + outOffset + " outSize=" + outSize + 
+				" inOffset=" + inOffset + " inSize=" + inSize +
+				" lastOutOffset=" + lastOutOffset
+				/*+ " lastInOffs=" + lastInOffs + " lastOffs=" + lastOffs*/);
+		    }
+		    
+		    if(blockType == BT_ZLIB) {
+			if(DEBUG)
+			    println("      " + blockCount + ". BT_ZLIB processing...");
+			
+			if(!testOnly && isoRaf.getFilePointer() != outOffset)
+			    println("      " + blockCount + ". BT_ZLIB FP != outOffset (" +
+				    isoRaf.getFilePointer() + " != " + outOffset + ")");
+			
+			dmgRaf.seek(/*lastOffs+*/inOffset);
+
+			if(tmp.length < inSize)
+			    tmp = new byte[(int)inSize];
+			
+			long totalBytesRead = 0;
+			while(totalBytesRead < inSize) {
+			    totalBytesRead += dmgRaf.read(tmp, 0, Math.min((int)(inSize-totalBytesRead), tmp.length));
+			}
+			long progressPercentage = dmgRaf.getFilePointer()*100/dmgRaf.length();
+			if(progressPercentage != previousPercentage) {
+			    reportProgress(progressPercentage);
+			    previousPercentage = progressPercentage;
+			}
+			
+			Inflater inflater = new Inflater();
+			inflater.setInput(tmp, 0, (int)totalBytesRead);
+
+			if(otmp.length < outSize)
+			    otmp = new byte[(int)outSize];
+			
+			int bytesInflated = 0;
+			while(true) {
+			    try {
+				bytesInflated = inflater.inflate(otmp);
+				//System.out.println("        Inflated " + bytesInflated + " bytes. Left in buffer: " + inflater.getRemaining() + " bytes");
+				if(inflater.getRemaining() == 0) {
+				    //System.out.println("          done!");
+				    break;
+				}
+				else {
+				    System.out.println("      " + blockCount + ". BT_ZLIB ERROR: otmp contents lost! (should not happen...)");
+// 				    if(bytesInflated == 0)
+				    throw new RuntimeException("WTF");
+				}
+			    }
+			    catch(DataFormatException dfe) {
+				println("      " + blockCount + ". BT_ZLIB Could not decode...");
+				if(!DEBUG) {
+				    println("outOffset=" + outOffset + " outSize=" + outSize + 
+					    " inOffset=" + inOffset + " inSize=" + inSize +
+					    " lastOutOffset=" + lastOutOffset);
+				}
+				dfe.printStackTrace();
+				if(!testOnly)
+				    System.exit(0);
+				else {
+				    println("      Testing mode, so continuing...");
+				    //System.exit(0);
+				    errorsFound = true;
+				    break;
+				}
+			    }
+			    
+			}
+			inflater.end();
+			
+			if(!testOnly)
+			    isoRaf.write(otmp, 0, (int)outSize);
+			
+  			//lastInOffs = inOffset+inSize;
+		    }
+		    else if(blockType == BT_COPY) {
+			if(DEBUG)
+			    println("      " + blockCount + ". BT_COPY processing...");
+
+			if(!testOnly && isoRaf.getFilePointer() != outOffset)
+			    println("      " + blockCount + ". BT_COPY FP != outOffset (" + isoRaf.getFilePointer() + " != " + outOffset + ")");
+			dmgRaf.seek(/*lastOffs+*/inOffset);
+			
+			int bytesRead = dmgRaf.read(tmp, 0, Math.min((int)inSize, tmp.length));
+			long totalBytesRead = bytesRead;
+			while(bytesRead != -1) {
+			    long progressPercentage = dmgRaf.getFilePointer()*100/dmgRaf.length();
+			    if(progressPercentage != previousPercentage) {
+				reportProgress(progressPercentage);
+				previousPercentage = progressPercentage;
+			    }
+
+
+			    if(!testOnly)
+				isoRaf.write(tmp, 0, bytesRead);
+			    if(totalBytesRead >= inSize)
+				break;
+			    bytesRead = dmgRaf.read(tmp, 0, Math.min((int)(inSize-totalBytesRead), tmp.length));
+			    if(bytesRead > 0)
+				totalBytesRead += bytesRead;
+			}
+			
+ 			//lastInOffs = inOffset+inSize;
+		    }
+		    else if(blockType == BT_ZERO) {
+			if(DEBUG)
+			    println("      " + blockCount + ". BT_ZERO processing...");
+			if(!testOnly && isoRaf.getFilePointer() != outOffset)
+			    println("      " + blockCount + ". BT_ZERO FP != outOffset (" + 
+				    isoRaf.getFilePointer() + " != " + outOffset + ")");
+
+			long progressPercentage = dmgRaf.getFilePointer()*100/dmgRaf.length();
+			if(progressPercentage != previousPercentage) {
+			    reportProgress(progressPercentage);
+			    previousPercentage = progressPercentage;
+			}
+
+			long numberOfZeroBlocks = outSize/zeroblock.length;
+			int numberOfRemainingBytes = (int)(outSize%zeroblock.length);
+			for(int j = 0; j < numberOfZeroBlocks; ++j) {
+			    if(!testOnly)
+				isoRaf.write(zeroblock);
+			}
+			if(!testOnly)
+			    isoRaf.write(zeroblock, 0, numberOfRemainingBytes);
+			
+ 			//lastInOffs = inOffset+inSize;
+		    }
+		    else if(blockType == BT_UNKNOWN) {
+			/* I have no idea what this blocktype is... but it's common, and usually
+			   doesn't appear more than 2-3 times in a dmg. As long as its input and
+			   output sizes are 0, there's no reason to complain... is there? */
+			if(DEBUG)
+			    println("      " + blockCount + ". BT_UNKNOWN processing...");
+			if(!(inSize == 0 && outSize == 0)) {
+			    println("      " + blockCount + ". WARNING! Blocktype BT_UNKNOWN had non-zero sizes...");
+			    println("        inSize=" + inSize + ", outSize=" + outSize);
+			    //println("        The author of the program would be pleased if you contacted him about this.");
+			    // ...or would I?
+			}
+		    }
+		    else if(blockType == BT_END) {
+			if(DEBUG)
+			    println("      " + blockCount + ". BT_END processing...");
+ 			if(!testOnly && isoRaf.getFilePointer() != outOffset)
+			    println("      " + blockCount + ". BT_END FP != outOffset (" +
+				    isoRaf.getFilePointer() + " != " + outOffset + ")");
+			
+			//lastOffs += lastInOffs;
+			lastOutOffset = outOffset;
+		    }
+ 		    else {
+ 			println("      " + blockCount + ". WARNING: previously unseen blocktype " + blockType + 
+				" [0x" + Integer.toHexString(blockType) + "]");
+ 			if(!testOnly && isoRaf.getFilePointer() != outOffset)
+			    println("      " + blockCount + ". unknown blocktype FP != outOffset (" +
+				    isoRaf.getFilePointer() + " != " + outOffset + ")");
+			
+		    }
+		    
+		    offset += 0x28;
+		    ++blockCount;
+		}
+	    }
+	}
+	dmgRaf.close();
+	//printlnVerbose("Progress: 100% Done!");
+	reportProgress(100);
+	String errors = errorsFound?"There were errors...":"No errors reported.";
+	if(!graphical) {
+	    newline();
+	    println(errors);
+	    printlnVerbose("Total extracted bytes: " + totalSize + " B");
+	}
+	else {
+	    progmon.close();
+	    JOptionPane.showMessageDialog(null, "Extraction complete! " + errors + "\n" +
+					  "Total extracted bytes: " + totalSize + " B", 
+					  "Information", JOptionPane.INFORMATION_MESSAGE);
+	    System.exit(0);
+	}
+    }
+
+    public static void parseArgs(String[] args) {
+	boolean parseSuccessful = false;
+	try {
+	    /* Take care of the options... */
+	    int i;
+	    for(i = 0; i < args.length; ++i) {
+		String cur = args[i];
+		if(!cur.startsWith("-"))
+		    break;
+		else if(cur.equals("-gui"))
+		    graphical = true;
+		else if(cur.equals("-v"))
+		    verbose = true;
+		else if(cur.equals("-startupcommand")) {
+		    startupCommand = args[i+1];
+		    ++i;
+		}
+	    }
+
+	    println(APPNAME + " " + BUILDSTRING,
+		    "Copyright (c) 2006 Erik Larsson <erik82@kth.se>",
+		    "  written from the source code to the original dmg2iso program",
+		    "  Copyright (c) 2004 vu1tur <v@vu1tur.eu.org>",
+		    "  also using the iharder Base64 Encoder/Decoder <http://iharder.sf.net>",
+		    "",
+		    "This program is distributed under the GNU General Public License version 2 or later.",
+		    "See <http://www.gnu.org/copyleft/gpl.html> for the details.");
+	    
+	    if(i == args.length) {
+		dmgFile = getInputFileFromUser();
+		if(dmgFile == null)
+		    System.exit(0);
+		if(getOutputConfirmationFromUser()) {
+		    isoFile = getOutputFileFromUser();
+		    if(isoFile == null)
+			System.exit(0);
+		}
+	    }
+	    else {
+		dmgFile = new File(args[i++]);
+		if(!dmgFile.exists()) {
+		    println("File \"" + dmgFile + "\" could not be found!");
+		    System.exit(0);
+		}
+		
+		if(i == args.length-1)
+		    isoFile = new File(args[i]);
+		else if(i != args.length)
+		    throw new Exception();
+	    }
+	    
+	    parseSuccessful = true;
+	} catch(Exception e) {
+	    println();
+	    println("  usage: " + startupCommand + " [options] <dmgFile> [<isoFile>]");
+	    println("  if an iso-file is not supplied, the program will simulate an extraction");
+	    println("  (useful for detecting errors in dmg-files)");
+	    println();
+	    System.exit(0);
+	}
+    }
+    
+    public static long calculatePartitionSize(byte[] data) throws IOException {
+	long partitionSize = 0;
+	DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
+	long totalBytesRead;
+	totalBytesRead = 0;
+	while(totalBytesRead < 0xCC)
+	    totalBytesRead += dis.skip(0xCC);
+	
+	while(totalBytesRead < data.length) {
+	    int bytesRead = 0;
+	    while(bytesRead < 0x10)
+		bytesRead += dis.skip(0x10-bytesRead);
+	    
+	    partitionSize += dis.readLong()*0x200;
+	    bytesRead += 0x8;
+	    
+	    while(bytesRead < 0x28)
+		bytesRead += dis.skip(0x28-bytesRead);
+	    totalBytesRead += bytesRead;
+	}
+	return partitionSize;
+    }
+
+    /** Never used. Java is big-endian. */
+    public static int swapEndian(int i) {
+	return 
+	    ((i & 0xff000000) >> 24) | 
+	    ((i & 0x00ff0000) >> 8 ) | 
+	    ((i & 0x0000ff00) << 8 ) | 
+	    ((i & 0x000000ff) << 24);
+    }
+
+    public static void printCurrentLine(String s) {
+	System.out.print(BACKSPACE79);
+	System.out.print(s);
+    }
+    public static void println() {
+	System.out.print(BACKSPACE79);
+	System.out.println();
+    }
+    public static void println(String... lines) {
+	if(!graphical) {
+	    System.out.print(BACKSPACE79);
+	    for(String s : lines)
+		System.out.println(s);
+	}
+	else {
+	    String resultString = null;
+	    for(String s : lines) {
+		if(resultString == null)
+		    resultString = s;
+		else
+		    resultString += "\n" + s;
+	    }
+	    JOptionPane.showMessageDialog(null, resultString, 
+					  APPNAME, JOptionPane.INFORMATION_MESSAGE);
+	}
+    }
+    public static void printlnVerbose() {
+	if(verbose) {
+	    System.out.print(BACKSPACE79);
+	    System.out.println();
+	}
+    }
+    public static void printlnVerbose(String... lines) {
+	if(verbose) {
+	    System.out.print(BACKSPACE79);
+	    for(String s : lines)
+		System.out.println(s);
+	}
+    }
+
+    public static void newline() {
+	System.out.println();
+    }
+    
+    public static void reportProgress(long progressPercentage) {
+	if(!graphical) {
+	    printCurrentLine("--->Progress: " + progressPercentage + "%");
+	}
+	else {
+	    if(progmon == null) {
+		progmon = new ProgressMonitor(null, "Extracting dmg to iso...", "0%", 0, 100);
+		progmon.setProgress(0);
+		progmon.setMillisToPopup(0);
+	    }
+	    progmon.setProgress((int)progressPercentage);
+	    progmon.setNote(progressPercentage + "%");
+	}
+    }
+
+    public static File getInputFileFromUser() throws IOException {
+	if(!graphical) {
+	    //String s = "";
+	    while(true) {
+		printCurrentLine("Please specify the path to the dmg file to extract from: ");
+		File f = new File(stdin.readLine().trim());
+		while(!f.exists()) {
+		    println("File does not exist!");
+		    printCurrentLine("Please specify the path to the dmg file to extract from: ");
+		    f = new File(stdin.readLine().trim());
+		}
+		return f;
+	    }
+	}
+	else {
+	    SimpleFileFilter sff = new SimpleFileFilter();
+	    sff.addExtension("dmg");
+	    sff.setDescription("DMG disk image files");
+ 	    JFileChooser jfc = new JFileChooser();
+	    jfc.setFileFilter(sff);
+	    jfc.setMultiSelectionEnabled(false);	    
+	    jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+	    jfc.setDialogTitle("Choose the dmg-file to read...");
+	    while(true) {
+		if(jfc.showDialog(null, "Open") == JFileChooser.APPROVE_OPTION) {
+		    File f = jfc.getSelectedFile();
+		    if(f.exists())
+			return f;
+		    else
+			JOptionPane.showMessageDialog(null, "The file does not exist! Choose again...", 
+						      "Error", JOptionPane.ERROR_MESSAGE);
+		}
+		else
+		    return null;
+	    }
+	}
+    }
+    public static boolean getOutputConfirmationFromUser() throws IOException {
+	if(!graphical) {
+	    String s = "";
+	    while(true) {
+		printCurrentLine("Do you want to specify an output file (y/n)? ");
+		s = stdin.readLine().trim();
+		if(s.equalsIgnoreCase("y"))
+		    return true;
+		else if(s.equalsIgnoreCase("n"))
+		    return false;
+	    }
+	}
+	else {
+	    return JOptionPane.showConfirmDialog(null, "Do you want to specify an output file?", 
+						 "Confirmation", JOptionPane.YES_NO_OPTION, 
+						 JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION;
+	}
+    }
+    public static File getOutputFileFromUser() throws IOException {
+	final String msg1 = "Please specify the path of the iso file to extract to: ";
+	final String msg2 = "The file already exists. Do you want to overwrite?";
+	if(!graphical) {
+	    while(true) {
+		printCurrentLine(msg1);
+		File f = new File(stdin.readLine().trim());
+		while(f.exists()) {
+		    while(true) {
+			printCurrentLine(msg2 + " (y/n)? ");
+			String s = stdin.readLine().trim();
+			if(s.equalsIgnoreCase("y"))
+			    return f;
+			else if(s.equalsIgnoreCase("n"))
+			    break;
+		    }
+		    printCurrentLine(msg1);
+		    f = new File(stdin.readLine().trim());
+		}
+		return f;
+	    }
+	}
+	else {
+ 	    JFileChooser jfc = new JFileChooser();
+	    jfc.setMultiSelectionEnabled(false);
+	    jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+	    jfc.setDialogTitle("Choose the output iso-file...");
+	    while(true) {
+		if(jfc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+		    File f = jfc.getSelectedFile();
+		    if(!f.exists())
+			return f;
+		    else if(JOptionPane.showConfirmDialog(null, msg2, "Confirmation", JOptionPane.YES_NO_OPTION, 
+							  JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
+			return f;
+		    }
+		}
+		else
+		    return null;
+	    }
+	}
+    }
+
+}
+
