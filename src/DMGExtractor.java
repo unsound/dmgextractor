@@ -20,24 +20,27 @@
  */
 
 import java.io.*;
-//import java.util.LinkedList;
-import org.xml.sax.helpers.DefaultHandler;
+import java.util.LinkedList;
+import java.util.Iterator;
+import java.util.zip.Inflater;
+import java.util.zip.DataFormatException;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
-import org.xml.sax.SAXException;
-import java.util.zip.Inflater;
-import java.util.zip.DataFormatException;
 import javax.swing.JOptionPane;
 import javax.swing.JFileChooser;
 import javax.swing.ProgressMonitor;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
 public class DMGExtractor {
-    public static final String APPNAME = "DMGExtractor 0.5";
+    public static final String APPNAME = "DMGExtractor 0.51pre";
     public static final String BUILDSTRING = "(Build #" + BuildNumber.BUILD_NUMBER + ")";
     public static final boolean DEBUG = false;
     // Constants defining block types in the dmg file
+    public static final int BT_ADC = 0x80000004;
     public static final int BT_ZLIB = 0x80000005;
+    public static final int BT_BZIP2 = 0x80000006;
     public static final int BT_COPY = 0x00000001;
     public static final int BT_ZERO = 0x00000002;
     public static final int BT_END = 0xffffffff;
@@ -93,25 +96,29 @@ public class DMGExtractor {
 	}
 	
 	dmgRaf.seek(dmgRaf.length()-PLIST_ADDRESS_1);
-	long addressOccurrence1 = dmgRaf.readLong();
+	long plistBegin1 = dmgRaf.readLong();
+	long plistEnd = dmgRaf.readLong();
 	dmgRaf.seek(dmgRaf.length()-PLIST_ADDRESS_2);
-	long addressOccurrence2 = dmgRaf.readLong();
+	long plistBegin2 = dmgRaf.readLong();
+	long plistSize = dmgRaf.readLong();
 	
 	if(DEBUG) {
 	    println("Read addresses:",
-		    "  " + addressOccurrence1,
-		    "  " + addressOccurrence2);
+		    "  " + plistBegin1,
+		    "  " + plistBegin2);
 	}
-	if(addressOccurrence1 != addressOccurrence2) {
-	    println("Addresses not equal! Assumption broken... =/");
-	    if(!DEBUG)
-		println(addressOccurrence1 + " != " + addressOccurrence2);
+	if(plistBegin1 != plistBegin2) {
+	    println("Addresses not equal! Assumption broken... =/",
+		    plistBegin1 + " != " + plistBegin2);
 	    System.exit(0);
 	}
-	
+	if(plistSize != (plistEnd-plistBegin1)) {
+	    println("plistSize field does not match plistEnd marker!",
+		    "plistSize=" + plistSize + " plistBegin1=" + plistBegin1 + " plistEnd=" + plistEnd + " plistEnd-plistBegin1=" + (plistEnd-plistBegin1));
+	}
 	printlnVerbose("Jumping to address...");
- 	dmgRaf.seek(addressOccurrence1);
-	byte[] buffer = new byte[(int)(dmgRaf.length()-addressOccurrence1)];
+ 	dmgRaf.seek(plistBegin1);
+	byte[] buffer = new byte[(int)plistSize];
 	dmgRaf.read(buffer);
 
 	InputStream is = new ByteArrayInputStream(buffer);
@@ -119,8 +126,33 @@ public class DMGExtractor {
 	NodeBuilder handler = new NodeBuilder();
 	SAXParser saxParser = SAXParserFactory.newInstance().newSAXParser();
 	try {
+// 	    System.out.println("validation: " + saxParser.getProperty("validation"));
+// 	    System.out.println("external-general-entities: " + saxParser.getProperty("external-general-entities"));
+// 	    System.out.println("external-parameter-entities: " + saxParser.getProperty("external-parameter-entities"));
+// 	    System.out.println("is-standalone: " + saxParser.getProperty("is-standalone"));
+// 	    System.out.println("lexical-handler: " + saxParser.getProperty("lexical-handler"));
+// 	    System.out.println("parameter-entities: " + saxParser.getProperty("parameter-entities"));
+// 	    System.out.println("namespaces: " + saxParser.getProperty("namespaces"));
+// 	    System.out.println("namespace-prefixes: " + saxParser.getProperty("namespace-prefixes"));
+// 	    System.out.println(": " + saxParser.getProperty(""));
+// 	    System.out.println(": " + saxParser.getProperty(""));
+// 	    System.out.println(": " + saxParser.getProperty(""));
+// 	    System.out.println(": " + saxParser.getProperty(""));
+// 	    System.out.println("" + saxParser.getProperty(""));
+// 	    System.out.println("" + saxParser.getProperty(""));
+// 	    System.out.println("" + saxParser.getProperty(""));
+// 	    System.out.println("" + saxParser.getProperty(""));
+// 	    System.out.println("" + saxParser.getProperty(""));
+// 	    System.out.println("" + saxParser.getProperty(""));
+// 	    System.out.println("" + saxParser.getProperty(""));
+// 	    System.out.println("" + saxParser.getProperty(""));
+	    System.out.println("isValidating: " + saxParser.isValidating());
 	    saxParser.parse(is, handler);
-	} catch(SAXException se) {}
+	} catch(SAXException se) {
+	    se.printStackTrace();
+	    System.err.println("Could not read the partition list... exiting.");
+	    System.exit(1);
+	}
 	
 	XMLNode[] rootNodes = handler.getRoots();
 	if(rootNodes.length != 1) {
@@ -152,8 +184,11 @@ public class DMGExtractor {
 	for(int y = 0; y < zeroblock.length; ++y)
 	    zeroblock[y] = 0;
 	
+	LinkedList<DMGBlock> blocks = new LinkedList<DMGBlock>();
+	
 	//long lastOffs = 0;
 	long lastOutOffset = 0;
+	long lastInOffset = 0;
 	long totalSize = 0;
 	boolean errorsFound = false;
 	reportProgress(0);
@@ -171,6 +206,12 @@ public class DMGExtractor {
 		printlnVerbose("    Attributes: " + xn.getKeyValue("Attributes"));
 		printlnVerbose("    Partition map data length: " + data.length + " bytes");
 		printlnVerbose("    Partition size: " + partitionSize + " bytes");
+		if(verbose) {
+		    printlnVerbose("    Dumping blkx...");
+		    FileOutputStream fos = new FileOutputStream(xn.getKeyValue("ID") + ".blkx");
+		    fos.write(data);
+		    fos.close();
+		}
 
 		if(DEBUG) {
 		    File dumpFile = new File("data " + xn.getKeyValue("ID") + ".bin");
@@ -185,14 +226,18 @@ public class DMGExtractor {
 		int blockType = 0;
 		
 		/* Offset of the input data for the current block in the input file */
-		long inOffset;
+		long inOffset = 0;
 		/* Size of the input data for the current block */
-		long inSize;
+		long inSize = 0;
 		/* Offset of the output data for the current block in the output file */
-		long outOffset;
+		long outOffset = 0;
 		/* Size of the output data (possibly larger than inSize because of
 		   decompression, zero expansion...) */
-		long outSize;
+		long outSize = 0;
+		
+		long lastByteReadInBlock = -1;
+
+		boolean addInOffset = false;
 		
 		//, lastInOffs = 0;
 		int blockCount = 0;
@@ -205,7 +250,7 @@ public class DMGExtractor {
 			bytesSkipped += dis.skipBytes(offset-bytesSkipped);
 		    
 		    blockType = dis.readInt();
-		    dis.readInt(); //Skip 4 bytes forward
+		    int skipped = dis.readInt(); //Skip 4 bytes forward
 		    outOffset = dis.readLong()*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
 		    //dis.readInt(); //Skip 4 bytes forward
 		    outSize = dis.readLong()*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
@@ -213,16 +258,38 @@ public class DMGExtractor {
 		    //dis.readInt(); //Skip 4 bytes forward
 		    inSize = dis.readLong();//dis.readInt() & 0xffffffffL; //unsigned int -> long
 		    
+		    blocks.add(new DMGBlock(blockType, skipped, outOffset, outSize, inOffset, inSize));
+
+		    if(lastByteReadInBlock == -1)
+			lastByteReadInBlock = inOffset;
+		    lastByteReadInBlock += inSize;
+		    
+		    /* The lines below are a "hack" that I had to do to make dmgx work with
+		       certain dmg-files. I don't understand the issue at all, which is why
+		       this hack is here, but sometimes inOffset == 0 means that it is 0
+		       relative to the previous partition's last inOffset. And sometimes it
+		       doesn't (meaning the actual position 0 in the dmg file). */
+		    if(addInOffset)
+			inOffset += lastInOffset;
+		    else if(inOffset == 0) {
+			addInOffset = true;
+			inOffset += lastInOffset;
+		    }
 		    outOffset += lastOutOffset;
 		    
 		    if(DEBUG) {
 			println("outOffset=" + outOffset + " outSize=" + outSize + 
 				" inOffset=" + inOffset + " inSize=" + inSize +
-				" lastOutOffset=" + lastOutOffset
+				" lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset
 				/*+ " lastInOffs=" + lastInOffs + " lastOffs=" + lastOffs*/);
 		    }
 		    
-		    if(blockType == BT_ZLIB) {
+		    if(blockType == BT_ADC) {
+			println("      " + blockCount + ". BT_ADC not supported.");
+			if(!testOnly)
+			    System.exit(0);
+		    }
+		    else if(blockType == BT_ZLIB) {
 			if(DEBUG)
 			    println("      " + blockCount + ". BT_ZLIB processing...");
 			
@@ -237,7 +304,7 @@ public class DMGExtractor {
 			
 			long totalBytesRead = 0;
 			while(totalBytesRead < inSize) {
-			    totalBytesRead += dmgRaf.read(tmp, 0, Math.min((int)(inSize-totalBytesRead), tmp.length));
+			    totalBytesRead += dmgRaf.read(tmp, (int)totalBytesRead, Math.min((int)(inSize-totalBytesRead), tmp.length));
 			}
 			long progressPercentage = dmgRaf.getFilePointer()*100/dmgRaf.length();
 			if(progressPercentage != previousPercentage) {
@@ -254,14 +321,22 @@ public class DMGExtractor {
 			int bytesInflated = 0;
 			while(true) {
 			    try {
-				bytesInflated = inflater.inflate(otmp);
-				//System.out.println("        Inflated " + bytesInflated + " bytes. Left in buffer: " + inflater.getRemaining() + " bytes");
+				int counter = 0;
+				while(bytesInflated < outSize && counter++ < 10) {
+				    int old = bytesInflated;
+				    bytesInflated += inflater.inflate(otmp, bytesInflated, (int)(outSize-bytesInflated));
+				    if(old == bytesInflated)
+					println("Nothing new! finished()=" + inflater.finished() + " needsInput()=" + inflater.needsInput() + " needsDictionary()=" + inflater.needsDictionary() + " getAdler()=" + inflater.getAdler() + " getBytesRead()=" + inflater.getBytesRead() + " getBytesWritten()=" + inflater.getBytesWritten() + " getRemaining()=" + inflater.getRemaining());
+				}
+				//System.out.println("        Inflated " + bytesInflated + " bytes. Left in buffer: " + inflater.getRemaining() + " bytes inSize="+inSize+" outSize="+outSize);
+				
 				if(inflater.getRemaining() == 0) {
 				    //System.out.println("          done!");
 				    break;
 				}
 				else {
-				    System.out.println("      " + blockCount + ". BT_ZLIB ERROR: otmp contents lost! (should not happen...)");
+				    println("      " + blockCount + ". BT_ZLIB ERROR: otmp contents lost! (should not happen...)",
+					    "      outSize=" + outSize + " inSize=" + inSize + " tmp.length=" + tmp.length + " otmp.length=" + otmp.length + " bytesInflated=" + bytesInflated + " inflater.getRemaining()=" + inflater.getRemaining());
 // 				    if(bytesInflated == 0)
 				    throw new RuntimeException("WTF");
 				}
@@ -271,7 +346,7 @@ public class DMGExtractor {
 				if(!DEBUG) {
 				    println("outOffset=" + outOffset + " outSize=" + outSize + 
 					    " inOffset=" + inOffset + " inSize=" + inSize +
-					    " lastOutOffset=" + lastOutOffset);
+					    " lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset);
 				}
 				dfe.printStackTrace();
 				if(!testOnly)
@@ -291,6 +366,11 @@ public class DMGExtractor {
 			    isoRaf.write(otmp, 0, (int)outSize);
 			
   			//lastInOffs = inOffset+inSize;
+		    }
+		    else if(blockType == BT_BZIP2) {
+			println("      " + blockCount + ". BT_BZIP2 not currently supported.");
+			if(!testOnly)
+			    System.exit(0);
 		    }
 		    else if(blockType == BT_COPY) {
 			if(DEBUG)
@@ -352,8 +432,8 @@ public class DMGExtractor {
 			if(DEBUG)
 			    println("      " + blockCount + ". BT_UNKNOWN processing...");
 			if(!(inSize == 0 && outSize == 0)) {
-			    println("      " + blockCount + ". WARNING! Blocktype BT_UNKNOWN had non-zero sizes...");
-			    println("        inSize=" + inSize + ", outSize=" + outSize);
+			    println("      " + blockCount + ". WARNING! Blocktype BT_UNKNOWN had non-zero sizes...",
+				    "        inSize=" + inSize + ", outSize=" + outSize);
 			    //println("        The author of the program would be pleased if you contacted him about this.");
 			    // ...or would I?
 			}
@@ -367,10 +447,12 @@ public class DMGExtractor {
 			
 			//lastOffs += lastInOffs;
 			lastOutOffset = outOffset;
+			lastInOffset += lastByteReadInBlock;
 		    }
  		    else {
- 			println("      " + blockCount + ". WARNING: previously unseen blocktype " + blockType + 
-				" [0x" + Integer.toHexString(blockType) + "]");
+ 			println("      " + blockCount + ". WARNING: previously unseen blocktype " + blockType + " [0x" + Integer.toHexString(blockType) + "]",
+				"      " + blockCount + ". outOffset=" + outOffset + " outSize=" + outSize + " inOffset=" + inOffset + " inSize=" + inSize);
+			
  			if(!testOnly && isoRaf.getFilePointer() != outOffset)
 			    println("      " + blockCount + ". unknown blocktype FP != outOffset (" +
 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
@@ -382,7 +464,6 @@ public class DMGExtractor {
 		}
 	    }
 	}
-	dmgRaf.close();
 	//printlnVerbose("Progress: 100% Done!");
 	reportProgress(100);
 	String errors = errorsFound?"There were errors...":"No errors reported.";
@@ -398,6 +479,51 @@ public class DMGExtractor {
 					  "Information", JOptionPane.INFORMATION_MESSAGE);
 	    System.exit(0);
 	}
+// 	System.out.println("blocks.size()=" + blocks.size());
+// 	for(DMGBlock b : blocks)
+// 	    System.out.println("  " + b.toString());
+	LinkedList<DMGBlock> merged = mergeBlocks(blocks);
+// 	System.out.println("merged.size()=" + merged.size());
+// 	for(DMGBlock b : merged)
+// 	    System.out.println("  " + b.toString());
+	System.out.println("Extracting all the parts not containing block data from source file:");
+	int i = 1;
+	DMGBlock previous = null;
+	for(DMGBlock b : merged) {
+	    if(previous == null && b.inOffset > 0) {
+		String filename = i++ + ".block";
+		System.out.print("  " + filename + "...");
+		FileOutputStream curFos = new FileOutputStream(new File(filename));
+		dmgRaf.seek(0);
+		byte[] data = new byte[(int)(b.inOffset)];
+		dmgRaf.read(data);
+		curFos.write(data);
+		curFos.close();
+	    }
+	    else if(previous != null) {
+		String filename = i++ + ".block";
+		System.out.print("  " + filename + "...");
+		FileOutputStream curFos = new FileOutputStream(new File(filename));
+		dmgRaf.seek(previous.inOffset+previous.inSize);
+		byte[] data = new byte[(int)(b.inOffset-(previous.inOffset+previous.inSize))];
+		dmgRaf.read(data);
+		curFos.write(data);
+		curFos.close();
+	    }
+	    previous = b;
+	}
+	if(previous.inOffset+previous.inSize != dmgRaf.length()) {
+	    String filename = i++ + ".block";
+	    System.out.print("  " + filename + "...");
+	    FileOutputStream curFos = new FileOutputStream(new File(filename));
+	    dmgRaf.seek(previous.inOffset+previous.inSize);
+	    byte[] data = new byte[(int)(dmgRaf.length()-(previous.inOffset+previous.inSize))];
+	    dmgRaf.read(data);
+	    curFos.write(data);		
+	    curFos.close();
+	}
+	dmgRaf.close();
+	System.out.println("done!");
     }
 
     public static void parseArgs(String[] args) {
@@ -425,8 +551,10 @@ public class DMGExtractor {
 		    "  Copyright (c) 2004 vu1tur <v@vu1tur.eu.org>",
 		    "  also using the iharder Base64 Encoder/Decoder <http://iharder.sf.net>",
 		    "",
-		    "This program is distributed under the GNU General Public License version 2 or later.",
-		    "See <http://www.gnu.org/copyleft/gpl.html> for the details.");
+		    "This program is distributed under the GNU General Public License version 2 or",
+		    "later.",
+		    "See <http://www.gnu.org/copyleft/gpl.html> for the details.",
+		    "");
 	    
 	    if(i == args.length) {
 		dmgFile = getInputFileFromUser();
@@ -650,6 +778,49 @@ public class DMGExtractor {
 	    }
 	}
     }
+    
+    public static LinkedList<DMGBlock> mergeBlocks(LinkedList<DMGBlock> blockList) {
+	LinkedList<DMGBlock> result = new LinkedList<DMGBlock>();
+	Iterator<DMGBlock> it = blockList.iterator();
+	DMGBlock previous = it.next();
+	DMGBlock current;
+	while(it.hasNext()) {
+	    current = it.next();
+	    if(current.inSize != 0) {
+		if(current.inOffset == previous.inOffset+previous.inSize) {
+		    DMGBlock mergedBlock = new DMGBlock(previous.blockType, previous.skipped, previous.outOffset, previous.outSize+current.outSize, previous.inOffset, previous.inSize+current.inSize);
+		    previous = mergedBlock;
+		}
+		else {
+		    result.addLast(previous);
+		    previous = current;
+		}
+	    }
+	}
+	result.addLast(previous);
+	return result;
+    }
 
+    public static class DMGBlock {
+	public int blockType;
+	public int skipped;
+	public long outOffset;
+	public long outSize;
+	public long inOffset;
+	public long inSize;
+	    
+	public DMGBlock(int blockType, int skipped, long outOffset, long outSize, long inOffset, long inSize) {
+	    this.blockType = blockType;
+	    this.skipped = skipped;
+	    this.outOffset = outOffset;
+	    this.outSize = outSize;
+	    this.inOffset = inOffset;
+	    this.inSize = inSize;
+	}
+	
+	public String toString() {
+	    return "[type: 0x" + Integer.toHexString(blockType) + " skipped: 0x" + Integer.toHexString(skipped) + " outOffset: " + outOffset + " outSize: " + outSize + " inOffset: " + inOffset + " inSize: " + inSize + "]";
+	}
+    }
 }
 
