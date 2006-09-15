@@ -116,3 +116,32 @@ public class DMGInfo {
 	return result.toString();
     }
 }
+
+class DMGInfoFrame extends JFrame {
+    private JTabbedPane mainPane;
+    
+    public DMGInfoFrame() {
+	this("DMGInfo");
+	
+	mainPane = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
+	
+	StatisticsPanel statisticsPanel;
+	statisticsPanel = new StatisticsPanel();
+	mainPane.addTab(statisticsPanel, "Statistics");
+    }
+}
+
+class StatisticsPanel extends JPanel {
+    JPanel blocktypeCountPanel;
+
+    public StatisticsPanel(DMGFile dmgFile) {}
+}
+
+class DMGFile extends RandomAccessFile {
+    public DMGFile(File file, String mode) {
+	super(file, mode);
+    }
+    public DMGFile(String name, String mode) {
+	super(name, mode);
+    }
+}
