@@ -18,9 +18,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 
-public class BuildNumber {
-    //[BuildEnumerator:Opening] WARNING: The following lines are managed by an external program. Do NOT change.
-    public static final long BUILD_NUMBER = 130L;
-    //[BuildEnumerator:Closing] The lines managed by an external program end here.
-}
+package org.catacombae.dmgx;
 
+class Attribute {
+    public final String localName;
+    public final String qName;
+    public final String type;
+    public final String URI;
+    public final String value;
+    public Attribute(String localName, String qName, String type, String URI, String value) {
+	this.localName = localName;
+	this.qName = qName;
+	this.type = type;
+	this.URI = URI;
+	this.value = value;
+    }
+}
