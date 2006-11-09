@@ -39,13 +39,14 @@ import org.xml.sax.helpers.DefaultHandler;
 public class DMGExtractor {
     public static final String APPNAME = "DMGExtractor 0.51pre";
     public static final String BUILDSTRING = "(Build #" + BuildNumber.BUILD_NUMBER + ")";
-    public static final boolean DEBUG = false;
+    public static final boolean DEBUG = true;
     // Constants defining block types in the dmg file
     public static final int BT_ADC = 0x80000004;
     public static final int BT_ZLIB = 0x80000005;
     public static final int BT_BZIP2 = 0x80000006;
     public static final int BT_COPY = 0x00000001;
     public static final int BT_ZERO = 0x00000002;
+    public static final int BT_ZERO2 = 0x00000000; // This one also represents a fill of zeroes. What is the difference?
     public static final int BT_END = 0xffffffff;
     public static final int BT_UNKNOWN = 0x7ffffffe;
     public static final long PLIST_ADDRESS_1 = 0x1E0;
@@ -86,12 +87,6 @@ public class DMGExtractor {
 	
 	parseArgs(args);
 
-	if(graphical) {
-	    System.setProperty("swing.aatext", "true"); //Antialiased text
-	    try { javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName()); }
-	    catch(Exception e) {}
-	}
-	
 	printlnVerbose("Processing: " + dmgFile);
 	RandomAccessFile dmgRaf = new RandomAccessFile(dmgFile, "r");
 	RandomAccessFile isoRaf = null;
@@ -198,11 +193,13 @@ public class DMGExtractor {
 	
 	LinkedList<DMGBlock> blocks = new LinkedList<DMGBlock>();
 	
+	long elementNumber = 0;
 	//long lastOffs = 0;
 	long lastOutOffset = 0;
 	long lastInOffset = 0;
 	long totalSize = 0;
-	boolean errorsFound = false;
+	int errorsReported = 0;
+	int warningsReported = 0;
 	reportProgress(0);
 	for(XMLElement xe : current.getChildren()) {
 	    if(progmon != null && progmon.isCanceled()) System.exit(0);
@@ -269,9 +266,6 @@ public class DMGExtractor {
 		    //dis.readInt(); //Skip 4 bytes forward
 		    inSize = dis.readLong();//dis.readInt() & 0xffffffffL; //unsigned int -> long
 		    
-		    DMGBlock currentBlock = new DMGBlock(blockType, skipped, outOffset, outSize, inOffset, inSize);
-		    blocks.add(currentBlock);
-
 		    if(lastByteReadInBlock == -1)
 			lastByteReadInBlock = inOffset;
 		    lastByteReadInBlock += inSize;
@@ -281,14 +275,22 @@ public class DMGExtractor {
 		       this hack is here, but sometimes inOffset == 0 means that it is 0
 		       relative to the previous partition's last inOffset. And sometimes it
 		       doesn't (meaning the actual position 0 in the dmg file). */
-		    if(addInOffset)
+		    if(addInOffset) {
+			if(DEBUG)
+			    println("!-----addInOffset mode: inOffset tranformation " + inOffset + "->" + (inOffset+lastInOffset));
 			inOffset += lastInOffset;
+		    }
 		    else if(inOffset == 0) {
+			if(DEBUG)
+			    println("!-----Detected inOffset == 0, setting to " + lastInOffset);
 			addInOffset = true;
-			inOffset += lastInOffset;
+			inOffset = lastInOffset;
 		    }
 		    outOffset += lastOutOffset;
 		    
+		    DMGBlock currentBlock = new DMGBlock(blockType, skipped, outOffset, outSize, inOffset, inSize);
+		    blocks.add(currentBlock);
+
 		    if(DEBUG) {
 			println("outOffset=" + outOffset + " outSize=" + outSize + 
 				" inOffset=" + inOffset + " inSize=" + inSize +
@@ -297,22 +299,24 @@ public class DMGExtractor {
 		    }
 		    
 		    if(blockType == BT_ADC) {
-			println("      " + blockCount + ". BT_ADC not supported.");
+			println("      " + elementNumber + ":" + blockCount + ". ERROR: BT_ADC not supported.");
+			++errorsReported;
 			if(!testOnly)
 			    System.exit(0);
 		    }
 		    else if(blockType == BT_ZLIB) {
 			if(DEBUG)
-			    println("      " + blockCount + ". BT_ZLIB processing...");
+			    println("      " + elementNumber + ":"  + blockCount + ". BT_ZLIB processing...");
 			
 			if(!testOnly && isoRaf.getFilePointer() != outOffset)
-			    println("      " + blockCount + ". BT_ZLIB FP != outOffset (" +
+			    println("      " + elementNumber + ":"  + blockCount + ". WARNING: BT_ZLIB FP != outOffset (" +
 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
 
 			try {
 			    DMGBlockHandlers.processZlibBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
 			} catch(DataFormatException dfe) {
-			    println("      " + blockCount + ". BT_ZLIB Could not decode...");
+			    println("      " + elementNumber + ":"  + blockCount + ". ERROR: BT_ZLIB Could not decode...");
+			    ++errorsReported;
 			    if(!DEBUG) {
 				println("outOffset=" + outOffset + " outSize=" + outSize + 
 					" inOffset=" + inOffset + " inSize=" + inSize +
@@ -324,22 +328,24 @@ public class DMGExtractor {
 			    else {
 				println("      Testing mode, so continuing...");
 				//System.exit(0);
-				errorsFound = true;
 				break;
 			    }
 			}
 		    }
 		    else if(blockType == BT_BZIP2) {
-			println("      " + blockCount + ". BT_BZIP2 not currently supported.");
+			println("      " + elementNumber + ":" + blockCount + ". ERROR: BT_BZIP2 not currently supported.");
+			++errorsReported;
 			if(!testOnly)
 			    System.exit(0);
 		    }
 		    else if(blockType == BT_COPY) {
 			if(DEBUG)
-			    println("      " + blockCount + ". BT_COPY processing...");
+			    println("      " + elementNumber + ":" + blockCount + ". BT_COPY processing...");
 
-			if(!testOnly && isoRaf.getFilePointer() != outOffset)
-			    println("      " + blockCount + ". BT_COPY FP != outOffset (" + isoRaf.getFilePointer() + " != " + outOffset + ")");
+			if(!testOnly && isoRaf.getFilePointer() != outOffset) {
+			    println("      " + elementNumber + ":" + blockCount + ". WARNING: BT_COPY FP != outOffset (" + isoRaf.getFilePointer() + " != " + outOffset + ")");
+			    ++warningsReported;
+			}
 			dmgRaf.seek(/*lastOffs+*/inOffset);
 			
 			int bytesRead = dmgRaf.read(inBuffer, 0, Math.min((int)inSize, inBuffer.length));
@@ -360,10 +366,34 @@ public class DMGExtractor {
 		    }
 		    else if(blockType == BT_ZERO) {
 			if(DEBUG)
-			    println("      " + blockCount + ". BT_ZERO processing...");
-			if(!testOnly && isoRaf.getFilePointer() != outOffset)
-			    println("      " + blockCount + ". BT_ZERO FP != outOffset (" + 
+			    println("      " + elementNumber + ":" + blockCount + ". BT_ZERO processing...");
+			if(!testOnly && isoRaf.getFilePointer() != outOffset) {
+			    println("      " + elementNumber + ":" + blockCount + ". WARNING: BT_ZERO FP != outOffset (" + 
 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
+			    ++warningsReported;
+			}
+
+			reportFilePointerProgress(dmgRaf);
+
+			long numberOfZeroBlocks = outSize/zeroblock.length;
+			int numberOfRemainingBytes = (int)(outSize%zeroblock.length);
+			for(int j = 0; j < numberOfZeroBlocks; ++j) {
+			    if(!testOnly)
+				isoRaf.write(zeroblock);
+			}
+			if(!testOnly)
+			    isoRaf.write(zeroblock, 0, numberOfRemainingBytes);
+			
+ 			//lastInOffs = inOffset+inSize;
+		    }
+		    else if(blockType == BT_ZERO2) {
+			if(DEBUG)
+			    println("      " + elementNumber + ":" + blockCount + ". BT_ZERO2 processing...");
+			if(!testOnly && isoRaf.getFilePointer() != outOffset) {
+			    println("      " + elementNumber + ":" + blockCount + ". WARNING: BT_ZERO2 FP != outOffset (" + 
+				    isoRaf.getFilePointer() + " != " + outOffset + ")");
+			    ++warningsReported;
+			}
 
 			reportFilePointerProgress(dmgRaf);
 
@@ -383,19 +413,20 @@ public class DMGExtractor {
 			   doesn't appear more than 2-3 times in a dmg. As long as its input and
 			   output sizes are 0, there's no reason to complain... is there? */
 			if(DEBUG)
-			    println("      " + blockCount + ". BT_UNKNOWN processing...");
+			    println("      " + elementNumber + ":" + blockCount + ". BT_UNKNOWN processing...");
 			if(!(inSize == 0 && outSize == 0)) {
-			    println("      " + blockCount + ". WARNING! Blocktype BT_UNKNOWN had non-zero sizes...",
+			    println("      " + elementNumber + ":" + blockCount + ". WARNING: Blocktype BT_UNKNOWN had non-zero sizes...",
 				    "        inSize=" + inSize + ", outSize=" + outSize);
+			    ++warningsReported;
 			    //println("        The author of the program would be pleased if you contacted him about this.");
 			    // ...or would I?
 			}
 		    }
 		    else if(blockType == BT_END) {
 			if(DEBUG)
-			    println("      " + blockCount + ". BT_END processing...");
+			    println("      " + elementNumber + ":" + blockCount + ". BT_END processing...");
  			if(!testOnly && isoRaf.getFilePointer() != outOffset)
-			    println("      " + blockCount + ". BT_END FP != outOffset (" +
+			    println("      " + elementNumber + ":" + blockCount + ". WARNING: BT_END FP != outOffset (" +
 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
 			
 			//lastOffs += lastInOffs;
@@ -403,11 +434,12 @@ public class DMGExtractor {
 			lastInOffset += lastByteReadInBlock;
 		    }
  		    else {
- 			println("      " + blockCount + ". WARNING: previously unseen blocktype " + blockType + " [0x" + Integer.toHexString(blockType) + "]",
-				"      " + blockCount + ". outOffset=" + outOffset + " outSize=" + outSize + " inOffset=" + inOffset + " inSize=" + inSize);
+ 			println("      " + elementNumber + ":" + blockCount + ". WARNING: previously unseen blocktype " + blockType + " [0x" + Integer.toHexString(blockType) + "]",
+				"      " + elementNumber + ":" + blockCount + ". outOffset=" + outOffset + " outSize=" + outSize + " inOffset=" + inOffset + " inSize=" + inSize);
+			++warningsReported;
 			
  			if(!testOnly && isoRaf.getFilePointer() != outOffset)
-			    println("      " + blockCount + ". unknown blocktype FP != outOffset (" +
+			    println("      " + elementNumber + ":" + blockCount + ". unknown blocktype FP != outOffset (" +
 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
 			
 		    }
@@ -416,29 +448,33 @@ public class DMGExtractor {
 		    ++blockCount;
 		}
 	    }
+	    ++elementNumber;
 	}
 	//printlnVerbose("Progress: 100% Done!");
 	reportProgress(100);
-	String errors = errorsFound?"There were errors...":"No errors reported.";
+	String summary = (errorsReported != 0)?errorsReported+" errors reported":"No errors reported";
+	summary += (warningsReported != 0)?" ("+warningsReported+" warnings emitted).":".";
 	if(!graphical) {
 	    newline();
-	    println(errors);
+	    println(summary);
 	    printlnVerbose("Total extracted bytes: " + totalSize + " B");
 	}
 	else {
 	    progmon.close();
-	    JOptionPane.showMessageDialog(null, "Extraction complete! " + errors + "\n" +
+	    JOptionPane.showMessageDialog(null, "Extraction complete! " + summary + "\n" +
 					  "Total extracted bytes: " + totalSize + " B", 
 					  "Information", JOptionPane.INFORMATION_MESSAGE);
 	    System.exit(0);
 	}
 
 	if(!DEBUG) {
-	    isoRaf.close();
+	    if(isoRaf != null)
+		isoRaf.close();
 	    dmgRaf.close();
 	}
 	else {
-	    isoRaf.close();
+	    if(isoRaf != null)
+		isoRaf.close();
 // 	System.out.println("blocks.size()=" + blocks.size());
 // 	for(DMGBlock b : blocks)
 // 	    System.out.println("  " + b.toString());
@@ -495,8 +531,14 @@ public class DMGExtractor {
 		String cur = args[i];
 		if(!cur.startsWith("-"))
 		    break;
-		else if(cur.equals("-gui"))
+		else if(cur.equals("-gui")) {
 		    graphical = true;
+
+		    // This should be moved to UI class in the future.
+		    System.setProperty("swing.aatext", "true"); //Antialiased text
+		    try { javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName()); }
+		    catch(Exception e) {}
+		}
 		else if(cur.equals("-v"))
 		    verbose = true;
 		else if(cur.equals("-startupcommand")) {
@@ -507,13 +549,11 @@ public class DMGExtractor {
 
 	    println(APPNAME + " " + BUILDSTRING,
 		    "Copyright (c) 2006 Erik Larsson <erik82@kth.se>",
-		    "  written from the source code to the original dmg2iso program",
-		    "  Copyright (c) 2004 vu1tur <v@vu1tur.eu.org>",
-		    "  also using the iharder Base64 Encoder/Decoder <http://iharder.sf.net>",
+		    "  based upon dmg2iso, Copyright (c) 2004 vu1tur <v@vu1tur.eu.org>",
+		    "  also using the iHarder Base64 Encoder/Decoder <http://iharder.sf.net>",
 		    "",
 		    "This program is distributed under the GNU General Public License version 2 or",
-		    "later.",
-		    "See <http://www.gnu.org/copyleft/gpl.html> for the details.",
+		    "later. See <http://www.gnu.org/copyleft/gpl.html> for the details.",
 		    "");
 	    
 	    if(i == args.length) {
