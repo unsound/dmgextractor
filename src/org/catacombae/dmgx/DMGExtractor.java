@@ -39,7 +39,7 @@ import org.xml.sax.helpers.DefaultHandler;
 public class DMGExtractor {
     public static final String APPNAME = "DMGExtractor 0.51pre";
     public static final String BUILDSTRING = "(Build #" + BuildNumber.BUILD_NUMBER + ")";
-    public static final boolean DEBUG = false;
+    public static final boolean DEBUG = true;
     // Constants defining block types in the dmg file
     public static final int BT_ADC = 0x80000004;
     public static final int BT_ZLIB = 0x80000005;
@@ -61,8 +61,14 @@ public class DMGExtractor {
     public static String startupCommand = "java DMGExtractor";
     public static File dmgFile = null;
     public static File isoFile = null;
+    
+    /** Used to prevent unneccessary updates of the progress meter. */
+    public static long previousPercentage = -1;
 
     public static ProgressMonitor progmon;
+
+    /* temp */
+    private static DummyMonitor dummyMonitor = new DummyMonitor();
     
     public static void main(String[] args) throws Exception {
 	try {
@@ -76,14 +82,17 @@ public class DMGExtractor {
     }
     
     public static void notmain(String[] args) throws Exception {
-	System.setProperty("swing.aatext", "true"); //Antialiased text
-       	try { javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName()); }
-	catch(Exception e) {}
-	
+	System.out.println("Starting...");
 	if(DEBUG) verbose = true;
 	
 	parseArgs(args);
 
+	if(graphical) {
+	    System.setProperty("swing.aatext", "true"); //Antialiased text
+	    try { javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName()); }
+	    catch(Exception e) {}
+	}
+	
 	printlnVerbose("Processing: " + dmgFile);
 	RandomAccessFile dmgRaf = new RandomAccessFile(dmgFile, "r");
 	RandomAccessFile isoRaf = null;
@@ -178,8 +187,8 @@ public class DMGExtractor {
 	current = current.cdkey("blkx");
 	printlnVerbose("Found " + current.getChildren().length + " partitions:");
 	
-	byte[] tmp = new byte[0x40000];
-	byte[] otmp = new byte[0x40000];
+	byte[] inBuffer = new byte[0x40000];
+	byte[] outBuffer = new byte[0x40000];
 
 	byte[] zeroblock = new byte[4096];
 	/* I think java always zeroes its arrays on creation... 
@@ -244,7 +253,6 @@ public class DMGExtractor {
 		
 		//, lastInOffs = 0;
 		int blockCount = 0;
-		long previousPercentage = -1;
 		while(blockType != BT_END) {		    
 		    if(progmon != null && progmon.isCanceled()) System.exit(0);
 		    DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
@@ -261,7 +269,8 @@ public class DMGExtractor {
 		    //dis.readInt(); //Skip 4 bytes forward
 		    inSize = dis.readLong();//dis.readInt() & 0xffffffffL; //unsigned int -> long
 		    
-		    blocks.add(new DMGBlock(blockType, skipped, outOffset, outSize, inOffset, inSize));
+		    DMGBlock currentBlock = new DMGBlock(blockType, skipped, outOffset, outSize, inOffset, inSize);
+		    blocks.add(currentBlock);
 
 		    if(lastByteReadInBlock == -1)
 			lastByteReadInBlock = inOffset;
@@ -299,52 +308,11 @@ public class DMGExtractor {
 			if(!testOnly && isoRaf.getFilePointer() != outOffset)
 			    println("      " + blockCount + ". BT_ZLIB FP != outOffset (" +
 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
-			
-			dmgRaf.seek(/*lastOffs+*/inOffset);
 
-			if(tmp.length < inSize)
-			    tmp = new byte[(int)inSize];
-			
-			long totalBytesRead = 0;
-			while(totalBytesRead < inSize) {
-			    totalBytesRead += dmgRaf.read(tmp, (int)totalBytesRead, Math.min((int)(inSize-totalBytesRead), tmp.length));
-			}
-			long progressPercentage = dmgRaf.getFilePointer()*100/dmgRaf.length();
-			if(progressPercentage != previousPercentage) {
-			    reportProgress(progressPercentage);
-			    previousPercentage = progressPercentage;
-			}
-			
-			Inflater inflater = new Inflater();
-			inflater.setInput(tmp, 0, (int)totalBytesRead);
-
-			if(otmp.length < outSize)
-			    otmp = new byte[(int)outSize];
-			
-			int bytesInflated = 0;
-			while(true) {
+			if(true) {
 			    try {
-				int counter = 0;
-				while(bytesInflated < outSize && counter++ < 10) {
-				    int old = bytesInflated;
-				    bytesInflated += inflater.inflate(otmp, bytesInflated, (int)(outSize-bytesInflated));
-				    if(old == bytesInflated)
-					println("Nothing new! finished()=" + inflater.finished() + " needsInput()=" + inflater.needsInput() + " needsDictionary()=" + inflater.needsDictionary() + " getAdler()=" + inflater.getAdler() + " getBytesRead()=" + inflater.getBytesRead() + " getBytesWritten()=" + inflater.getBytesWritten() + " getRemaining()=" + inflater.getRemaining());
-				}
-				//System.out.println("        Inflated " + bytesInflated + " bytes. Left in buffer: " + inflater.getRemaining() + " bytes inSize="+inSize+" outSize="+outSize);
-				
-				if(inflater.getRemaining() == 0) {
-				    //System.out.println("          done!");
-				    break;
-				}
-				else {
-				    println("      " + blockCount + ". BT_ZLIB ERROR: otmp contents lost! (should not happen...)",
-					    "      outSize=" + outSize + " inSize=" + inSize + " tmp.length=" + tmp.length + " otmp.length=" + otmp.length + " bytesInflated=" + bytesInflated + " inflater.getRemaining()=" + inflater.getRemaining());
-// 				    if(bytesInflated == 0)
-				    throw new RuntimeException("WTF");
-				}
-			    }
-			    catch(DataFormatException dfe) {
+				DMGBlockHandlers.processZlibBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
+			    } catch(DataFormatException dfe) {
 				println("      " + blockCount + ". BT_ZLIB Could not decode...");
 				if(!DEBUG) {
 				    println("outOffset=" + outOffset + " outSize=" + outSize + 
@@ -361,14 +329,136 @@ public class DMGExtractor {
 				    break;
 				}
 			    }
-			    
 			}
-			inflater.end();
+			else {
+			    dmgRaf.seek(/*lastOffs+*/inOffset);
+			    
+			    try {
+				/*
+				 * medan det finns komprimerat data att läsa:
+				 *   läs in komprimerat data i inbuffer
+				 *   medan det finns data kvar att läsa i inbuffer
+				 *     dekomprimera data från inbuffer till utbuffer
+				 *     skriv utbuffer till fil
+				 */
+				
+				Inflater inflater = new Inflater();
+				long totalBytesRead = 0;
+				while(totalBytesRead < inSize) {
+				    long bytesRemainingToRead = inSize-totalBytesRead;
+				    int curBytesRead = dmgRaf.read(inBuffer, 0, 
+								   (int)Math.min(bytesRemainingToRead, inBuffer.length));
+// 							   ((inSize-totalBytesRead) < inBuffer.length? //Math.min
+// 							    (int)(inSize-totalBytesRead):
+// 							    inBuffer.length));
+				    reportFilePointerProgress(dmgRaf);
+
+				    if(curBytesRead < 0)
+					throw new RuntimeException("Unexpectedly reached end of file");
+				    else {
+					totalBytesRead += curBytesRead;
+					inflater.setInput(inBuffer, 0, curBytesRead);
+					long totalBytesInflated = 0;
+					while(!inflater.needsInput() && !inflater.finished()) {
+					    long bytesRemainingToInflate = outSize-totalBytesInflated;
+					    int curBytesInflated = inflater.inflate(outBuffer, 0, 
+										    (int)Math.min(bytesRemainingToInflate, outBuffer.length));
+					    if(curBytesInflated == 0)
+						throw new RuntimeException("Unexpectedly blocked inflate.");
+					    else {
+						totalBytesInflated += curBytesInflated;
+						if(!testOnly)
+						    isoRaf.write(outBuffer, 0, curBytesInflated);
+					    }
+					}
+				    }
+				}
+				if(!inflater.finished())
+				    throw new RuntimeException("Unclosed ZLIB stream!");
+			    } catch(DataFormatException dfe) {
+				println("      " + blockCount + ". BT_ZLIB Could not decode...");
+				if(!DEBUG) {
+				    println("outOffset=" + outOffset + " outSize=" + outSize + 
+					    " inOffset=" + inOffset + " inSize=" + inSize +
+					    " lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset);
+				}
+				dfe.printStackTrace();
+				if(!testOnly)
+				    System.exit(0);
+				else {
+				    println("      Testing mode, so continuing...");
+				    //System.exit(0);
+				    errorsFound = true;
+				    break;
+				}
+			    }
+			}
+			// Older code starts here
+
+// 			if(inBuffer.length < inSize)
+// 			    inBuffer = new byte[(int)inSize];
 			
-			if(!testOnly)
-			    isoRaf.write(otmp, 0, (int)outSize);
+// 			long totalBytesRead = 0;
+// 			while(totalBytesRead < inSize) {
+// 			    totalBytesRead += dmgRaf.read(inBuffer, (int)totalBytesRead, Math.min((int)(inSize-totalBytesRead), inBuffer.length));
+// 			}
+// 			reportFilePointerProgress(dmgRaf);
 			
-  			//lastInOffs = inOffset+inSize;
+// 			Inflater inflater = new Inflater();
+// 			inflater.setInput(inBuffer, 0, (int)totalBytesRead);
+
+// 			if(outBuffer.length < outSize)
+// 			    outBuffer = new byte[(int)outSize];
+			
+// 			int bytesInflated = 0;
+// 			while(true) {
+// 			    try {
+// 				int counter = 0;
+// 				while(bytesInflated < outSize && counter++ < 10) {
+// 				    int old = bytesInflated;
+// 				    bytesInflated += inflater.inflate(outBuffer, bytesInflated, (int)(outSize-bytesInflated));
+// 				    if(old == bytesInflated)
+// 					println("Nothing new! finished()=" + inflater.finished() + " needsInput()=" + inflater.needsInput() + " needsDictionary()=" + inflater.needsDictionary() + " getAdler()=" + inflater.getAdler() + " getBytesRead()=" + inflater.getBytesRead() + " getBytesWritten()=" + inflater.getBytesWritten() + " getRemaining()=" + inflater.getRemaining());
+// 				}
+// 				//System.out.println("        Inflated " + bytesInflated + " bytes. Left in buffer: " + inflater.getRemaining() + " bytes inSize="+inSize+" outSize="+outSize);
+				
+// 				if(inflater.getRemaining() == 0) {
+// 				    //System.out.println("          done!");
+// 				    break;
+// 				}
+// 				else {
+// 				    println("      " + blockCount + ". BT_ZLIB ERROR: outBuffer contents lost! (should not happen...)",
+// 					    "      outSize=" + outSize + " inSize=" + inSize + " inBuffer.length=" + inBuffer.length + " outBuffer.length=" + outBuffer.length + " bytesInflated=" + bytesInflated + " inflater.getRemaining()=" + inflater.getRemaining());
+// // 				    if(bytesInflated == 0)
+// 				    throw new RuntimeException("WTF");
+// 				}
+// 			    }
+// 			    catch(DataFormatException dfe) {
+// 				println("      " + blockCount + ". BT_ZLIB Could not decode...");
+// 				if(!DEBUG) {
+// 				    println("outOffset=" + outOffset + " outSize=" + outSize + 
+// 					    " inOffset=" + inOffset + " inSize=" + inSize +
+// 					    " lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset);
+// 				}
+// 				dfe.printStackTrace();
+// 				if(!testOnly)
+// 				    System.exit(0);
+// 				else {
+// 				    println("      Testing mode, so continuing...");
+// 				    //System.exit(0);
+// 				    errorsFound = true;
+// 				    break;
+// 				}
+// 			    }
+			    
+// 			}
+// 			inflater.end();
+			
+// 			if(!testOnly)
+// 			    isoRaf.write(outBuffer, 0, (int)outSize);
+			
+//   			//lastInOffs = inOffset+inSize;
+// 			}
 		    }
 		    else if(blockType == BT_BZIP2) {
 			println("      " + blockCount + ". BT_BZIP2 not currently supported.");
@@ -383,21 +473,16 @@ public class DMGExtractor {
 			    println("      " + blockCount + ". BT_COPY FP != outOffset (" + isoRaf.getFilePointer() + " != " + outOffset + ")");
 			dmgRaf.seek(/*lastOffs+*/inOffset);
 			
-			int bytesRead = dmgRaf.read(tmp, 0, Math.min((int)inSize, tmp.length));
+			int bytesRead = dmgRaf.read(inBuffer, 0, Math.min((int)inSize, inBuffer.length));
 			long totalBytesRead = bytesRead;
 			while(bytesRead != -1) {
-			    long progressPercentage = dmgRaf.getFilePointer()*100/dmgRaf.length();
-			    if(progressPercentage != previousPercentage) {
-				reportProgress(progressPercentage);
-				previousPercentage = progressPercentage;
-			    }
-
+			    reportFilePointerProgress(dmgRaf);
 
 			    if(!testOnly)
-				isoRaf.write(tmp, 0, bytesRead);
+				isoRaf.write(inBuffer, 0, bytesRead);
 			    if(totalBytesRead >= inSize)
 				break;
-			    bytesRead = dmgRaf.read(tmp, 0, Math.min((int)(inSize-totalBytesRead), tmp.length));
+			    bytesRead = dmgRaf.read(inBuffer, 0, Math.min((int)(inSize-totalBytesRead), inBuffer.length));
 			    if(bytesRead > 0)
 				totalBytesRead += bytesRead;
 			}
@@ -411,11 +496,7 @@ public class DMGExtractor {
 			    println("      " + blockCount + ". BT_ZERO FP != outOffset (" + 
 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
 
-			long progressPercentage = dmgRaf.getFilePointer()*100/dmgRaf.length();
-			if(progressPercentage != previousPercentage) {
-			    reportProgress(progressPercentage);
-			    previousPercentage = progressPercentage;
-			}
+			reportFilePointerProgress(dmgRaf);
 
 			long numberOfZeroBlocks = outSize/zeroblock.length;
 			int numberOfRemainingBytes = (int)(outSize%zeroblock.length);
@@ -669,18 +750,26 @@ public class DMGExtractor {
 	System.out.println();
     }
     
-    public static void reportProgress(long progressPercentage) {
-	if(!graphical) {
-	    printCurrentLine("--->Progress: " + progressPercentage + "%");
-	}
-	else {
-	    if(progmon == null) {
-		progmon = new ProgressMonitor(null, "Extracting dmg to iso...", "0%", 0, 100);
-		progmon.setProgress(0);
-		progmon.setMillisToPopup(0);
+    /** Simply calculates the file pointers position relative to the file size as a percentage, and reports it. */
+    public static void reportFilePointerProgress(RandomAccessFile raf) throws IOException {
+	reportProgress((int)(raf.getFilePointer()*100/raf.length()));
+    }
+
+    public static void reportProgress(int progressPercentage) {
+	if(progressPercentage != previousPercentage) {
+	    previousPercentage = progressPercentage;
+	    if(!graphical) {
+		printCurrentLine("--->Progress: " + progressPercentage + "%");
 	    }
-	    progmon.setProgress((int)progressPercentage);
-	    progmon.setNote(progressPercentage + "%");
+	    else {
+		if(progmon == null) {
+		    progmon = new ProgressMonitor(null, "Extracting dmg to iso...", "0%", 0, 100);
+		    progmon.setProgress(0);
+		    progmon.setMillisToPopup(0);
+		}
+		progmon.setProgress((int)progressPercentage);
+		progmon.setNote(progressPercentage + "%");
+	    }
 	}
     }
 
@@ -803,26 +892,10 @@ public class DMGExtractor {
 	result.addLast(previous);
 	return result;
     }
-
-    public static class DMGBlock {
-	public int blockType;
-	public int skipped;
-	public long outOffset;
-	public long outSize;
-	public long inOffset;
-	public long inSize;
-	    
-	public DMGBlock(int blockType, int skipped, long outOffset, long outSize, long inOffset, long inSize) {
-	    this.blockType = blockType;
-	    this.skipped = skipped;
-	    this.outOffset = outOffset;
-	    this.outSize = outSize;
-	    this.inOffset = inOffset;
-	    this.inSize = inSize;
-	}
-	
-	public String toString() {
-	    return "[type: 0x" + Integer.toHexString(blockType) + " skipped: 0x" + Integer.toHexString(skipped) + " outOffset: " + outOffset + " outSize: " + outSize + " inOffset: " + inOffset + " inSize: " + inSize + "]";
+    
+    public static class DummyMonitor implements UserInterface {
+	public void reportProgress(int progress) {
+	    DMGExtractor.reportProgress(progress);
 	}
     }
 }

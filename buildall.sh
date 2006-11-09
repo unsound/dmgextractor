@@ -9,11 +9,13 @@ error() {
 SOURCES_DIR=src
 CLASSFILES_DIR=build.~
 LIBRARY_PATH=lib
-MANIFEST=meta/metafile.txt
+MANIFEST=meta/manifest.txt
 BUILD_CP=$CLASSFILES_DIR
 #:$LIBRARY_PATH/filedrop.jar
 BUILDTOOLS_CP=buildenumerator/buildenumerator.jar
 JARFILE=dmgextractor.jar
+#PACKAGES=org.catacombae.dmgx org.catacombae.dmgx.gui
+#COMPILEPATHS=org/catacombae/dmgx/*.java org/catacombae/dmgx/gui/*.java
 
 if [ -d "$CLASSFILES_DIR" ]; then # if exists $CLASSFILES_DIR...
     echo "Removing all class files..."
@@ -40,21 +42,26 @@ echo "Incrementing build number..."
 java -cp $BUILDTOOLS_CP BuildEnumerator $SOURCES_DIR/org/catacombae/dmgx/BuildNumber.java 1
 echo "Compiling org.catacombae.dmgx..."
 javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/*.java
-echo "Compiling org.catacombae.dmgx.gui..."
-javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/gui/*.java
 JAVAC_EXIT_CODE=$?
-if [ "$JAVAC_EXIT_CODE" == 0 ]; then
-    echo "Building jar-file..."
-    if [ ! -d "$LIBRARY_PATH" ]; then # if not exists $LIBRARY_PATH...
-	echo "Making library path"
-	mkdir $LIBRARY_PATH
-    fi
-    jar cfm $LIBRARY_PATH/$JARFILE $MANIFEST -C $CLASSFILES_DIR .
-    if [ "$?" == 0 ]; then
-	echo Done!
+if [ "$JAVAC_EXIT_CODE" != 0 ]; then
+    error
+else
+    echo "Compiling org.catacombae.dmgx.gui..."
+    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/gui/*.java
+    JAVAC_EXIT_CODE=$?
+    if [ "$JAVAC_EXIT_CODE" == 0 ]; then
+        echo "Building jar-file..."
+        if [ ! -d "$LIBRARY_PATH" ]; then # if not exists $LIBRARY_PATH...
+	    echo "Making library path"
+    	    mkdir $LIBRARY_PATH
+	fi
+	jar cfm $LIBRARY_PATH/$JARFILE $MANIFEST -C $CLASSFILES_DIR .
+	if [ "$?" == 0 ]; then
+	    echo Done!
+	else
+	    error
+	fi
     else
 	error
     fi
-else
-    error
 fi
