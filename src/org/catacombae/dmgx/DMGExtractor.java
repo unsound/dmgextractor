@@ -39,7 +39,7 @@ import org.xml.sax.helpers.DefaultHandler;
 public class DMGExtractor {
     public static final String APPNAME = "DMGExtractor 0.51pre";
     public static final String BUILDSTRING = "(Build #" + BuildNumber.BUILD_NUMBER + ")";
-    public static final boolean DEBUG = true;
+    public static final boolean DEBUG = false;
     // Constants defining block types in the dmg file
     public static final int BT_ADC = 0x80000004;
     public static final int BT_ZLIB = 0x80000005;
@@ -82,7 +82,6 @@ public class DMGExtractor {
     }
     
     public static void notmain(String[] args) throws Exception {
-	System.out.println("Starting...");
 	if(DEBUG) verbose = true;
 	
 	parseArgs(args);
@@ -158,7 +157,8 @@ public class DMGExtractor {
 // 	    System.out.println("" + saxParser.getProperty(""));
 // 	    System.out.println("" + saxParser.getProperty(""));
 // 	    System.out.println("" + saxParser.getProperty(""));
-	    System.out.println("isValidating: " + saxParser.isValidating());
+
+	    //System.out.println("isValidating: " + saxParser.isValidating());
 	    saxParser.parse(is, handler);
 	} catch(SAXException se) {
 	    se.printStackTrace();
@@ -309,156 +309,25 @@ public class DMGExtractor {
 			    println("      " + blockCount + ". BT_ZLIB FP != outOffset (" +
 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
 
-			if(true) {
-			    try {
-				DMGBlockHandlers.processZlibBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
-			    } catch(DataFormatException dfe) {
-				println("      " + blockCount + ". BT_ZLIB Could not decode...");
-				if(!DEBUG) {
-				    println("outOffset=" + outOffset + " outSize=" + outSize + 
-					    " inOffset=" + inOffset + " inSize=" + inSize +
-					    " lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset);
-				}
-				dfe.printStackTrace();
-				if(!testOnly)
-				    System.exit(0);
-				else {
-				    println("      Testing mode, so continuing...");
-				    //System.exit(0);
-				    errorsFound = true;
-				    break;
-				}
+			try {
+			    DMGBlockHandlers.processZlibBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
+			} catch(DataFormatException dfe) {
+			    println("      " + blockCount + ". BT_ZLIB Could not decode...");
+			    if(!DEBUG) {
+				println("outOffset=" + outOffset + " outSize=" + outSize + 
+					" inOffset=" + inOffset + " inSize=" + inSize +
+					" lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset);
+			    }
+			    dfe.printStackTrace();
+			    if(!testOnly)
+				System.exit(0);
+			    else {
+				println("      Testing mode, so continuing...");
+				//System.exit(0);
+				errorsFound = true;
+				break;
 			    }
 			}
-			else {
-			    dmgRaf.seek(/*lastOffs+*/inOffset);
-			    
-			    try {
-				/*
-				 * medan det finns komprimerat data att läsa:
-				 *   läs in komprimerat data i inbuffer
-				 *   medan det finns data kvar att läsa i inbuffer
-				 *     dekomprimera data från inbuffer till utbuffer
-				 *     skriv utbuffer till fil
-				 */
-				
-				Inflater inflater = new Inflater();
-				long totalBytesRead = 0;
-				while(totalBytesRead < inSize) {
-				    long bytesRemainingToRead = inSize-totalBytesRead;
-				    int curBytesRead = dmgRaf.read(inBuffer, 0, 
-								   (int)Math.min(bytesRemainingToRead, inBuffer.length));
-// 							   ((inSize-totalBytesRead) < inBuffer.length? //Math.min
-// 							    (int)(inSize-totalBytesRead):
-// 							    inBuffer.length));
-				    reportFilePointerProgress(dmgRaf);
-
-				    if(curBytesRead < 0)
-					throw new RuntimeException("Unexpectedly reached end of file");
-				    else {
-					totalBytesRead += curBytesRead;
-					inflater.setInput(inBuffer, 0, curBytesRead);
-					long totalBytesInflated = 0;
-					while(!inflater.needsInput() && !inflater.finished()) {
-					    long bytesRemainingToInflate = outSize-totalBytesInflated;
-					    int curBytesInflated = inflater.inflate(outBuffer, 0, 
-										    (int)Math.min(bytesRemainingToInflate, outBuffer.length));
-					    if(curBytesInflated == 0)
-						throw new RuntimeException("Unexpectedly blocked inflate.");
-					    else {
-						totalBytesInflated += curBytesInflated;
-						if(!testOnly)
-						    isoRaf.write(outBuffer, 0, curBytesInflated);
-					    }
-					}
-				    }
-				}
-				if(!inflater.finished())
-				    throw new RuntimeException("Unclosed ZLIB stream!");
-			    } catch(DataFormatException dfe) {
-				println("      " + blockCount + ". BT_ZLIB Could not decode...");
-				if(!DEBUG) {
-				    println("outOffset=" + outOffset + " outSize=" + outSize + 
-					    " inOffset=" + inOffset + " inSize=" + inSize +
-					    " lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset);
-				}
-				dfe.printStackTrace();
-				if(!testOnly)
-				    System.exit(0);
-				else {
-				    println("      Testing mode, so continuing...");
-				    //System.exit(0);
-				    errorsFound = true;
-				    break;
-				}
-			    }
-			}
-			// Older code starts here
-
-// 			if(inBuffer.length < inSize)
-// 			    inBuffer = new byte[(int)inSize];
-			
-// 			long totalBytesRead = 0;
-// 			while(totalBytesRead < inSize) {
-// 			    totalBytesRead += dmgRaf.read(inBuffer, (int)totalBytesRead, Math.min((int)(inSize-totalBytesRead), inBuffer.length));
-// 			}
-// 			reportFilePointerProgress(dmgRaf);
-			
-// 			Inflater inflater = new Inflater();
-// 			inflater.setInput(inBuffer, 0, (int)totalBytesRead);
-
-// 			if(outBuffer.length < outSize)
-// 			    outBuffer = new byte[(int)outSize];
-			
-// 			int bytesInflated = 0;
-// 			while(true) {
-// 			    try {
-// 				int counter = 0;
-// 				while(bytesInflated < outSize && counter++ < 10) {
-// 				    int old = bytesInflated;
-// 				    bytesInflated += inflater.inflate(outBuffer, bytesInflated, (int)(outSize-bytesInflated));
-// 				    if(old == bytesInflated)
-// 					println("Nothing new! finished()=" + inflater.finished() + " needsInput()=" + inflater.needsInput() + " needsDictionary()=" + inflater.needsDictionary() + " getAdler()=" + inflater.getAdler() + " getBytesRead()=" + inflater.getBytesRead() + " getBytesWritten()=" + inflater.getBytesWritten() + " getRemaining()=" + inflater.getRemaining());
-// 				}
-// 				//System.out.println("        Inflated " + bytesInflated + " bytes. Left in buffer: " + inflater.getRemaining() + " bytes inSize="+inSize+" outSize="+outSize);
-				
-// 				if(inflater.getRemaining() == 0) {
-// 				    //System.out.println("          done!");
-// 				    break;
-// 				}
-// 				else {
-// 				    println("      " + blockCount + ". BT_ZLIB ERROR: outBuffer contents lost! (should not happen...)",
-// 					    "      outSize=" + outSize + " inSize=" + inSize + " inBuffer.length=" + inBuffer.length + " outBuffer.length=" + outBuffer.length + " bytesInflated=" + bytesInflated + " inflater.getRemaining()=" + inflater.getRemaining());
-// // 				    if(bytesInflated == 0)
-// 				    throw new RuntimeException("WTF");
-// 				}
-// 			    }
-// 			    catch(DataFormatException dfe) {
-// 				println("      " + blockCount + ". BT_ZLIB Could not decode...");
-// 				if(!DEBUG) {
-// 				    println("outOffset=" + outOffset + " outSize=" + outSize + 
-// 					    " inOffset=" + inOffset + " inSize=" + inSize +
-// 					    " lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset);
-// 				}
-// 				dfe.printStackTrace();
-// 				if(!testOnly)
-// 				    System.exit(0);
-// 				else {
-// 				    println("      Testing mode, so continuing...");
-// 				    //System.exit(0);
-// 				    errorsFound = true;
-// 				    break;
-// 				}
-// 			    }
-			    
-// 			}
-// 			inflater.end();
-			
-// 			if(!testOnly)
-// 			    isoRaf.write(outBuffer, 0, (int)outSize);
-			
-//   			//lastInOffs = inOffset+inSize;
-// 			}
 		    }
 		    else if(blockType == BT_BZIP2) {
 			println("      " + blockCount + ". BT_BZIP2 not currently supported.");
@@ -563,53 +432,60 @@ public class DMGExtractor {
 					  "Information", JOptionPane.INFORMATION_MESSAGE);
 	    System.exit(0);
 	}
+
+	if(!DEBUG) {
+	    isoRaf.close();
+	    dmgRaf.close();
+	}
+	else {
+	    isoRaf.close();
 // 	System.out.println("blocks.size()=" + blocks.size());
 // 	for(DMGBlock b : blocks)
 // 	    System.out.println("  " + b.toString());
-	LinkedList<DMGBlock> merged = mergeBlocks(blocks);
+	    LinkedList<DMGBlock> merged = mergeBlocks(blocks);
 // 	System.out.println("merged.size()=" + merged.size());
 // 	for(DMGBlock b : merged)
 // 	    System.out.println("  " + b.toString());
-	System.out.println("Extracting all the parts not containing block data from source file:");
-	int i = 1;
-	DMGBlock previous = null;
-	for(DMGBlock b : merged) {
-	    if(previous == null && b.inOffset > 0) {
-		String filename = i++ + ".block";
-		System.out.print("  " + filename + "...");
-		FileOutputStream curFos = new FileOutputStream(new File(filename));
-		dmgRaf.seek(0);
-		byte[] data = new byte[(int)(b.inOffset)];
-		dmgRaf.read(data);
-		curFos.write(data);
-		curFos.close();
+	    println("Extracting all the parts not containing block data from source file:");
+	    int i = 1;
+	    DMGBlock previous = null;
+	    for(DMGBlock b : merged) {
+		if(previous == null && b.inOffset > 0) {
+		    String filename = i++ + ".block";
+		    println("  " + new File(filename).getCanonicalPath() + "...");
+		    FileOutputStream curFos = new FileOutputStream(new File(filename));
+		    dmgRaf.seek(0);
+		    byte[] data = new byte[(int)(b.inOffset)];
+		    dmgRaf.read(data);
+		    curFos.write(data);
+		    curFos.close();
+		}
+		else if(previous != null) {
+		    String filename = i++ + ".block";
+		    println("  " + new File(filename).getCanonicalPath() + "...");
+		    FileOutputStream curFos = new FileOutputStream(new File(filename));
+		    dmgRaf.seek(previous.inOffset+previous.inSize);
+		    byte[] data = new byte[(int)(b.inOffset-(previous.inOffset+previous.inSize))];
+		    dmgRaf.read(data);
+		    curFos.write(data);
+		    curFos.close();
+		}
+		previous = b;
 	    }
-	    else if(previous != null) {
+	    if(previous.inOffset+previous.inSize != dmgRaf.length()) {
 		String filename = i++ + ".block";
-		System.out.print("  " + filename + "...");
+		println("  " + new File(filename).getCanonicalPath() + "...");
 		FileOutputStream curFos = new FileOutputStream(new File(filename));
 		dmgRaf.seek(previous.inOffset+previous.inSize);
-		byte[] data = new byte[(int)(b.inOffset-(previous.inOffset+previous.inSize))];
+		byte[] data = new byte[(int)(dmgRaf.length()-(previous.inOffset+previous.inSize))];
 		dmgRaf.read(data);
-		curFos.write(data);
+		curFos.write(data);		
 		curFos.close();
 	    }
-	    previous = b;
+	    dmgRaf.close();
+	    System.out.println("done!");
 	}
-	if(previous.inOffset+previous.inSize != dmgRaf.length()) {
-	    String filename = i++ + ".block";
-	    System.out.print("  " + filename + "...");
-	    FileOutputStream curFos = new FileOutputStream(new File(filename));
-	    dmgRaf.seek(previous.inOffset+previous.inSize);
-	    byte[] data = new byte[(int)(dmgRaf.length()-(previous.inOffset+previous.inSize))];
-	    dmgRaf.read(data);
-	    curFos.write(data);		
-	    curFos.close();
-	}
-	dmgRaf.close();
-	System.out.println("done!");
     }
-
     public static void parseArgs(String[] args) {
 	boolean parseSuccessful = false;
 	try {
