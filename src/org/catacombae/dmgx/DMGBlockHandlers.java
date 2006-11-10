@@ -31,7 +31,7 @@ public class DMGBlockHandlers {
 	    ui.reportProgress((int)(dmgRaf.getFilePointer()*100/dmgRaf.length()));
 
 	    if(curBytesRead < 0)
-		throw new RuntimeException("Unexpectedly reached end of file");
+		throw new RuntimeException("Unexpectedly reached end of file. (bytesRemainingToRead=" + bytesRemainingToRead + ", curBytesRead=" + curBytesRead + ", totalBytesRead=" + totalBytesRead + ", block.inSize=" + block.inSize + ", inBuffer.length=" + inBuffer.length + ")");
 	    else {
 		totalBytesRead += curBytesRead;
 		inflater.setInput(inBuffer, 0, curBytesRead);
