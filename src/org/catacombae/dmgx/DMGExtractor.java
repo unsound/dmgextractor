@@ -120,7 +120,7 @@ public class DMGExtractor {
 		    plistBegin1 + " != " + plistBegin2);
 	    System.exit(0);
 	}
-	if(plistSize != (plistEnd-plistBegin1)) {
+	if(false && plistSize != (plistEnd-plistBegin1)) { // This assumption is proven false. plistEnd is not interpreted correctly
 	    println("NOTE: plistSize field does not match plistEnd marker. Assumption false.",
 		    "plistSize=" + plistSize + " plistBegin1=" + plistBegin1 + " plistEnd=" + plistEnd + " plistEnd-plistBegin1=" + (plistEnd-plistBegin1));
 	}
