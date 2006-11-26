@@ -1,0 +1,20 @@
+struct Koly {
+    UInt32		fourCC;
+    byte		unknown1[28];
+    UInt64		plistBegin1;
+    UInt64		plistEndSometimes;
+    UInt64		unknown2;
+    UInt64		unknown3;
+    UInt64		unknown4;
+    UInt64		unknown5;
+    UInt64		possibleChecksumType;
+    UInt32		unknown6;
+    UInt32		possibleUnitSize;
+    byte		unknown7[120];
+    UInt64		plistBegin2;
+    UInt64		plistSize;
+    byte		unknown8[120];
+    UInt32		checksumAlgorithm;
+    UInt32		checksumSize;
+    byte		checksumData[152];
+};
