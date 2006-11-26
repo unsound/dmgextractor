@@ -46,8 +46,8 @@ JAVAC_EXIT_CODE=$?
 if [ "$JAVAC_EXIT_CODE" != 0 ]; then
     error
 else
-    echo "Compiling org.catacombae.dmgx.gui..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/gui/*.java
+    echo "Compiling org.catacombae.xml.parser..."
+    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation $SOURCES_DIR/org/catacombae/xml/parser/*.java
     JAVAC_EXIT_CODE=$?
     if [ "$JAVAC_EXIT_CODE" == 0 ]; then
         echo "Building jar-file..."
