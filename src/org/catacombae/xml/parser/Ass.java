@@ -4,8 +4,8 @@ package org.catacombae.xml.parser;
 import java.util.*;
 import java.io.*;
 
-class Ass implements AssConstants {
-    private MutableInputStreamReader usedReader;
+public class Ass implements AssConstants {
+    //private Reader usedReader;
     private XMLContentHandler contentHandler;
 
     public static void main(String[] args) throws Exception {
@@ -14,10 +14,15 @@ class Ass implements AssConstants {
            usedReader = new MutableInputStreamReader(new FileInputStream(args[0]), "US-ASCII");
         else
            usedReader = new MutableInputStreamReader(System.in, "US-ASCII");
-        Ass a = new Ass(usedReader);
-        a.usedReader = usedReader;
-        a.contentHandler = new DebugXMLContentHandler();
+        Ass a = create(usedReader, new DebugXMLContentHandler());
         a.xmlDocument();
+    }
+
+    public static Ass create(Reader misr, XMLContentHandler xch) {
+        Ass a = new Ass(misr);
+        //a.usedReader = misr;
+        a.contentHandler = xch;
+        return a;
     }
 
   final public void xmlDocument() throws ParseException {
@@ -65,7 +70,8 @@ class Ass implements AssConstants {
     }
   }
 
-  final public void xmlDecl() throws ParseException {
+/* For convenience, this method returns the encoding. We need to determine that before anything else. */
+  final public String xmlDecl() throws ParseException {
         String version, encoding = null;
         Boolean standalone = null;
     jj_consume_token(STARTXMLDECL);
@@ -90,7 +96,8 @@ class Ass implements AssConstants {
       ;
     }
     jj_consume_token(ENDXMLDECL);
-          contentHandler.xmlDecl(version, encoding, standalone);
+          contentHandler.xmlDecl(version, encoding, standalone); {if (true) return encoding;}
+    throw new Error("Missing return statement in function");
   }
 
   final public String versionInfo() throws ParseException {
@@ -138,7 +145,6 @@ class Ass implements AssConstants {
       jj_consume_token(-1);
       throw new ParseException();
     }
-          try { usedReader.changeEncoding(encoding.image); } catch(Exception e) { {if (true) throw new RuntimeException(e);} }
           {if (true) return encoding.image;}
     throw new Error("Missing return statement in function");
   }
@@ -649,6 +655,12 @@ class Ass implements AssConstants {
     finally { jj_save(3, xla); }
   }
 
+  final private boolean jj_3R_12() {
+    if (jj_scan_token(XMLDECL_S)) return true;
+    if (jj_scan_token(ENCODING)) return true;
+    return false;
+  }
+
   final private boolean jj_3R_13() {
     if (jj_scan_token(XMLDECL_S)) return true;
     if (jj_scan_token(STANDALONE)) return true;
@@ -679,12 +691,6 @@ class Ass implements AssConstants {
 
   final private boolean jj_3_1() {
     if (jj_3R_12()) return true;
-    return false;
-  }
-
-  final private boolean jj_3R_12() {
-    if (jj_scan_token(XMLDECL_S)) return true;
-    if (jj_scan_token(ENCODING)) return true;
     return false;
   }
 

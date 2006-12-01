@@ -40,14 +40,14 @@ cd ..
 
 echo "Incrementing build number..."
 java -cp $BUILDTOOLS_CP BuildEnumerator $SOURCES_DIR/org/catacombae/dmgx/BuildNumber.java 1
-echo "Compiling org.catacombae.dmgx..."
-javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/*.java
+echo "Compiling org.catacombae.xml.parser..."
+javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation $SOURCES_DIR/org/catacombae/xml/parser/*.java
 JAVAC_EXIT_CODE=$?
 if [ "$JAVAC_EXIT_CODE" != 0 ]; then
     error
 else
-    echo "Compiling org.catacombae.xml.parser..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation $SOURCES_DIR/org/catacombae/xml/parser/*.java
+    echo "Compiling org.catacombae.dmgx..."
+    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/*.java
     JAVAC_EXIT_CODE=$?
     if [ "$JAVAC_EXIT_CODE" == 0 ]; then
         echo "Building jar-file..."

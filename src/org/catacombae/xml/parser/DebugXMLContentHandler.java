@@ -7,7 +7,7 @@ public class DebugXMLContentHandler implements XMLContentHandler {
     public void xmlDecl(String version, String encoding, Boolean standalone) {
 	print("xmlDecl: <?xml version=\"" + version + "\"");
 	if(encoding != null)
-	    print(" encoding=\"" + encoding);
+	    print(" encoding=\"" + encoding + "\"");
 	if(standalone != null) {
 	    print(" standalone=\"");
 	    if(standalone)

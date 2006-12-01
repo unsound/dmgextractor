@@ -45,7 +45,11 @@ class NodeBuilder extends DefaultHandler {
 	    attributes[i] = new Attribute(attrs.getLocalName(i), attrs.getQName(i), 
 					  attrs.getType(i), attrs.getURI(i), attrs.getValue(i));
 	}
-	
+	startElementInternal(namespaceURI, sName, qName, attributes);
+    }
+    
+    void startElementInternal(String namespaceURI, String sName, String qName,
+			      Attribute[] attributes) throws SAXException {
 	XMLNode newNode = new XMLNode(namespaceURI, sName, qName,
 				      attributes, currentNode);
 	currentNode.addChild(newNode);
@@ -65,8 +69,7 @@ class NodeBuilder extends DefaultHandler {
     }
     public void notationDecl(String name, String publicId,
 			     String systemId) throws SAXException {
-	System.out.println("notationDecl(" + name + ", " + 
-			   publicId + ", " + systemId + ");");
+	//System.out.println("notationDecl(" + name + ", " + publicId + ", " + systemId + ");");
     }
     public XMLNode[] getRoots() throws RuntimeException {
 	if(artificialRoot != currentNode)

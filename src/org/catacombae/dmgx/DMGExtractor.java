@@ -23,6 +23,7 @@
 
 package org.catacombae.dmgx;
 
+import org.catacombae.xml.parser.*;
 import net.iharder.Base64;
 import java.io.*;
 import java.util.LinkedList;
@@ -35,6 +36,7 @@ import javax.xml.parsers.SAXParser;
 import javax.swing.JOptionPane;
 import javax.swing.JFileChooser;
 import javax.swing.ProgressMonitor;
+import org.xml.sax.XMLReader;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -58,6 +60,7 @@ public class DMGExtractor {
     public static BufferedReader stdin = 
 	new BufferedReader(new InputStreamReader(System.in));
 
+    public static boolean useSaxParser = false;
     public static boolean verbose = false;
     public static boolean debug = false;
     public static boolean graphical = false;
@@ -132,40 +135,39 @@ public class DMGExtractor {
 	InputStream is = new ByteArrayInputStream(buffer);
 
 	NodeBuilder handler = new NodeBuilder();
-	SAXParser saxParser = SAXParserFactory.newInstance().newSAXParser();
-	try {
-// 	    System.out.println("validation: " + saxParser.getProperty("validation"));
-// 	    System.out.println("external-general-entities: " + saxParser.getProperty("external-general-entities"));
-// 	    System.out.println("external-parameter-entities: " + saxParser.getProperty("external-parameter-entities"));
-// 	    System.out.println("is-standalone: " + saxParser.getProperty("is-standalone"));
-// 	    System.out.println("lexical-handler: " + saxParser.getProperty("lexical-handler"));
-// 	    System.out.println("parameter-entities: " + saxParser.getProperty("parameter-entities"));
-// 	    System.out.println("namespaces: " + saxParser.getProperty("namespaces"));
-// 	    System.out.println("namespace-prefixes: " + saxParser.getProperty("namespace-prefixes"));
-// 	    System.out.println(": " + saxParser.getProperty(""));
-// 	    System.out.println(": " + saxParser.getProperty(""));
-// 	    System.out.println(": " + saxParser.getProperty(""));
-// 	    System.out.println(": " + saxParser.getProperty(""));
-// 	    System.out.println("" + saxParser.getProperty(""));
-// 	    System.out.println("" + saxParser.getProperty(""));
-// 	    System.out.println("" + saxParser.getProperty(""));
-// 	    System.out.println("" + saxParser.getProperty(""));
-// 	    System.out.println("" + saxParser.getProperty(""));
-// 	    System.out.println("" + saxParser.getProperty(""));
-// 	    System.out.println("" + saxParser.getProperty(""));
-// 	    System.out.println("" + saxParser.getProperty(""));
-
-	    //System.out.println("isValidating: " + saxParser.isValidating());
-	    saxParser.parse(is, handler);
-	} catch(SAXException se) {
-	    se.printStackTrace();
-	    System.err.println("Could not read the partition list... exiting.");
-	    System.exit(1);
+	if(useSaxParser) {
+	    SAXParser saxParser = SAXParserFactory.newInstance().newSAXParser();
+	    try {
+		if(verbose)
+		    printSAXParserInfo(saxParser.getXMLReader(), System.out, "");
+		saxParser.parse(is, handler);
+	    } catch(SAXException se) {
+		se.printStackTrace();
+		System.err.println("Could not read the partition list... exiting.");
+		System.exit(1);
+	    }
+	}
+	else {
+	    try {
+		Ass encodingParser = Ass.create(new InputStreamReader(is, "US-ASCII"), new NullXMLContentHandler());
+		String encoding = encodingParser.xmlDecl();
+		if(verbose) System.out.println("XML Encoding: " + encoding);
+		if(encoding == null)
+		    encoding = "US-ASCII";
+		
+		is = new ByteArrayInputStream(buffer);
+		Reader usedReader = new BufferedReader(new InputStreamReader(is, encoding));
+		Ass assParser = Ass.create(usedReader, new NodeBuilderContentHandler(handler));
+		assParser.xmlDocument();
+	    } catch(ParseException pe) {
+		println("Could not read the partition list... exiting.");
+		System.exit(1);
+	    }
 	}
 	
 	XMLNode[] rootNodes = handler.getRoots();
 	if(rootNodes.length != 1) {
-	    println("Could not parse DMG-file!");
+	    println("Could not parse UDIF-file!");
 	    System.exit(0);
 	}
 
@@ -540,6 +542,8 @@ public class DMGExtractor {
 		    try { javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName()); }
 		    catch(Exception e) {}
 		}
+		else if(cur.equals("-saxparser"))
+		    useSaxParser = true;
 		else if(cur.equals("-v"))
 		    verbose = true;
 		else if(cur.equals("-debug"))
@@ -588,6 +592,12 @@ public class DMGExtractor {
 	    println("  usage: " + startupCommand + " [options] <dmgFile> [<isoFile>]");
 	    println("  if an iso-file is not supplied, the program will simulate an extraction");
 	    println("  (useful for detecting errors in dmg-files)");
+	    println();
+	    println("  options:");
+	    println("    -v          verbose operation... for finding out what went wrong");
+	    println("    -saxparser  use the standard SAX parser for XML processing instead of");
+	    println("                the homewritten parser (will connect to Apple's website");
+	    println("                for validation)");
 	    println();
 	    System.exit(0);
 	}
@@ -690,6 +700,35 @@ public class DMGExtractor {
 
     public static void newline() {
 	System.out.println();
+    }
+
+    public static void printSAXParserInfo(XMLReader saxParser, PrintStream ps, String prefix) throws Exception {
+	ps.println(prefix + "Features:");
+	ps.println(prefix + "  external-general-entities: " + saxParser.getFeature("http://xml.org/sax/features/external-general-entities"));
+	ps.println(prefix + "  external-parameter-entities: " + saxParser.getFeature("http://xml.org/sax/features/external-parameter-entities"));
+	ps.println(prefix + "  is-standalone: " + saxParser.getFeature("http://xml.org/sax/features/is-standalone"));
+	ps.println(prefix + "  lexical-handler/parameter-entities: " + saxParser.getFeature("http://xml.org/sax/features/lexical-handler/parameter-entities"));
+	//ps.println(prefix + "  parameter-entities: " + saxParser.getFeature("http://xml.org/sax/features/parameter-entities"));
+	ps.println(prefix + "  namespaces: " + saxParser.getFeature("http://xml.org/sax/features/namespaces"));
+	ps.println(prefix + "  namespace-prefixes: " + saxParser.getFeature("http://xml.org/sax/features/namespace-prefixes"));
+	ps.println(prefix + "  resolve-dtd-uris: " + saxParser.getFeature("http://xml.org/sax/features/resolve-dtd-uris"));
+	ps.println(prefix + "  string-interning: " + saxParser.getFeature("http://xml.org/sax/features/string-interning"));
+	ps.println(prefix + "  unicode-normalization-checking: " + saxParser.getFeature("http://xml.org/sax/features/unicode-normalization-checking"));
+	ps.println(prefix + "  use-attributes2: " + saxParser.getFeature("http://xml.org/sax/features/use-attributes2"));
+	ps.println(prefix + "  use-locator2: " + saxParser.getFeature("http://xml.org/sax/features/use-locator2"));
+	ps.println(prefix + "  use-entity-resolver2: " + saxParser.getFeature("http://xml.org/sax/features/use-entity-resolver2"));
+	ps.println(prefix + "  validation: " + saxParser.getFeature("http://xml.org/sax/features/validation"));
+	ps.println(prefix + "  xmlns-uris: " + saxParser.getFeature("http://xml.org/sax/features/xmlns-uris"));
+	ps.println(prefix + "  xml-1.1: " + saxParser.getFeature("http://xml.org/sax/features/xml-1.1"));
+	
+	ps.println("Properties: ");
+	ps.println(prefix + "  declaration-handler: " + saxParser.getProperty("http://xml.org/sax/properties/declaration-handler"));
+	ps.println(prefix + "  document-xml-version: " + saxParser.getProperty("http://xml.org/sax/properties/document-xml-version"));
+	ps.println(prefix + "  dom-node: " + saxParser.getProperty("http://xml.org/sax/properties/dom-node"));
+	ps.println(prefix + "  lexical-handler: " + saxParser.getProperty("http://xml.org/sax/properties/lexical-handler"));
+	ps.println(prefix + "  xml-string: " + saxParser.getProperty("http://xml.org/sax/properties/xml-string"));
+
+	    //ps.println("isValidating: " + saxParser.isValidating());
     }
     
     /** Simply calculates the file pointers position relative to the file size as a percentage, and reports it. */
