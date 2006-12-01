@@ -9,8 +9,8 @@ package org.catacombae.xml.parser;
 import java.util.*;
 import java.io.*;
   
-class Ass {
-    private MutableInputStreamReader usedReader;
+public class Ass {
+    //private Reader usedReader;
     private XMLContentHandler contentHandler;
     
     public static void main(String[] args) throws Exception {
@@ -19,10 +19,15 @@ class Ass {
 	   usedReader = new MutableInputStreamReader(new FileInputStream(args[0]), "US-ASCII");
 	else
            usedReader = new MutableInputStreamReader(System.in, "US-ASCII");
-        Ass a = new Ass(usedReader);
-	a.usedReader = usedReader;
-	a.contentHandler = new DebugXMLContentHandler();
+        Ass a = create(usedReader, new DebugXMLContentHandler());
 	a.xmlDocument();
+    }
+
+    public static Ass create(Reader misr, XMLContentHandler xch) {
+        Ass a = new Ass(misr);
+	//a.usedReader = misr;
+	a.contentHandler = xch;
+	return a;
     }
 }
 PARSER_END(Ass)
@@ -171,7 +176,8 @@ void prolog() :
     | < XD_SQUOTE_CLOSE: "'" > : WithinXMLDecl
 }
 
-void xmlDecl() :
+/* For convenience, this method returns the encoding. We need to determine that before anything else. */
+String xmlDecl() :
 {
 	String version, encoding = null;
 	Boolean standalone = null;
@@ -183,7 +189,7 @@ void xmlDecl() :
 	(LOOKAHEAD(2) standalone = sdDecl())? 
 	(<XMLDECL_S>)?
 	<ENDXMLDECL> // Back to DEFAULT
-	{ contentHandler.xmlDecl(version, encoding, standalone); }
+	{ contentHandler.xmlDecl(version, encoding, standalone); return encoding; }
 }
 
 <WithinXMLDecl_Version> TOKEN: {
@@ -212,7 +218,7 @@ String encodingDecl() :
 	<XMLDECL_S> <ENCODING> <XMLDECL_EQ> 
 	(<XD_SQUOTE_OPEN> encoding = <XD_SQUOTE_STRING> <XD_SQUOTE_CLOSE> | 
 	 <XD_DQUOTE_OPEN> encoding = <XD_DQUOTE_STRING> <XD_DQUOTE_CLOSE> )
-	{ try { usedReader.changeEncoding(encoding.image); } catch(Exception e) { throw new RuntimeException(e); } }
+	//{ try { usedReader.changeEncoding(encoding.image); } catch(Exception e) { throw new RuntimeException(e); } }
 	{ return encoding.image; }
 }
 
