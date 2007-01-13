@@ -6,10 +6,12 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import org.xml.sax.SAXException;
 //import org.xml.sax.helpers.DefaultHandler;
+import org.catacombae.xml.parser.*;
 
 public class Plist {
     private final byte[] plistData;
     private XMLNode rootNode;
+    private boolean useSaxParser = false;
     
     public Plist(byte[] data) {
 	this(data, 0, data.length);
@@ -23,15 +25,49 @@ public class Plist {
     public byte[] getData() { return Util.createCopy(plistData); }
     
     public XMLNode parseXMLData() {
-	return parseXMLDataSAX();
+	//InputStream is = new ByteArrayInputStream(plistData);
+	NodeBuilder handler = new NodeBuilder();
+	
+	/* First try to parse with the internal homebrew parser, and if it
+	 * doesn't succeed, go for the SAX parser. */
+	try {
+	    parseXMLDataAss(plistData, handler);
+	} catch(Exception e) {
+	    handler = new NodeBuilder();
+	    parseXMLDataSAX(plistData, handler);
+	}
+	
+	XMLNode[] rootNodes = handler.getRoots();
+	if(rootNodes.length != 1)
+	    throw new RuntimeException("Could not parse DMG-file!");
+	else
+	    return rootNodes[0];
+    }
+
+    private void parseXMLDataAss(byte[] buffer, NodeBuilder handler) {
+	try {
+	    InputStream is = new ByteArrayInputStream(buffer);
+	    Ass encodingParser = Ass.create(new InputStreamReader(is, "US-ASCII"), new NullXMLContentHandler());
+	    String encoding = encodingParser.xmlDecl();
+	    //if(verbose) System.out.println("XML Encoding: " + encoding);
+	    if(encoding == null)
+		encoding = "US-ASCII";
+	    
+	    is = new ByteArrayInputStream(buffer);
+	    Reader usedReader = new BufferedReader(new InputStreamReader(is, encoding));
+	    Ass assParser = Ass.create(usedReader, new NodeBuilderContentHandler(handler));
+	    assParser.xmlDocument();
+	} catch(ParseException pe) {
+	    //System.err.println("Could not read the partition list...");
+	    throw new RuntimeException(pe);
+	} catch(UnsupportedEncodingException uee) {
+	    throw new RuntimeException(uee);
+	}
     }
     
-    private XMLNode parseXMLDataSAX() {
-	InputStream is = new ByteArrayInputStream(plistData);
-
-	NodeBuilder handler;
+    private void parseXMLDataSAX(byte[] buffer, NodeBuilder handler) {
 	try {
-	    handler = new NodeBuilder();
+	    InputStream is = new ByteArrayInputStream(buffer);
 	    SAXParser saxParser = SAXParserFactory.newInstance().newSAXParser();
 // 	    System.out.println("validation: " + saxParser.getProperty("validation"));
 // 	    System.out.println("external-general-entities: " + saxParser.getProperty("external-general-entities"));
@@ -54,20 +90,14 @@ public class Plist {
 // 	    System.out.println("" + saxParser.getProperty(""));
 // 	    System.out.println("" + saxParser.getProperty(""));
 
-	    System.out.println("isValidating: " + saxParser.isValidating());
+	    //System.out.println("isValidating: " + saxParser.isValidating());
 	    saxParser.parse(is, handler);
 	} catch(SAXException se) {
 	    se.printStackTrace();
-	    System.err.println("Could not read the partition list... exiting.");
+	    //System.err.println("Could not read the partition list... exiting.");
 	    throw new RuntimeException(se);
 	} catch(Exception e) {
 	    throw new RuntimeException(e);
 	}
-	
-	XMLNode[] rootNodes = handler.getRoots();
-	if(rootNodes.length != 1)
-	    throw new RuntimeException("Could not parse DMG-file!");
-	else
-	    return rootNodes[0];
     }
 }
