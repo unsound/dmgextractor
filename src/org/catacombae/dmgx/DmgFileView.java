@@ -40,7 +40,7 @@ public class DmgFileView {
     
     public Plist getPlist() throws IOException {
 	Koly koly = getKoly();
-	byte[] plistData = new byte[(int)koly.getPlistSize()]; // Let's hope the plistsize is within int range...
+	byte[] plistData = new byte[(int)koly.getPlistSize()]; // Let's hope the plistsize is within int range... (though memory will run out long before that)
 	dmgRaf.seek(koly.getPlistBegin1());
 	dmgRaf.read(plistData);
 	return new Plist(plistData);

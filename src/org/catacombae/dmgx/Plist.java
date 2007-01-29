@@ -21,6 +21,8 @@
 package org.catacombae.dmgx;
 
 import java.io.*;
+import java.util.LinkedList;
+import net.iharder.Base64;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -40,9 +42,35 @@ public class Plist {
     public Plist(byte[] data, int offset, int length) {
 	plistData = new byte[length];
 	System.arraycopy(data, offset, plistData, 0, length);
+	rootNode = parseXMLData();
     }
     
     public byte[] getData() { return Util.createCopy(plistData); }
+    
+    public DmgPlistPartition[] getPartitions() {
+	LinkedList<DmgPlistPartition> partitionList = new LinkedList<DmgPlistPartition>();
+	XMLNode current = rootNode;
+	current = current.cd("dict");
+	current = current.cdkey("resource-fork");
+	current = current.cdkey("blkx");
+	int numberOfPartitions = current.getChildren().length;
+	
+	// Iterate over the partitions and gather data
+	for(XMLElement xe : current.getChildren()) {
+	    if(xe instanceof XMLNode) {
+		XMLNode xn = (XMLNode)xe;
+		
+		String partitionName = xn.getKeyValue("Name");
+		String partitionID = xn.getKeyValue("ID");
+		String partitionAttributes = xn.getKeyValue("Attributes");
+		byte[] data = Base64.decode(xn.getKeyValue("Data"));
+		//long partitionSize = DMGExtractor.calculatePartitionSize(data);
+		partitionList.addLast(new DmgPlistPartition(partitionName, partitionID, partitionAttributes, data));
+	    }
+	}
+	
+	return partitionList.toArray(new DmgPlistPartition[partitionList.size()]);
+    }
     
     public XMLNode parseXMLData() {
 	//InputStream is = new ByteArrayInputStream(plistData);

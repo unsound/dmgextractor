@@ -29,7 +29,7 @@ public class DMGBlock {
      * 8
      * 8
      * ---
-     * 40 / 0x28 bytes
+     * 40 bytes / 0x28 bytes
      */
     public int blockType;
     public int skipped;
@@ -37,6 +37,23 @@ public class DMGBlock {
     public long outSize;
     public long inOffset;
     public long inSize;
+    
+    public DMGBlock(byte[] data, int offset) {
+	DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
+	int bytesSkipped = 0;
+	while(bytesSkipped < offset)
+	    bytesSkipped += dis.skipBytes(offset-bytesSkipped);
+	
+	this.blockType = util.readIntBE(data, offset+0);//dis.readInt();
+	this.skipped = util.readIntBE(data, offset+4);//dis.readInt(); //Skip 4 bytes forward
+	this.outOffset = util.readLongBE(data, offset+8)*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
+	//dis.readInt(); //Skip 4 bytes forward
+	this.outSize = util.readLongBE(data, offset+16)*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
+	this.inOffset = util.readLongBE(data, offset+24);// & 0xffffffffL; //unsigned int -> long
+	//dis.readInt(); //Skip 4 bytes forward
+	this.inSize = util.readLongBE(data, offset+32);//dis.readInt() & 0xffffffffL; //unsigned int -> long
+	
+    }
     
     public DMGBlock(int blockType, int skipped, long outOffset, long outSize, long inOffset, long inSize) {
 	this.blockType = blockType;
