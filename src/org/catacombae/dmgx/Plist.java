@@ -64,7 +64,7 @@ public class Plist {
 		String partitionID = xn.getKeyValue("ID");
 		String partitionAttributes = xn.getKeyValue("Attributes");
 		byte[] data = Base64.decode(xn.getKeyValue("Data"));
-		//long partitionSize = DMGExtractor.calculatePartitionSize(data);
+		
 		partitionList.addLast(new DmgPlistPartition(partitionName, partitionID, partitionAttributes, data));
 	    }
 	}
