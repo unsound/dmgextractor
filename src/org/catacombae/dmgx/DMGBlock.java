@@ -21,6 +21,33 @@
 package org.catacombae.dmgx;
 
 public class DMGBlock {
+    /** This blocktype means the data is compressed using some "ADC" algorithm that I have no idea how to decompress... */
+    public static final int BT_ADC = 0x80000004;
+    
+    /** This blocktype means the data is compressed with zlib. */
+    public static final int BT_ZLIB = 0x80000005;
+    
+    /** This blocktype means the data is compressed with the bzip2 compression algorithm. These blocktypes are unsupported,
+	as I haven't found a GPL-compatible bzip2 decompressor written in Java yet. */
+    public static final int BT_BZIP2 = 0x80000006;
+    
+    /** This blocktype means the data is uncompressed and can simply be copied. */
+    public static final int BT_COPY = 0x00000001;
+    
+    /** This blocktype represents a fill of zeroes. */
+    public static final int BT_ZERO = 0x00000002;
+    
+    /** This blocktype represents a fill of zeroes (the difference between this blocktype and BT_ZERO is not documented, 
+	and parsing of these blocks is experimental). */
+    public static final int BT_ZERO2 = 0x00000000;
+    
+    /** This blocktype indicates the end of the partition. */
+    public static final int BT_END = 0xffffffff;
+    
+    /** This blocktype has been observed, but its purpose is currently unknown. In all the observed cases the outSize was
+	equal to 0, so it's probably some marker, like BT_END. */
+    public static final int BT_UNKNOWN = 0x7ffffffe;
+    
     /*
      * 4
      * 4
@@ -31,27 +58,20 @@ public class DMGBlock {
      * ---
      * 40 bytes / 0x28 bytes
      */
-    public int blockType;
-    public int skipped;
-    public long outOffset;
-    public long outSize;
-    public long inOffset;
-    public long inSize;
+    private int blockType;
+    private int skipped;
+    private long outOffset;
+    private long outSize;
+    private long inOffset;
+    private long inSize;
     
     public DMGBlock(byte[] data, int offset) {
-	DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
-	int bytesSkipped = 0;
-	while(bytesSkipped < offset)
-	    bytesSkipped += dis.skipBytes(offset-bytesSkipped);
-	
-	this.blockType = util.readIntBE(data, offset+0);//dis.readInt();
-	this.skipped = util.readIntBE(data, offset+4);//dis.readInt(); //Skip 4 bytes forward
-	this.outOffset = util.readLongBE(data, offset+8)*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
-	//dis.readInt(); //Skip 4 bytes forward
-	this.outSize = util.readLongBE(data, offset+16)*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
-	this.inOffset = util.readLongBE(data, offset+24);// & 0xffffffffL; //unsigned int -> long
-	//dis.readInt(); //Skip 4 bytes forward
-	this.inSize = util.readLongBE(data, offset+32);//dis.readInt() & 0xffffffffL; //unsigned int -> long
+	this.blockType = Util.readIntBE(data, offset+0);
+	this.skipped = Util.readIntBE(data, offset+4);
+	this.outOffset = Util.readLongBE(data, offset+8)*0x200;
+	this.outSize = Util.readLongBE(data, offset+16)*0x200;
+	this.inOffset = Util.readLongBE(data, offset+24);
+	this.inSize = Util.readLongBE(data, offset+32);
 	
     }
     
@@ -63,6 +83,13 @@ public class DMGBlock {
 	this.inOffset = inOffset;
 	this.inSize = inSize;
     }
+    
+    public int getBlockType() { return blockType; }
+    public int getSkipped() { return skipped; }
+    public long getOutOffset() { return outOffset; }
+    public long getOutSize() { return outSize; }
+    public long getInOffset() { return inOffset; }
+    public long getInSize() { return inSize; }
     
     public String toString() {
 	return "[type: 0x" + Integer.toHexString(blockType) + " skipped: 0x" + Integer.toHexString(skipped) + " outOffset: " + outOffset + " outSize: " + outSize + " inOffset: " + inOffset + " inSize: " + inSize + "]";
