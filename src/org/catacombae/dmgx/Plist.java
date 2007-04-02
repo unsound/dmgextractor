@@ -47,7 +47,7 @@ public class Plist {
     
     public byte[] getData() { return Util.createCopy(plistData); }
     
-    public DmgPlistPartition[] getPartitions() {
+    public DmgPlistPartition[] getPartitions() throws IOException {
 	LinkedList<DmgPlistPartition> partitionList = new LinkedList<DmgPlistPartition>();
 	XMLNode current = rootNode;
 	current = current.cd("dict");

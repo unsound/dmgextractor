@@ -40,19 +40,20 @@ public class DmgInputStream extends InputStream {
     }
     
     public int available() throws IOException {
-	long avaliable = totalReadableBytes;
+	long available = totalReadableBytes;
 	available -= bytesRead;
-	if(available > Integer.MAX_INT)
-	    return Integer.MAX_INT;
+	if(available > Integer.MAX_VALUE)
+	    return Integer.MAX_VALUE;
 	else
 	    return (int)available;
     }
+    /* IMPLEMENT: */
     public void close() throws IOException {}
     public void mark(int readlimit) {}
-    public boolean markSupported() {}
-    public int read() throws IOException {}
-    public int read(byte[] b) throws IOException {}
-    public int read(byte[] b, int off, int len) throws IOException {}
+    public boolean markSupported() { return false; }
+    public int read() throws IOException { return -1; }
+    public int read(byte[] b) throws IOException { return -1; }
+    public int read(byte[] b, int off, int len) throws IOException { return -1; }
     public void reset() throws IOException {}
-    public long skip(long n) throws IOException {}
+    public long skip(long n) throws IOException { return -1; }
 }
