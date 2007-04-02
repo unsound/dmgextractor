@@ -1,11 +1,14 @@
 package org.catacombae.dmgx;
+import java.util.*;
+import java.io.IOException;
 
 public class DmgPlistPartition {
     private String name;
     private String id;
     private String attributes;
     private DMGBlock[] blockList;
-    public DmgPlistPartition(String name, String id, String attributes, byte[] data) {
+    private long partitionSize;
+    public DmgPlistPartition(String name, String id, String attributes, byte[] data) throws IOException {
 	this.name = name;
 	this.id = id;
 	this.attributes = attributes;

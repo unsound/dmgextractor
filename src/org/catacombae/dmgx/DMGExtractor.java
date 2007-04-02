@@ -78,20 +78,24 @@ public class DMGExtractor {
     
     public static void main(String[] args) throws Exception {
 	try {
-	    notmain(args);
+	    extractProcedure(args);
 	} catch(Exception e) {
-	    if(graphical)
-		JOptionPane.showMessageDialog(null, "The program encountered an unexpected error: " + e.toString() + 
-					      "\nClosing...", "Error", JOptionPane.ERROR_MESSAGE);
+	    if(graphical) {
+		String stackTrace = e.toString() + "\n";
+		for(StackTraceElement ste : e.getStackTrace())
+		    stackTrace += "    " + ste.toString() + "\n";
+		JOptionPane.showMessageDialog(null, "The program encountered an uncaught exception:\n" + stackTrace + 
+					      "\nCan not recover. Exiting...", "Error", JOptionPane.ERROR_MESSAGE);
+	    }
 	    throw e;
 	}
     }
     
-    public static void notmain(String[] args) throws Exception {
+    public static void extractProcedure(String[] args) throws Exception {
 	if(debug) verbose = true;
 	
 	parseArgs(args);
-
+	
 	printlnVerbose("Processing: " + dmgFile);
 	RandomAccessFile dmgRaf = new RandomAccessFile(dmgFile, "r");
 	RandomAccessFile isoRaf = null;
@@ -489,12 +493,12 @@ public class DMGExtractor {
 	    int i = 1;
 	    DMGBlock previous = null;
 	    for(DMGBlock b : merged) {
-		if(previous == null && b.inOffset > 0) {
+		if(previous == null && b.getInOffset() > 0) {
 		    String filename = i++ + ".block";
 		    println("  " + new File(filename).getCanonicalPath() + "...");
 		    FileOutputStream curFos = new FileOutputStream(new File(filename));
 		    dmgRaf.seek(0);
-		    byte[] data = new byte[(int)(b.inOffset)];
+		    byte[] data = new byte[(int)(b.getInOffset())];
 		    dmgRaf.read(data);
 		    curFos.write(data);
 		    curFos.close();
@@ -503,20 +507,20 @@ public class DMGExtractor {
 		    String filename = i++ + ".block";
 		    println("  " + new File(filename).getCanonicalPath() + "...");
 		    FileOutputStream curFos = new FileOutputStream(new File(filename));
-		    dmgRaf.seek(previous.inOffset+previous.inSize);
-		    byte[] data = new byte[(int)(b.inOffset-(previous.inOffset+previous.inSize))];
+		    dmgRaf.seek(previous.getInOffset()+previous.getInSize());
+		    byte[] data = new byte[(int)(b.getInOffset()-(previous.getInOffset()+previous.getInSize()))];
 		    dmgRaf.read(data);
 		    curFos.write(data);
 		    curFos.close();
 		}
 		previous = b;
 	    }
-	    if(previous.inOffset+previous.inSize != dmgRaf.length()) {
+	    if(previous.getInOffset()+previous.getInSize() != dmgRaf.length()) {
 		String filename = i++ + ".block";
 		println("  " + new File(filename).getCanonicalPath() + "...");
 		FileOutputStream curFos = new FileOutputStream(new File(filename));
-		dmgRaf.seek(previous.inOffset+previous.inSize);
-		byte[] data = new byte[(int)(dmgRaf.length()-(previous.inOffset+previous.inSize))];
+		dmgRaf.seek(previous.getInOffset()+previous.getInSize());
+		byte[] data = new byte[(int)(dmgRaf.length()-(previous.getInOffset()+previous.getInSize()))];
 		dmgRaf.read(data);
 		curFos.write(data);		
 		curFos.close();
@@ -859,9 +863,9 @@ public class DMGExtractor {
 	DMGBlock current;
 	while(it.hasNext()) {
 	    current = it.next();
-	    if(current.inSize != 0) {
-		if(current.inOffset == previous.inOffset+previous.inSize) {
-		    DMGBlock mergedBlock = new DMGBlock(previous.blockType, previous.skipped, previous.outOffset, previous.outSize+current.outSize, previous.inOffset, previous.inSize+current.inSize);
+	    if(current.getInSize() != 0) {
+		if(current.getInOffset() == previous.getInOffset()+previous.getInSize()) {
+		    DMGBlock mergedBlock = new DMGBlock(previous.getBlockType(), previous.getSkipped(), previous.getOutOffset(), previous.getOutSize()+current.getOutSize(), previous.getInOffset(), previous.getInSize()+current.getInSize());
 		    previous = mergedBlock;
 		}
 		else {

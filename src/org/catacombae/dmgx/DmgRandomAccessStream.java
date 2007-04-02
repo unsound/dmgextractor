@@ -1,4 +1,6 @@
+package org.catacombae.dmgx;
 import org.catacombae.io.RandomAccessStream;
+import java.io.*;
 
 public class DmgRandomAccessStream implements RandomAccessStream {
     public DmgRandomAccessStream() {
@@ -9,19 +11,19 @@ public class DmgRandomAccessStream implements RandomAccessStream {
     public void close() throws IOException {}
 
     /** @see java.io.RandomAccessFile */
-    public long getFilePointer() throws IOException {}
+    public long getFilePointer() throws IOException { return -1; }
 
     /** @see java.io.RandomAccessFile */
-    public long length() throws IOException {}
+    public long length() throws IOException { return -1; }
 
     /** @see java.io.RandomAccessFile */
-    public int read() throws IOException {}
+    public int read() throws IOException { return -1; }
 
     /** @see java.io.RandomAccessFile */
-    public int read(byte[] b) throws IOException {}
+    public int read(byte[] b) throws IOException { return -1; }
 
     /** @see java.io.RandomAccessFile */
-    public int read(byte[] b, int off, int len) throws IOException {}
+    public int read(byte[] b, int off, int len) throws IOException { return -1; }
 
     /** @see java.io.RandomAccessFile */
     public void seek(long pos) throws IOException {}

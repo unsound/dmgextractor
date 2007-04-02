@@ -32,7 +32,7 @@ public class DMGBlockHandlers {
 					boolean testOnly, UserInterface ui) throws IOException, DataFormatException {
 	inflater.reset();
 	
-	dmgRaf.seek(/*block.lastOffs+*/block.inOffset);
+	dmgRaf.seek(/*block.lastOffs+*/block.getInOffset());
 	
 	/*
 	 * medan det finns komprimerat data att läsa:
@@ -43,21 +43,21 @@ public class DMGBlockHandlers {
 	 */
 	    
 	long totalBytesRead = 0;
-	while(totalBytesRead < block.inSize) {
-	    long bytesRemainingToRead = block.inSize-totalBytesRead;
+	while(totalBytesRead < block.getInSize()) {
+	    long bytesRemainingToRead = block.getInSize()-totalBytesRead;
 	    int curBytesRead = dmgRaf.read(inBuffer, 0, 
 					   (int)Math.min(bytesRemainingToRead, inBuffer.length));
 		
 	    ui.reportProgress((int)(dmgRaf.getFilePointer()*100/dmgRaf.length()));
 
 	    if(curBytesRead < 0)
-		throw new RuntimeException("Unexpectedly reached end of file. (bytesRemainingToRead=" + bytesRemainingToRead + ", curBytesRead=" + curBytesRead + ", totalBytesRead=" + totalBytesRead + ", block.inSize=" + block.inSize + ", inBuffer.length=" + inBuffer.length + ")");
+		throw new RuntimeException("Unexpectedly reached end of file. (bytesRemainingToRead=" + bytesRemainingToRead + ", curBytesRead=" + curBytesRead + ", totalBytesRead=" + totalBytesRead + ", block.getInSize()=" + block.getInSize() + ", inBuffer.length=" + inBuffer.length + ")");
 	    else {
 		totalBytesRead += curBytesRead;
 		inflater.setInput(inBuffer, 0, curBytesRead);
 		long totalBytesInflated = 0;
 		while(!inflater.needsInput() && !inflater.finished()) {
-		    long bytesRemainingToInflate = block.outSize-totalBytesInflated;
+		    long bytesRemainingToInflate = block.getOutSize()-totalBytesInflated;
 		    //System.out.println();
 		    //System.out.println("inflater.needsInput()" + inflater.needsInput());
 		    int curBytesInflated = inflater.inflate(outBuffer, 0, 
