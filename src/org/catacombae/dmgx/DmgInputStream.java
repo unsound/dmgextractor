@@ -1,4 +1,6 @@
 package org.catacombae.dmgx;
+
+import org.catacombae.io.*;
 import java.io.*;
 
 /**
@@ -15,7 +17,7 @@ public class DmgInputStream extends InputStream {
     
     public DmgInputStream(RandomAccessFile raf) throws IOException {
 	this.raf = raf;
-	this.dmgView = new DmgFileView(raf);
+	this.dmgView = new DmgFileView(new RandomAccessFileStream(raf));
 	this.plist = dmgView.getPlist();
 	
 	DmgPlistPartition[] parts = plist.getPartitions();

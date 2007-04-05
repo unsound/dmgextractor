@@ -5,6 +5,11 @@ public class Debug {
     
     public static void warning(String message) {
 	if(debug)
-	    System.out.println(message);
+	    System.err.println(message);
+    }
+    
+    public static void notification(String message) {
+	if(debug)
+	    System.out.println("------->NOTE: " + message);
     }
 }

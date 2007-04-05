@@ -65,6 +65,9 @@ public class DMGBlock {
     private long inOffset;
     private long inSize;
     
+    private long outOffsetComp = 0;
+    private long inOffsetComp = 0;
+    
     public DMGBlock(byte[] data, int offset) {
 	this.blockType = Util.readIntBE(data, offset+0);
 	this.skipped = Util.readIntBE(data, offset+4);
@@ -72,7 +75,6 @@ public class DMGBlock {
 	this.outSize = Util.readLongBE(data, offset+16)*0x200;
 	this.inOffset = Util.readLongBE(data, offset+24);
 	this.inSize = Util.readLongBE(data, offset+32);
-	
     }
     
     public DMGBlock(int blockType, int skipped, long outOffset, long outSize, long inOffset, long inSize) {
@@ -91,7 +93,45 @@ public class DMGBlock {
     public long getInOffset() { return inOffset; }
     public long getInSize() { return inSize; }
     
+    public String getBlockTypeAsString() {
+	switch(blockType) {
+	case BT_ADC:
+	    return "BT_ADC";
+	case BT_ZLIB:
+	    return "BT_ZLIB";
+	case BT_BZIP2:
+	    return "BT_BZIP2";
+	case BT_COPY:
+	    return "BT_COPY";
+	case BT_ZERO:
+	    return "BT_ZERO";
+	case BT_ZERO2:
+	    return "BT_ZERO2";
+	case BT_END:
+	    return "BT_END";
+	case BT_UNKNOWN:
+	    return "BT_UNKNOWN";
+	default:
+	    return "[Unknown block type! ID=0x" + Integer.toHexString(blockType) + "]";
+	}
+    }
+    
+    public void setOutOffsetCompensation(long offset) {
+	outOffsetComp = offset;
+    }
+    public void setInOffsetCompensation(long offset) {
+	inOffsetComp = offset;
+    }
+    public long getTrueOutOffset() {
+	return outOffset+outOffsetComp;
+    }
+    public long getTrueInOffset() {
+	return inOffset+inOffsetComp;
+    }
+    
     public String toString() {
-	return "[type: 0x" + Integer.toHexString(blockType) + " skipped: 0x" + Integer.toHexString(skipped) + " outOffset: " + outOffset + " outSize: " + outSize + " inOffset: " + inOffset + " inSize: " + inSize + "]";
+	return getBlockTypeAsString() + 
+	    "(skipped=0x" + Integer.toHexString(skipped) + ",outOffset=" + outOffset + 
+	    ",outSize=" + outSize + ",inOffset=" + inOffset + ",inSize=" + inSize + ",outOffsetComp=" + outOffsetComp + ",inOffsetComp=" + inOffsetComp + ")";
     }
 }

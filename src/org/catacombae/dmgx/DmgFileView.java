@@ -20,21 +20,22 @@
 
 package org.catacombae.dmgx;
 
+import org.catacombae.io.*;
 import java.io.*;
 
 public class DmgFileView {
     //private File file;
-    private RandomAccessFile dmgRaf;
+    private RandomAccessStream dmgRaf;
     
     public DmgFileView(File file) {
 	try {
 	    //this.file = file;
-	    this.dmgRaf = new RandomAccessFile(file, "r");
+	    this.dmgRaf = new RandomAccessFileStream(new RandomAccessFile(file, "r"));
 	} catch(IOException ioe) {
 	    throw new RuntimeException(ioe);
 	}
     }
-    public DmgFileView(RandomAccessFile dmgRaf) {
+    public DmgFileView(RandomAccessStream dmgRaf) {
 	this.dmgRaf = dmgRaf;
     }
     
