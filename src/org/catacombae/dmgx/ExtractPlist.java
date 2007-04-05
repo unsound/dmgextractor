@@ -20,6 +20,7 @@
 
 package org.catacombae.dmgx;
 
+import org.catacombae.io.*;
 import java.io.*;
 
 public class ExtractPlist {
@@ -34,7 +35,7 @@ public class ExtractPlist {
 	    return;//System.exit(0);
 	}
 	
-	DmgFileView dfw = new DmgFileView(inFile);
+	DmgFileView dfw = new DmgFileView(new RandomAccessFileStream(inFile));
 	byte[] plistData = dfw.getPlist().getData();
 	/*int bytesWritten = */outStream.write(plistData);
 // 	if(bytesWritten != plistData.length)

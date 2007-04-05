@@ -20,6 +20,7 @@
 
 package org.catacombae.dmgx;
 
+import org.catacombae.io.*;
 import java.io.*;
 
 /**
@@ -34,9 +35,10 @@ public class ValidateDmg {
 	for(String fn : filenames) {
 	    System.out.println("Processing \"" + fn + "\"...");
 	    try {
-		DmgFileView dfw = new DmgFileView(new File(fn));
+		RandomAccessFile raf = new RandomAccessFile(fn, "r");
+		DmgFileView dfw = new DmgFileView(new RandomAccessFileStream(raf));
 		Koly koly = dfw.getKoly();
-		ValidateResult vr = validateKoly(new RandomAccessFile(fn, "r"), koly);
+		ValidateResult vr = validateKoly(raf, koly);
 		String[] errors = vr.getErrors();
 		String[] warnings = vr.getWarnings();
 		for(int i = 0; i < errors.length; ++i) {

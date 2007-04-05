@@ -55,6 +55,11 @@ public class Plist {
 	current = current.cdkey("blkx");
 	int numberOfPartitions = current.getChildren().length;
 	
+	// Variables to keep track of the pointers of the previous partition
+	long previousOutOffset = 0;
+	long previousInOffset = 0;
+	
+	int i = 0;
 	// Iterate over the partitions and gather data
 	for(XMLElement xe : current.getChildren()) {
 	    if(xe instanceof XMLNode) {
@@ -65,7 +70,12 @@ public class Plist {
 		String partitionAttributes = xn.getKeyValue("Attributes");
 		byte[] data = Base64.decode(xn.getKeyValue("Data"));
 		
-		partitionList.addLast(new DmgPlistPartition(partitionName, partitionID, partitionAttributes, data));
+		//System.out.println("Block list for partition " + i++ + ":");
+		DmgPlistPartition dpp = new DmgPlistPartition(partitionName, partitionID, partitionAttributes, 
+							      data, previousOutOffset, previousInOffset);
+		previousOutOffset = dpp.getFinalOutOffset();
+		previousInOffset = dpp.getFinalInOffset();
+		partitionList.addLast(dpp);
 	    }
 	}
 	

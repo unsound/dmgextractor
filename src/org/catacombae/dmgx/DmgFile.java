@@ -20,14 +20,23 @@
 
 package org.catacombae.dmgx;
 
+import org.catacombae.io.*;
 import java.io.*;
 
 public class DmgFile {
-    private File file;
+    private RandomAccessStream stream;
     private DmgFileView dmgView;
     
-    public DmgFile(File file) {
-	this.file = file;
-	this.dmgView = new DmgFileView(file);
+    public DmgFile(RandomAccessStream stream) {
+	this.stream = stream;
+	this.dmgView = new DmgFileView(stream);
+    }
+    
+    public DmgFileView getView() {
+	return dmgView;
+    }
+    
+    public RandomAccessStream getStream() {
+	return stream;
     }
 }
