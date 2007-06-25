@@ -17,20 +17,29 @@ public class DmgRandomAccessStream implements RandomAccessStream {
     private long length;
     private long globalFilePointer = 0;
     private boolean seekCalled = false;
-
+    
+    private void dbg(String s) { System.err.println(s); }
+    
     public DmgRandomAccessStream(DmgFile dmgFile) throws IOException {
 	this.dmgFile = dmgFile;
+	dbg("dmgFile.getView().getPlist(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
 	Plist plist = dmgFile.getView().getPlist();
+	dbg("before gc(): free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
+	Runtime.getRuntime().gc();
+	dbg("plist.getPartitions(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
 	DmgPlistPartition[] partitions = plist.getPartitions();
 
 	int totalBlockCount = 0;
 	for(DmgPlistPartition pp : partitions)
 	    totalBlockCount += pp.getBlockCount();
+	dbg("totalBlockCount = " + totalBlockCount);
 	
 	allBlocks = new DMGBlock[totalBlockCount];
 	int pos = 0;
+	dbg("looping for each of " + partitions.length + " partitions...");
 	for(DmgPlistPartition pp : partitions) {
 	    DMGBlock[] blocks = pp.getBlocks();
+	    dbg("Blocks in partition: " + blocks.length);
 	    System.arraycopy(blocks, 0, allBlocks, pos, blocks.length);
 	    pos += blocks.length;
 	    length += pp.getPartitionSize();
@@ -38,7 +47,9 @@ public class DmgRandomAccessStream implements RandomAccessStream {
 	if(totalBlockCount > 0) {
 	    currentBlock = allBlocks[0];
 	    currentBlockIndex = 0;
+	    dbg("Repositioning stream");
 	    repositionStream();
+	    dbg("repositioning done.");
 	}
 	else
 	    throw new RuntimeException("Could not find any blocks in the DMG file...");

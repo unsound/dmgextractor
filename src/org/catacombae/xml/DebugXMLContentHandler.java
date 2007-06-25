@@ -1,8 +1,12 @@
-package org.catacombae.xml.parser;
+package org.catacombae.xml;
 
 import java.util.List;
+import java.nio.charset.Charset;
 
-public class DebugXMLContentHandler implements XMLContentHandler {
+public class DebugXMLContentHandler extends XMLContentHandler {
+    public DebugXMLContentHandler(Charset encoding) {
+	super(encoding);
+    }
     //public void doctype(String
     public void xmlDecl(String version, String encoding, Boolean standalone) {
 	print("xmlDecl: <?xml version=\"" + version + "\"");
@@ -62,8 +66,15 @@ public class DebugXMLContentHandler implements XMLContentHandler {
 	println("endElement: </" + name + ">");
     }
 
-    public void chardata(String data) {
-	println("chardata: \"" + data + "\"");
+//     public void chardata(CharSequence data) {
+// 	print("chardata: \"");
+// 	for(int i = 0; i < data.length(); ++i)
+// 	    print(data.charAt(i)+"");
+// 	println("\"");
+	   
+//     }
+    public void chardata(int beginLine, int beginColumn, int endLine, int endColumn) {
+	println("chardata: starting at (" + beginLine + "," + beginColumn + ") and ending at (" + endLine + "," + endColumn + ")");
     }
 
     public void reference(String ref) {

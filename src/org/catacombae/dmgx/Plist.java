@@ -21,6 +21,7 @@
 package org.catacombae.dmgx;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.util.LinkedList;
 import net.iharder.Base64;
 import javax.xml.parsers.SAXParserFactory;
@@ -28,6 +29,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import org.xml.sax.SAXException;
 //import org.xml.sax.helpers.DefaultHandler;
+import org.catacombae.io.*;
+import org.catacombae.xml.*;
 import org.catacombae.xml.parser.*;
 
 public class Plist {
@@ -65,14 +68,54 @@ public class Plist {
 	    if(xe instanceof XMLNode) {
 		XMLNode xn = (XMLNode)xe;
 		
-		String partitionName = xn.getKeyValue("Name");
-		String partitionID = xn.getKeyValue("ID");
-		String partitionAttributes = xn.getKeyValue("Attributes");
-		byte[] data = Base64.decode(xn.getKeyValue("Data"));
+		String partitionName = Util.readFully(xn.getKeyValue("Name"));
+		String partitionID = Util.readFully(xn.getKeyValue("ID"));
+		String partitionAttributes = Util.readFully(xn.getKeyValue("Attributes"));
+		System.err.println("Retrieving data...");
+		//(new BufferedReader(new InputStreamReader(System.in))).readLine();
+		Reader base64Data = xn.getKeyValue("Data");
+		System.gc();
+		System.err.println("Converting data to binary form... free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
+		//byte[] data = Base64.decode(base64Data);
 		
+// 		try {
+// 		    InputStream yo = new Base64.InputStream(new ReaderInputStream(base64Data, Charset.forName("US-ASCII")));
+// 		    String filename1 = "dump_plist_java-" + System.currentTimeMillis() + ".datadpp";
+// 		    System.err.println("Dumping output from ReaderInputStream to file \"" + filename1 + "\"");
+// 		    FileOutputStream fos = new FileOutputStream(filename1);
+// 		    if(false) { // Standard way
+// 			byte[] buffer = new byte[4096];
+// 			int curBytesRead = yo.read(buffer);
+// 			while(curBytesRead == buffer.length) {
+// 			    fos.write(buffer, 0, curBytesRead);
+// 			    curBytesRead = yo.read(buffer);
+// 			}
+// 			if(curBytesRead > 0)
+// 			    fos.write(buffer, 0, curBytesRead);
+// 		    }
+// 		    else { // Simulating DmgPlistPartition constructor
+// 			byte[] buf1 = new byte[0xCC];
+// 			byte[] buf2 = new byte[0x28];
+// 			int curBytesRead = (int)yo.skip(0xCC); // SKIP OPERATION FUCKS UP!one
+// 			fos.write(buf1, 0, curBytesRead);
+// 			curBytesRead = yo.read(buf2);
+// 			while(curBytesRead == buf2.length) {
+// 			    fos.write(buf2, 0, curBytesRead);
+// 			    curBytesRead = yo.read(buf2);
+// 			}
+// 			if(curBytesRead > 0)
+// 			    fos.write(buf2, 0, curBytesRead);
+			
+// 		    }
+// 		    fos.close();
+// 		} catch(Exception e) { e.printStackTrace(); }
+		
+		InputStream base64DataInputStream = new Base64.InputStream(new ReaderInputStream(base64Data, Charset.forName("US-ASCII")));
+		
+		System.err.println("Creating DmgPlistPartition.");
 		//System.out.println("Block list for partition " + i++ + ":");
 		DmgPlistPartition dpp = new DmgPlistPartition(partitionName, partitionID, partitionAttributes, 
-							      data, previousOutOffset, previousInOffset);
+							      base64DataInputStream, previousOutOffset, previousInOffset);
 		previousOutOffset = dpp.getFinalOutOffset();
 		previousInOffset = dpp.getFinalInOffset();
 		partitionList.addLast(dpp);
@@ -88,12 +131,15 @@ public class Plist {
 	
 	/* First try to parse with the internal homebrew parser, and if it
 	 * doesn't succeed, go for the SAX parser. */
+	System.err.println("Trying to parse xml data...");
 	try {
 	    parseXMLDataAss(plistData, handler);
+	    System.err.println("xml data parsed...");
 	} catch(Exception e) {
+	    System.err.println("Ass threw exception...");
 	    handler = new NodeBuilder();
 	    parseXMLDataSAX(plistData, handler);
-	}
+ 	}
 	
 	XMLNode[] rootNodes = handler.getRoots();
 	if(rootNodes.length != 1)
@@ -104,17 +150,39 @@ public class Plist {
 
     private void parseXMLDataAss(byte[] buffer, NodeBuilder handler) {
 	try {
-	    InputStream is = new ByteArrayInputStream(buffer);
-	    Ass encodingParser = Ass.create(new InputStreamReader(is, "US-ASCII"), new NullXMLContentHandler());
-	    String encoding = encodingParser.xmlDecl();
-	    //if(verbose) System.out.println("XML Encoding: " + encoding);
-	    if(encoding == null)
-		encoding = "US-ASCII";
+	    ByteArrayStream ya = new ByteArrayStream(buffer);
+	    SynchronizedRandomAccessStream bufferStream =
+		new SynchronizedRandomAccessStream(ya);//new ByteArrayStream(buffer));
 	    
-	    is = new ByteArrayInputStream(buffer);
+	    // First we parse the xml declaration using a US-ASCII charset just to extract the charset description
+	    System.err.println("parsing encoding");
+	    InputStream is = new RandomAccessInputStream(bufferStream);
+	    Ass encodingParser = Ass.create(new InputStreamReader(is, "US-ASCII"),
+					    new NullXMLContentHandler(Charset.forName("US-ASCII")));
+	    String encodingName = encodingParser.xmlDecl();
+	    System.err.println("encodingName=" + encodingName);
+	    if(encodingName == null)
+		encodingName = "US-ASCII";
+	    
+	    Charset encoding = Charset.forName(encodingName);
+	    
+	    // Then we proceed to parse the entire document
+	    is = new RandomAccessInputStream(bufferStream);
 	    Reader usedReader = new BufferedReader(new InputStreamReader(is, encoding));
-	    Ass assParser = Ass.create(usedReader, new NodeBuilderContentHandler(handler));
-	    assParser.xmlDocument();
+	    System.err.println("parsing document");
+	    //try { FileOutputStream dump = new FileOutputStream("dump.xml"); dump.write(buffer); dump.close(); }
+	    //catch(Exception e) { e.printStackTrace(); }
+
+	    if(false) {
+		Ass assParser = Ass.create(usedReader, new DebugXMLContentHandler(encoding));
+		assParser.xmlDocument();
+		System.exit(0);
+	    }
+	    else {
+		Ass assParser = Ass.create(usedReader, new NodeBuilderContentHandler(handler, bufferStream, encoding));
+		assParser.xmlDocument();
+	    }
+
 	} catch(ParseException pe) {
 	    //System.err.println("Could not read the partition list...");
 	    throw new RuntimeException(pe);

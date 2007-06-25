@@ -20,8 +20,9 @@
 
 package org.catacombae.dmgx;
 
+import org.catacombae.io.*;
 import java.util.LinkedList;
-import java.io.PrintStream;
+import java.io.*;
 
 class XMLNode extends XMLElement {
     public final String namespaceURI;
@@ -100,24 +101,58 @@ class XMLNode extends XMLElement {
 	    
 		else if(((XMLNode)xn).qName.equals("key")) {
 		    for(XMLElement xn2 : ((XMLNode)xn).getChildren()) {
-			if(xn2 instanceof XMLText && ((XMLText)xn2).text.equals(key))
-			    keyFound = true;
+			try {
+			    if(xn2 instanceof XMLText) {
+				String s = Util.readFully(((XMLText)xn2).getText());
+				//System.err.println("cdkey searching: \"" + s + "\"");
+				if(s.equals(key))
+				   keyFound = true;
+			    }
+			} catch(Exception e) { throw new RuntimeException(e); }
 		    }
 		}
 	    }
 	}
 	return null;
     }
-    public String getKeyValue(String key) {
+    public Reader getKeyValue(String key) {
+	//System.out.println("XMLNode.getKeyValue(\"" + key + "\")");
 	XMLNode keyNode = cdkey(key);
-	StringBuilder returnString = new StringBuilder();
-	for(XMLElement xe : keyNode.getChildren()) {
-	    if(xe instanceof XMLText)
-		returnString.append(((XMLText)xe).text);
+	XMLElement[] nodeChildren = keyNode.getChildren();
+	if(nodeChildren.length != 1) {
+	    //System.out.println("  nodeChildren.length == " + nodeChildren.length);
+	    
+	    LinkedList<Reader> collectedReaders = new LinkedList<Reader>();
+	    for(XMLElement xe : keyNode.getChildren()) {
+		if(xe instanceof XMLText) {
+		    try {
+			Reader xt = ((XMLText)xe).getText();
+			collectedReaders.addLast(xt);
+		    } catch(Exception e) { throw new RuntimeException(e); }
+		    //System.out.print("\"");
+		    //for(int i = 0; i < xt.length(); ++i) System.out.print(xt.charAt(i));
+		    //System.out.println("\"");
+		    //System.out.println("free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
+		}
+	    }
+	    ConcatenatedReader result;
+	    if(collectedReaders.size() == 0)
+		result = null;
+	    else {
+		//System.out.println("doing a toString... free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
+		//result = returnString.toString();
+		//System.out.println("done.free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
+		result = new ConcatenatedReader(collectedReaders.toArray(new Reader[collectedReaders.size()]));
+	    }
+	    return result;
 	}
-	if(returnString.length() == 0)
-	    return null;
+	else if(nodeChildren[0] instanceof XMLText) {
+	    //System.err.println("Special case!");
+	    try {
+		return ((XMLText)nodeChildren[0]).getText();
+	    } catch(Exception e) { throw new RuntimeException(e); }
+	}
 	else
-	    return returnString.toString();
+	    return null;
     }
 }

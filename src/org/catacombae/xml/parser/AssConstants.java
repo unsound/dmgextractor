@@ -4,53 +4,51 @@ package org.catacombae.xml.parser;
 public interface AssConstants {
 
   int EOF = 0;
-  int S = 1;
+  int SINGLE_S = 1;
   int CHAR = 2;
   int NAME = 3;
-  int NAMECHAR = 4;
-  int LETTER = 5;
-  int BASECHAR = 6;
-  int IDEOGRAPHIC = 7;
-  int COMBININGCHAR = 8;
-  int DIGIT = 9;
-  int EXTENDER = 10;
-  int REFERENCE = 11;
-  int ENTITYREF = 12;
-  int CHARREF = 13;
-  int STARTTAG = 14;
-  int STARTCLOSINGTAG = 15;
-  int STARTPI = 16;
-  int STARTXMLDECL = 17;
-  int STARTDOCTYPEDECL = 18;
-  int STARTCOMMENT = 19;
-  int STARTCDATA = 20;
-  int DEFAULT_S = 21;
-  int CHARDATA = 22;
-  int DEFAULT_REFERENCE = 23;
-  int ENDXMLDECL = 24;
-  int XMLDECL_S = 25;
+  int NAMESTART = 4;
+  int NAMECHAR = 5;
+  int LETTER = 6;
+  int BASECHAR = 7;
+  int IDEOGRAPHIC = 8;
+  int COMBININGCHAR = 9;
+  int DIGIT = 10;
+  int EXTENDER = 11;
+  int REFERENCE = 12;
+  int ENTITYREF = 13;
+  int CHARREF = 14;
+  int STARTTAG = 16;
+  int STARTCLOSINGTAG = 17;
+  int STARTPI = 18;
+  int STARTXMLDECL = 19;
+  int STARTDOCTYPEDECL = 20;
+  int STARTCOMMENT = 21;
+  int STARTCDATA = 22;
+  int CHARDATA = 23;
+  int DEFAULT_REFERENCE = 24;
+  int ENDXMLDECL = 25;
   int XMLDECL_EQ = 26;
   int XD_DQUOTE_OPEN = 27;
   int XD_SQUOTE_OPEN = 28;
   int VERSION = 29;
   int ENCODING = 30;
   int STANDALONE = 31;
-  int XD_DQUOTE_STRING = 32;
-  int XD_DQUOTE_CLOSE = 33;
-  int XD_SQUOTE_STRING = 34;
-  int XD_SQUOTE_CLOSE = 35;
-  int VERSION_DOPEN = 36;
-  int VERSION_DCLOSE = 37;
-  int VERSION_SOPEN = 38;
-  int VERSION_SCLOSE = 39;
-  int VER = 40;
-  int STANDALONE_DOPEN = 41;
-  int STANDALONE_DCLOSE = 42;
-  int STANDALONE_SOPEN = 43;
-  int STANDALONE_SCLOSE = 44;
-  int STANDALONE_YES = 45;
-  int STANDALONE_NO = 46;
-  int WDD_S = 47;
+  int XD_DQUOTE_STRING = 33;
+  int XD_DQUOTE_CLOSE = 34;
+  int XD_SQUOTE_STRING = 35;
+  int XD_SQUOTE_CLOSE = 36;
+  int VERSION_DOPEN = 37;
+  int VERSION_DCLOSE = 38;
+  int VERSION_SOPEN = 39;
+  int VERSION_SCLOSE = 40;
+  int VER = 41;
+  int STANDALONE_DOPEN = 42;
+  int STANDALONE_DCLOSE = 43;
+  int STANDALONE_SOPEN = 44;
+  int STANDALONE_SCLOSE = 45;
+  int STANDALONE_YES = 46;
+  int STANDALONE_NO = 47;
   int WDD_NAME = 48;
   int ENDDOCTYPEDECL = 49;
   int EXTERNALID = 50;
@@ -58,30 +56,29 @@ public interface AssConstants {
   int PUBIDLITERAL = 52;
   int PUBIDCHAR = 53;
   int BEGIN_INTSUBSET = 54;
-  int END_INTSUBSET = 55;
-  int WHATEVER = 56;
-  int ENDCOMMENT = 57;
-  int COMMENT_ILLEGAL = 58;
-  int COMMENT_CHAR = 59;
-  int ENDPI = 60;
-  int ILLEGALTARGET = 61;
-  int PITARGET = 62;
-  int WITHINPI_S = 63;
-  int PC_CHAR = 64;
-  int WT_NAME = 65;
+  int END_INTSUBSET = 56;
+  int WHATEVER = 57;
+  int ENDCOMMENT = 58;
+  int COMMENT_ILLEGAL = 59;
+  int COMMENT_CHAR = 60;
+  int ENDPI = 61;
+  int ILLEGALTARGET = 62;
+  int PITARGET = 63;
+  int WITHINPI_S = 64;
+  int PC_CHAR = 65;
   int WT_EQ = 66;
-  int WT_S = 67;
+  int WT_NAME = 67;
   int WT_DQUOTE = 68;
   int WT_SQUOTE = 69;
   int EMPTY_ENDTAG = 70;
   int ENDTAG = 71;
-  int ATTR_DQUOTE = 72;
-  int ATTR_SQUOTE = 73;
-  int ATTR_DQUOTE_STRING = 74;
-  int ATTR_SQUOTE_STRING = 75;
-  int ATTR_REFERENCE = 76;
-  int ENDCDATA = 77;
-  int WCD_CHAR = 78;
+  int ATTR_DQUOTE = 73;
+  int ATTR_SQUOTE = 74;
+  int ATTR_DQUOTE_STRING = 75;
+  int ATTR_SQUOTE_STRING = 76;
+  int ATTR_REFERENCE = 77;
+  int ENDCDATA = 78;
+  int WCD_CHAR = 79;
 
   int WithinCData = 0;
   int Attribute = 1;
@@ -100,9 +97,10 @@ public interface AssConstants {
 
   String[] tokenImage = {
     "<EOF>",
-    "<S>",
+    "<SINGLE_S>",
     "<CHAR>",
     "<NAME>",
+    "<NAMESTART>",
     "<NAMECHAR>",
     "<LETTER>",
     "<BASECHAR>",
@@ -113,6 +111,7 @@ public interface AssConstants {
     "<REFERENCE>",
     "<ENTITYREF>",
     "<CHARREF>",
+    "<token of kind 15>",
     "\"<\"",
     "\"</\"",
     "\"<?\"",
@@ -120,17 +119,16 @@ public interface AssConstants {
     "\"<!DOCTYPE\"",
     "\"<!--\"",
     "\"<![CDATA[\"",
-    "<DEFAULT_S>",
     "<CHARDATA>",
     "<DEFAULT_REFERENCE>",
     "\"?>\"",
-    "<XMLDECL_S>",
     "\"=\"",
     "\"\\\"\"",
     "\"\\\'\"",
     "\"version\"",
     "\"encoding\"",
     "\"standalone\"",
+    "<token of kind 32>",
     "<XD_DQUOTE_STRING>",
     "\"\\\"\"",
     "<XD_SQUOTE_STRING>",
@@ -146,7 +144,6 @@ public interface AssConstants {
     "\"\\\'\"",
     "\"yes\"",
     "\"no\"",
-    "<WDD_S>",
     "<WDD_NAME>",
     "\">\"",
     "<EXTERNALID>",
@@ -154,6 +151,7 @@ public interface AssConstants {
     "<PUBIDLITERAL>",
     "<PUBIDCHAR>",
     "\"[\"",
+    "<token of kind 55>",
     "\"]\"",
     "<WHATEVER>",
     "\"-->\"",
@@ -164,13 +162,13 @@ public interface AssConstants {
     "<PITARGET>",
     "<WITHINPI_S>",
     "<PC_CHAR>",
-    "<WT_NAME>",
     "\"=\"",
-    "<WT_S>",
+    "<WT_NAME>",
     "\"\\\"\"",
     "\"\\\'\"",
     "\"/>\"",
     "\">\"",
+    "<token of kind 72>",
     "\"\\\"\"",
     "\"\\\'\"",
     "<ATTR_DQUOTE_STRING>",

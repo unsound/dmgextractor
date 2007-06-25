@@ -1,4 +1,4 @@
-package org.catacombae.xml.parser;
+package org.catacombae.xml;
 
 import java.util.List;
 

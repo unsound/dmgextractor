@@ -86,6 +86,8 @@ public class DMGBlock {
 	this.inSize = inSize;
     }
     
+    public static int structSize() { return 40; }
+    
     public int getBlockType() { return blockType; }
     public int getSkipped() { return skipped; }
     public long getOutOffset() { return outOffset; }
