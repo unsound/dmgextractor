@@ -21,6 +21,8 @@
 //package org.catacombae.rarx;
 // Ripped from junrarlib
 package org.catacombae.dmgx;
+import java.io.Reader;
+import java.io.IOException;
 
 public class Util {
     public static int sectorSize = 0x800;
@@ -384,5 +386,18 @@ public class Util {
     
     public static boolean getBit(long data, int bitNumber) {
 	return ((data >>> bitNumber) & 0x1) == 0x1;
+    }
+
+    // Added 2007-06-24
+    public static String readFully(Reader r) throws IOException {
+	StringBuilder sb = new StringBuilder();
+	char[] temp = new char[512];
+	long bytesRead = 0;
+	int curBytesRead = r.read(temp, 0, temp.length);
+	while(curBytesRead >= 0) {
+	    sb.append(temp, 0, curBytesRead);
+	    curBytesRead = r.read(temp, 0, temp.length);
+	}
+	return sb.toString();
     }
 }

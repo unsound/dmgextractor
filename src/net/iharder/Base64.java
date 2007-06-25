@@ -1,10 +1,29 @@
 /**
- * Encodes and decodes to and from Base64 notation.
+ * <p>Encodes and decodes to and from Base64 notation.</p>
+ * <p>Homepage: <a href="http://iharder.net/base64">http://iharder.net/base64</a>.</p>
  *
  * <p>
  * Change Log:
  * </p>
  * <ul>
+ *  <li>v2.2.1 - Fixed bug using URL_SAFE and ORDERED encodings. Fixed bug
+ *   when using very small files (~< 40 bytes).</li>
+ *  <li>v2.2 - Added some helper methods for encoding/decoding directly from
+ *   one file to the next. Also added a main() method to support command line
+ *   encoding/decoding from one file to the next. Also added these Base64 dialects:
+ *   <ol>
+ *   <li>The default is RFC3548 format.</li>
+ *   <li>Calling Base64.setFormat(Base64.BASE64_FORMAT.URLSAFE_FORMAT) generates
+ *   URL and file name friendly format as described in Section 4 of RFC3548.
+ *   http://www.faqs.org/rfcs/rfc3548.html</li>
+ *   <li>Calling Base64.setFormat(Base64.BASE64_FORMAT.ORDERED_FORMAT) generates
+ *   URL and file name friendly format that preserves lexical ordering as described
+ *   in http://www.faqs.org/qa/rfcc-1940.html</li>
+ *   </ol>
+ *   Special thanks to Jim Kellerman at <a href="http://www.powerset.com/">http://www.powerset.com/</a>
+ *   for contributing the new Base64 dialects.
+ *  </li>
+ * 
  *  <li>v2.1 - Cleaned up javadoc comments and unused variables and methods. Added
  *   some convenience methods for reading and writing to and from files.</li>
  *  <li>v2.0.2 - Now specifies UTF-8 encoding in places where the code fails on systems
@@ -43,9 +62,8 @@
  *
  * @author Robert Harder
  * @author rob@iharder.net
- * @version 2.1
+ * @version 2.2.1
  */
-
 package net.iharder;
 
 public class Base64
@@ -71,6 +89,23 @@ public class Base64
     
     /** Don't break lines when encoding (violates strict Base64 specification) */
     public final static int DONT_BREAK_LINES = 8;
+	
+	/** 
+	 * Encode using Base64-like encoding that is URL- and Filename-safe as described
+	 * in Section 4 of RFC3548: 
+	 * <a href="http://www.faqs.org/rfcs/rfc3548.html">http://www.faqs.org/rfcs/rfc3548.html</a>.
+	 * It is important to note that data encoded this way is <em>not</em> officially valid Base64, 
+	 * or at the very least should not be called Base64 without also specifying that is
+	 * was encoded using the URL- and Filename-safe dialect.
+	 */
+	 public final static int URL_SAFE = 16;
+	 
+	 
+	 /**
+	  * Encode using the special "ordered" dialect of Base64 described here:
+	  * <a href="http://www.faqs.org/qa/rfcc-1940.html">http://www.faqs.org/qa/rfcc-1940.html</a>.
+	  */
+	 public final static int ORDERED = 32;
     
     
 /* ********  P R I V A T E   F I E L D S  ******** */  
@@ -91,10 +126,19 @@ public class Base64
     /** Preferred encoding. */
     private final static String PREFERRED_ENCODING = "UTF-8";
     
+	
+    // I think I end up not using the BAD_ENCODING indicator.
+    //private final static byte BAD_ENCODING    = -9; // Indicates error in encoding
+    private final static byte WHITE_SPACE_ENC = -5; // Indicates white space in encoding
+    private final static byte EQUALS_SIGN_ENC = -1; // Indicates equals sign in encoding
+	
+	
+/* ********  S T A N D A R D   B A S E 6 4   A L P H A B E T  ******** */	
     
     /** The 64 valid Base64 values. */
-    private final static byte[] ALPHABET;
-    private final static byte[] _NATIVE_ALPHABET = /* May be something funny like EBCDIC */
+    //private final static byte[] ALPHABET;
+	/* Host platform me be something funny like EBCDIC, so we hardcode these values. */
+	private final static byte[] _STANDARD_ALPHABET =
     {
         (byte)'A', (byte)'B', (byte)'C', (byte)'D', (byte)'E', (byte)'F', (byte)'G',
         (byte)'H', (byte)'I', (byte)'J', (byte)'K', (byte)'L', (byte)'M', (byte)'N',
@@ -107,28 +151,13 @@ public class Base64
         (byte)'0', (byte)'1', (byte)'2', (byte)'3', (byte)'4', (byte)'5', 
         (byte)'6', (byte)'7', (byte)'8', (byte)'9', (byte)'+', (byte)'/'
     };
-    
-    /** Determine which ALPHABET to use. */
-    static
-    {
-        byte[] __bytes;
-        try
-        {
-            __bytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes( PREFERRED_ENCODING );
-        }   // end try
-        catch (java.io.UnsupportedEncodingException use)
-        {
-            __bytes = _NATIVE_ALPHABET; // Fall back to native encoding
-        }   // end catch
-        ALPHABET = __bytes;
-    }   // end static
-    
+	
     
     /** 
      * Translates a Base64 value to either its 6-bit reconstruction value
      * or a negative number indicating some other meaning.
      **/
-    private final static byte[] DECODABET =
+    private final static byte[] _STANDARD_DECODABET =
     {   
         -9,-9,-9,-9,-9,-9,-9,-9,-9,                 // Decimal  0 -  8
         -5,-5,                                      // Whitespace: Tab and Linefeed
@@ -162,16 +191,214 @@ public class Base64
         -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 231 - 243
         -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9         // Decimal 244 - 255 */
     };
-    
-    // I think I end up not using the BAD_ENCODING indicator.
-    //private final static byte BAD_ENCODING    = -9; // Indicates error in encoding
-    private final static byte WHITE_SPACE_ENC = -5; // Indicates white space in encoding
-    private final static byte EQUALS_SIGN_ENC = -1; // Indicates equals sign in encoding
+	
+	
+/* ********  U R L   S A F E   B A S E 6 4   A L P H A B E T  ******** */
+	
+	/**
+	 * Used in the URL- and Filename-safe dialect described in Section 4 of RFC3548: 
+	 * <a href="http://www.faqs.org/rfcs/rfc3548.html">http://www.faqs.org/rfcs/rfc3548.html</a>.
+	 * Notice that the last two bytes become "hyphen" and "underscore" instead of "plus" and "slash."
+	 */
+    private final static byte[] _URL_SAFE_ALPHABET =
+    {
+      (byte)'A', (byte)'B', (byte)'C', (byte)'D', (byte)'E', (byte)'F', (byte)'G',
+      (byte)'H', (byte)'I', (byte)'J', (byte)'K', (byte)'L', (byte)'M', (byte)'N',
+      (byte)'O', (byte)'P', (byte)'Q', (byte)'R', (byte)'S', (byte)'T', (byte)'U', 
+      (byte)'V', (byte)'W', (byte)'X', (byte)'Y', (byte)'Z',
+      (byte)'a', (byte)'b', (byte)'c', (byte)'d', (byte)'e', (byte)'f', (byte)'g',
+      (byte)'h', (byte)'i', (byte)'j', (byte)'k', (byte)'l', (byte)'m', (byte)'n',
+      (byte)'o', (byte)'p', (byte)'q', (byte)'r', (byte)'s', (byte)'t', (byte)'u', 
+      (byte)'v', (byte)'w', (byte)'x', (byte)'y', (byte)'z',
+      (byte)'0', (byte)'1', (byte)'2', (byte)'3', (byte)'4', (byte)'5', 
+      (byte)'6', (byte)'7', (byte)'8', (byte)'9', (byte)'-', (byte)'_'
+    };
+	
+	/**
+	 * Used in decoding URL- and Filename-safe dialects of Base64.
+	 */
+    private final static byte[] _URL_SAFE_DECODABET =
+    {   
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,                 // Decimal  0 -  8
+      -5,-5,                                      // Whitespace: Tab and Linefeed
+      -9,-9,                                      // Decimal 11 - 12
+      -5,                                         // Whitespace: Carriage Return
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 14 - 26
+      -9,-9,-9,-9,-9,                             // Decimal 27 - 31
+      -5,                                         // Whitespace: Space
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,              // Decimal 33 - 42
+      -9,                                         // Plus sign at decimal 43
+      -9,                                         // Decimal 44
+      62,                                         // Minus sign at decimal 45
+      -9,                                         // Decimal 46
+      -9,                                         // Slash at decimal 47
+      52,53,54,55,56,57,58,59,60,61,              // Numbers zero through nine
+      -9,-9,-9,                                   // Decimal 58 - 60
+      -1,                                         // Equals sign at decimal 61
+      -9,-9,-9,                                   // Decimal 62 - 64
+      0,1,2,3,4,5,6,7,8,9,10,11,12,13,            // Letters 'A' through 'N'
+      14,15,16,17,18,19,20,21,22,23,24,25,        // Letters 'O' through 'Z'
+      -9,-9,-9,-9,                                // Decimal 91 - 94
+      63,                                         // Underscore at decimal 95
+      -9,                                         // Decimal 96
+      26,27,28,29,30,31,32,33,34,35,36,37,38,     // Letters 'a' through 'm'
+      39,40,41,42,43,44,45,46,47,48,49,50,51,     // Letters 'n' through 'z'
+      -9,-9,-9,-9                                 // Decimal 123 - 126
+      /*,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 127 - 139
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 140 - 152
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 153 - 165
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 166 - 178
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 179 - 191
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 192 - 204
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 205 - 217
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 218 - 230
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 231 - 243
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9         // Decimal 244 - 255 */
+    };
+
+
+
+/* ********  O R D E R E D   B A S E 6 4   A L P H A B E T  ******** */
+
+	/**
+	 * I don't get the point of this technique, but it is described here:
+	 * <a href="http://www.faqs.org/qa/rfcc-1940.html">http://www.faqs.org/qa/rfcc-1940.html</a>.
+	 */
+    private final static byte[] _ORDERED_ALPHABET =
+    {
+      (byte)'-',
+      (byte)'0', (byte)'1', (byte)'2', (byte)'3', (byte)'4',
+      (byte)'5', (byte)'6', (byte)'7', (byte)'8', (byte)'9',
+      (byte)'A', (byte)'B', (byte)'C', (byte)'D', (byte)'E', (byte)'F', (byte)'G',
+      (byte)'H', (byte)'I', (byte)'J', (byte)'K', (byte)'L', (byte)'M', (byte)'N',
+      (byte)'O', (byte)'P', (byte)'Q', (byte)'R', (byte)'S', (byte)'T', (byte)'U',
+      (byte)'V', (byte)'W', (byte)'X', (byte)'Y', (byte)'Z',
+      (byte)'_',
+      (byte)'a', (byte)'b', (byte)'c', (byte)'d', (byte)'e', (byte)'f', (byte)'g',
+      (byte)'h', (byte)'i', (byte)'j', (byte)'k', (byte)'l', (byte)'m', (byte)'n',
+      (byte)'o', (byte)'p', (byte)'q', (byte)'r', (byte)'s', (byte)'t', (byte)'u',
+      (byte)'v', (byte)'w', (byte)'x', (byte)'y', (byte)'z'
+    };
+	
+	/**
+	 * Used in decoding the "ordered" dialect of Base64.
+	 */
+    private final static byte[] _ORDERED_DECODABET =
+    {   
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,                 // Decimal  0 -  8
+      -5,-5,                                      // Whitespace: Tab and Linefeed
+      -9,-9,                                      // Decimal 11 - 12
+      -5,                                         // Whitespace: Carriage Return
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 14 - 26
+      -9,-9,-9,-9,-9,                             // Decimal 27 - 31
+      -5,                                         // Whitespace: Space
+      -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,              // Decimal 33 - 42
+      -9,                                         // Plus sign at decimal 43
+      -9,                                         // Decimal 44
+      0,                                          // Minus sign at decimal 45
+      -9,                                         // Decimal 46
+      -9,                                         // Slash at decimal 47
+      1,2,3,4,5,6,7,8,9,10,                       // Numbers zero through nine
+      -9,-9,-9,                                   // Decimal 58 - 60
+      -1,                                         // Equals sign at decimal 61
+      -9,-9,-9,                                   // Decimal 62 - 64
+      11,12,13,14,15,16,17,18,19,20,21,22,23,     // Letters 'A' through 'M'
+      24,25,26,27,28,29,30,31,32,33,34,35,36,     // Letters 'N' through 'Z'
+      -9,-9,-9,-9,                                // Decimal 91 - 94
+      37,                                         // Underscore at decimal 95
+      -9,                                         // Decimal 96
+      38,39,40,41,42,43,44,45,46,47,48,49,50,     // Letters 'a' through 'm'
+      51,52,53,54,55,56,57,58,59,60,61,62,63,     // Letters 'n' through 'z'
+      -9,-9,-9,-9                                 // Decimal 123 - 126
+      /*,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 127 - 139
+        -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 140 - 152
+        -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 153 - 165
+        -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 166 - 178
+        -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 179 - 191
+        -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 192 - 204
+        -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 205 - 217
+        -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 218 - 230
+        -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,     // Decimal 231 - 243
+        -9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9,-9         // Decimal 244 - 255 */
+    };
+
+	
+/* ********  D E T E R M I N E   W H I C H   A L H A B E T  ******** */
+
+
+	/**
+	 * Returns one of the _SOMETHING_ALPHABET byte arrays depending on
+	 * the options specified.
+	 * It's possible, though silly, to specify ORDERED and URLSAFE
+	 * in which case one of them will be picked, though there is
+	 * no guarantee as to which one will be picked.
+	 */
+	private final static byte[] getAlphabet( int options )
+	{
+		if( (options & URL_SAFE) == URL_SAFE ) return _URL_SAFE_ALPHABET;
+		else if( (options & ORDERED) == ORDERED ) return _ORDERED_ALPHABET;
+		else return _STANDARD_ALPHABET;
+		
+	}	// end getAlphabet
+	
+	
+	/**
+	 * Returns one of the _SOMETHING_DECODABET byte arrays depending on
+	 * the options specified.
+	 * It's possible, though silly, to specify ORDERED and URL_SAFE
+	 * in which case one of them will be picked, though there is
+	 * no guarantee as to which one will be picked.
+	 */
+	private final static byte[] getDecodabet( int options )
+	{
+		if( (options & URL_SAFE) == URL_SAFE ) return _URL_SAFE_DECODABET;
+		else if( (options & ORDERED) == ORDERED ) return _ORDERED_DECODABET;
+		else return _STANDARD_DECODABET;
+		
+	}	// end getAlphabet
+        
 
     
     /** Defeats instantiation. */
     private Base64(){}
     
+
+    /**
+     * Encodes or decodes two files from the command line;
+     * <strong>feel free to delete this method (in fact you probably should)
+     * if you're embedding this code into a larger program.</strong>
+     */
+    public final static void main( String[] args )
+    {
+        if( args.length < 3 ){
+            usage("Not enough arguments.");
+        }   // end if: args.length < 3
+        else {
+            String flag = args[0];
+            String infile = args[1];
+            String outfile = args[2];
+            if( flag.equals( "-e" ) ){
+                Base64.encodeFileToFile( infile, outfile );
+            }   // end if: encode
+            else if( flag.equals( "-d" ) ) {
+                Base64.decodeFileToFile( infile, outfile );
+            }   // end else if: decode    
+            else {
+                usage( "Unknown flag: " + flag );
+            }   // end else    
+        }   // end else
+    }   // end main
+
+    /**
+     * Prints command line usage.
+     *
+     * @param msg A message to include with usage info.
+     */
+    private final static void usage( String msg )
+    {
+        System.err.println( msg );
+        System.err.println( "Usage: java Base64 -e|-d inputfile outputfile" );
+    }   // end usage
     
     
 /* ********  E N C O D I N G   M E T H O D S  ******** */    
@@ -192,15 +419,15 @@ public class Base64
      * @return four byte array in Base64 notation.
      * @since 1.5.1
      */
-    private static byte[] encode3to4( byte[] b4, byte[] threeBytes, int numSigBytes )
+    private static byte[] encode3to4( byte[] b4, byte[] threeBytes, int numSigBytes, int options )
     {
-        encode3to4( threeBytes, 0, numSigBytes, b4, 0 );
+        encode3to4( threeBytes, 0, numSigBytes, b4, 0, options );
         return b4;
     }   // end encode3to4
 
     
     /**
-     * Encodes up to three bytes of the array <var>source</var>
+     * <p>Encodes up to three bytes of the array <var>source</var>
      * and writes the resulting four Base64 bytes to <var>destination</var>.
      * The source and destination arrays can be manipulated
      * anywhere along their length by specifying 
@@ -210,7 +437,9 @@ public class Base64
      * the <var>source</var> array or <var>destOffset</var> + 4 for
      * the <var>destination</var> array.
      * The actual number of significant bytes in your array is
-     * given by <var>numSigBytes</var>.
+     * given by <var>numSigBytes</var>.</p>
+	 * <p>This is the lowest level of the encoding methods with
+	 * all possible parameters.</p>
      *
      * @param source the array to convert
      * @param srcOffset the index where conversion begins
@@ -222,8 +451,10 @@ public class Base64
      */
     private static byte[] encode3to4( 
      byte[] source, int srcOffset, int numSigBytes,
-     byte[] destination, int destOffset )
+     byte[] destination, int destOffset, int options )
     {
+		byte[] ALPHABET = getAlphabet( options ); 
+	
         //           1         2         3  
         // 01234567890123456789012345678901 Bit position
         // --------000000001111111122222222 Array position from threeBytes
@@ -326,7 +557,7 @@ public class Base64
         {
             // ObjectOutputStream -> (GZIP) -> Base64 -> ByteArrayOutputStream
             baos  = new java.io.ByteArrayOutputStream();
-            b64os = new Base64.OutputStream( baos, ENCODE | dontBreakLines );
+            b64os = new Base64.OutputStream( baos, ENCODE | options );
     
             // GZip?
             if( gzip == GZIP )
@@ -440,6 +671,7 @@ public class Base64
      * @param off Offset in array where conversion should begin
      * @param len Length of data to convert
      * @param options Specified options
+	 * @param options alphabet type is pulled from this (standard, url-safe, ordered)
      * @see Base64#GZIP
      * @see Base64#DONT_BREAK_LINES
      * @since 2.0
@@ -462,7 +694,7 @@ public class Base64
             {
                 // GZip -> Base64 -> ByteArray
                 baos = new java.io.ByteArrayOutputStream();
-                b64os = new Base64.OutputStream( baos, ENCODE | dontBreakLines );
+                b64os = new Base64.OutputStream( baos, ENCODE | options );
                 gzos  = new java.util.zip.GZIPOutputStream( b64os ); 
             
                 gzos.write( source, off, len );
@@ -507,7 +739,7 @@ public class Base64
             int lineLength = 0;
             for( ; d < len2; d+=3, e+=4 )
             {
-                encode3to4( source, d+off, 3, outBuff, e );
+                encode3to4( source, d+off, 3, outBuff, e, options );
 
                 lineLength += 4;
                 if( breakLines && lineLength == MAX_LINE_LENGTH )
@@ -520,7 +752,7 @@ public class Base64
 
             if( d < len )
             {
-                encode3to4( source, d+off, len - d, outBuff, e );
+                encode3to4( source, d+off, len - d, outBuff, e, options );
                 e += 4;
             }   // end if: some padding needed
 
@@ -559,17 +791,22 @@ public class Base64
      * the <var>destination</var> array.
      * This method returns the actual number of bytes that 
      * were converted from the Base64 encoding.
+	 * <p>This is the lowest level of the decoding methods with
+	 * all possible parameters.</p>
      * 
      *
      * @param source the array to convert
      * @param srcOffset the index where conversion begins
      * @param destination the array to hold the conversion
      * @param destOffset the index where output will be put
+	 * @param options alphabet type is pulled from this (standard, url-safe, ordered)
      * @return the number of decoded bytes converted
      * @since 1.3
      */
-    private static int decode4to3( byte[] source, int srcOffset, byte[] destination, int destOffset )
+    private static int decode4to3( byte[] source, int srcOffset, byte[] destination, int destOffset, int options )
     {
+		byte[] DECODABET = getDecodabet( options ); 
+	
         // Example: Dk==
         if( source[ srcOffset + 2] == EQUALS_SIGN )
         {
@@ -625,7 +862,7 @@ public class Base64
                 System.out.println(""+source[srcOffset+2]+  ": " + ( DECODABET[ source[ srcOffset + 2 ] ]  ) );
                 System.out.println(""+source[srcOffset+3]+  ": " + ( DECODABET[ source[ srcOffset + 3 ] ]  ) );
                 return -1;
-            }   //e nd catch
+            }   // end catch
         }
     }   // end decodeToBytes
     
@@ -643,8 +880,10 @@ public class Base64
      * @return decoded data
      * @since 1.3
      */
-    public static byte[] decode( byte[] source, int off, int len )
+    public static byte[] decode( byte[] source, int off, int len, int options )
     {
+		byte[] DECODABET = getDecodabet( options );
+	
         int    len34   = len * 3 / 4;
         byte[] outBuff = new byte[ len34 ]; // Upper limit on size of output
         int    outBuffPosn = 0;
@@ -666,7 +905,7 @@ public class Base64
                     b4[ b4Posn++ ] = sbiCrop;
                     if( b4Posn > 3 )
                     {
-                        outBuffPosn += decode4to3( b4, 0, outBuff, outBuffPosn );
+                        outBuffPosn += decode4to3( b4, 0, outBuff, outBuffPosn, options );
                         b4Posn = 0;
                         
                         // If that was the equals sign, break out of 'for' loop
@@ -690,8 +929,8 @@ public class Base64
     }   // end decode
     
     
-    
-    
+	
+	
     /**
      * Decodes data from Base64 notation, automatically
      * detecting gzip-compressed data and decompressing it.
@@ -701,6 +940,21 @@ public class Base64
      * @since 1.4
      */
     public static byte[] decode( String s )
+	{
+		return decode( s, NO_OPTIONS );
+	}
+    
+    
+    /**
+     * Decodes data from Base64 notation, automatically
+     * detecting gzip-compressed data and decompressing it.
+     *
+     * @param s the string to decode
+	 * @param options encode options such as URL_SAFE
+     * @return the decoded data
+     * @since 1.4
+     */
+    public static byte[] decode( String s, int options )
     {   
         byte[] bytes;
         try
@@ -714,7 +968,7 @@ public class Base64
 		//</change>
         
         // Decode
-        bytes = decode( bytes, 0, bytes.length );
+        bytes = decode( bytes, 0, bytes.length, options );
         
         
         // Check to see if it's gzip-compressed
@@ -954,7 +1208,7 @@ public class Base64
         {
             // Set up some useful variables
             java.io.File file = new java.io.File( filename );
-            byte[] buffer = new byte[ (int)(file.length() * 1.4) ];
+            byte[] buffer = new byte[ Math.max((int)(file.length() * 1.4),40) ]; // Need max() for math on small files (v2.2.1)
             int length   = 0;
             int numBytes = 0;
             
@@ -983,7 +1237,56 @@ public class Base64
         return encodedData;
         }   // end encodeFromFile
     
-    
+    /**
+     * Reads <tt>infile</tt> and encodes it to <tt>outfile</tt>.
+     *
+     * @param infile Input file
+     * @param outfile Output file
+     * @since 2.2
+     */
+    public static void encodeFileToFile( String infile, String outfile )
+    {
+        String encoded = Base64.encodeFromFile( infile );
+        java.io.OutputStream out = null;
+        try{
+            out = new java.io.BufferedOutputStream(
+                  new java.io.FileOutputStream( outfile ) );
+            out.write( encoded.getBytes("US-ASCII") ); // Strict, 7-bit output.
+        }   // end try
+        catch( java.io.IOException ex ) {
+            ex.printStackTrace();
+        }   // end catch
+        finally {
+            try { out.close(); }
+            catch( Exception ex ){}
+        }   // end finally    
+    }   // end encodeFileToFile
+
+
+    /**
+     * Reads <tt>infile</tt> and decodes it to <tt>outfile</tt>.
+     *
+     * @param infile Input file
+     * @param outfile Output file
+     * @since 2.2
+     */
+    public static void decodeFileToFile( String infile, String outfile )
+    {
+        byte[] decoded = Base64.decodeFromFile( infile );
+        java.io.OutputStream out = null;
+        try{
+            out = new java.io.BufferedOutputStream(
+                  new java.io.FileOutputStream( outfile ) );
+            out.write( decoded );
+        }   // end try
+        catch( java.io.IOException ex ) {
+            ex.printStackTrace();
+        }   // end catch
+        finally {
+            try { out.close(); }
+            catch( Exception ex ){}
+        }   // end finally    
+    }   // end decodeFileToFile
     
     
     /* ********  I N N E R   C L A S S   I N P U T S T R E A M  ******** */
@@ -1007,6 +1310,9 @@ public class Base64
         private int     numSigBytes;    // Number of meaningful bytes in the buffer
         private int     lineLength;
         private boolean breakLines;     // Break lines at less than 80 characters
+		private int     options;        // Record options used to create the stream.
+		private byte[]  alphabet;	    // Local copies to avoid extra method calls
+		private byte[]  decodabet;		// Local copies to avoid extra method calls
         
         
         /**
@@ -1048,9 +1354,12 @@ public class Base64
             this.breakLines   = (options & DONT_BREAK_LINES) != DONT_BREAK_LINES;
             this.encode       = (options & ENCODE) == ENCODE;
             this.bufferLength = encode ? 4 : 3;
-            this.buffer   = new byte[ bufferLength ];
-            this.position = -1;
-            this.lineLength = 0;
+            this.buffer       = new byte[ bufferLength ];
+            this.position     = -1;
+            this.lineLength   = 0;
+			this.options      = options; // Record for later, mostly to determine which alphabet to use
+			this.alphabet     = getAlphabet(options);
+			this.decodabet    = getDecodabet(options);
         }   // end constructor
         
         /**
@@ -1094,7 +1403,7 @@ public class Base64
                     
                     if( numBinaryBytes > 0 )
                     {
-                        encode3to4( b3, 0, numBinaryBytes, buffer, 0 );
+                        encode3to4( b3, 0, numBinaryBytes, buffer, 0, options );
                         position = 0;
                         numSigBytes = 4;
                     }   // end if: got data
@@ -1114,7 +1423,7 @@ public class Base64
                         // Read four "meaningful" bytes:
                         int b = 0;
                         do{ b = in.read(); }
-                        while( b >= 0 && DECODABET[ b & 0x7f ] <= WHITE_SPACE_ENC );
+                        while( b >= 0 && decodabet[ b & 0x7f ] <= WHITE_SPACE_ENC );
                         
                         if( b < 0 )
                             break; // Reads a -1 if end of stream
@@ -1124,7 +1433,7 @@ public class Base64
                     
                     if( i == 4 )
                     {
-                        numSigBytes = decode4to3( b4, 0, buffer, 0 );
+                        numSigBytes = decode4to3( b4, 0, buffer, 0, options );
                         position = 0;
                     }   // end if: got four characters
                     else if( i == 0 ){
@@ -1238,6 +1547,9 @@ public class Base64
         private boolean breakLines;
         private byte[]  b4; // Scratch used in a few places
         private boolean suspendEncoding;
+		private int options; // Record for later
+		private byte[]  alphabet;	    // Local copies to avoid extra method calls
+		private byte[]  decodabet;		// Local copies to avoid extra method calls
         
         /**
          * Constructs a {@link Base64.OutputStream} in ENCODE mode.
@@ -1282,6 +1594,9 @@ public class Base64
             this.lineLength   = 0;
             this.suspendEncoding = false;
             this.b4           = new byte[4];
+			this.options      = options;
+			this.alphabet     = getAlphabet(options);
+			this.decodabet    = getDecodabet(options);
         }   // end constructor
         
         
@@ -1312,7 +1627,7 @@ public class Base64
                 buffer[ position++ ] = (byte)theByte;
                 if( position >= bufferLength )  // Enough to encode.
                 {
-                    out.write( encode3to4( b4, buffer, bufferLength ) );
+                    out.write( encode3to4( b4, buffer, bufferLength, options ) );
 
                     lineLength += 4;
                     if( breakLines && lineLength >= MAX_LINE_LENGTH )
@@ -1329,18 +1644,18 @@ public class Base64
             else
             {
                 // Meaningful Base64 character?
-                if( DECODABET[ theByte & 0x7f ] > WHITE_SPACE_ENC )
+                if( decodabet[ theByte & 0x7f ] > WHITE_SPACE_ENC )
                 {
                     buffer[ position++ ] = (byte)theByte;
                     if( position >= bufferLength )  // Enough to output.
                     {
-                        int len = Base64.decode4to3( buffer, 0, b4, 0 );
+                        int len = Base64.decode4to3( buffer, 0, b4, 0, options );
                         out.write( b4, 0, len );
                         //out.write( Base64.decode4to3( buffer ) );
                         position = 0;
                     }   // end if: enough to output
                 }   // end if: meaningful base64 character
-                else if( DECODABET[ theByte & 0x7f ] != WHITE_SPACE_ENC )
+                else if( decodabet[ theByte & 0x7f ] != WHITE_SPACE_ENC )
                 {
                     throw new java.io.IOException( "Invalid character in Base64 data." );
                 }   // end else: not white space either
@@ -1386,7 +1701,7 @@ public class Base64
             {
                 if( encode )
                 {
-                    out.write( encode3to4( b4, buffer, position ) );
+                    out.write( encode3to4( b4, buffer, position, options ) );
                     position = 0;
                 }   // end if: encoding
                 else

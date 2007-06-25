@@ -23,9 +23,12 @@
 
 package org.catacombae.dmgx;
 
+import org.catacombae.xml.*;
 import org.catacombae.xml.parser.*;
+import org.catacombae.io.*;
 import net.iharder.Base64;
 import java.io.*;
+import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.Iterator;
 import java.util.zip.Inflater;
@@ -54,7 +57,7 @@ public class DMGExtractor {
     public static final int BT_UNKNOWN = 0x7ffffffe;
     public static final long PLIST_ADDRESS_1 = 0x1E0;
     public static final long PLIST_ADDRESS_2 = 0x128;
-    public static final String BACKSPACE79 = "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
+    public static final String BACKSPACE79 = ""; //"\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
 //     public static PrintStream stdout = System.out;
 //     public static PrintStream stderr = System.err;
     public static BufferedReader stdin = 
@@ -136,10 +139,15 @@ public class DMGExtractor {
 	byte[] buffer = new byte[(int)plistSize];
 	dmgRaf.read(buffer);
 
-	InputStream is = new ByteArrayInputStream(buffer);
+	String dumpfilename = "dump_" + System.currentTimeMillis() + ".xml";
+	System.out.println("DUMPING XML DATA TO FILE: \"" + dumpfilename + "\"...");
+	try { FileOutputStream dump = new FileOutputStream(dumpfilename); dump.write(buffer); dump.close(); }
+	catch(Exception e) { e.printStackTrace(); }
+	
 
 	NodeBuilder handler = new NodeBuilder();
 	if(useSaxParser) {
+	    InputStream is = new ByteArrayInputStream(buffer);
 	    SAXParser saxParser = SAXParserFactory.newInstance().newSAXParser();
 	    try {
 		if(verbose)
@@ -153,15 +161,22 @@ public class DMGExtractor {
 	}
 	else {
 	    try {
-		Ass encodingParser = Ass.create(new InputStreamReader(is, "US-ASCII"), new NullXMLContentHandler());
+		SynchronizedRandomAccessStream bufferStream =
+		    new SynchronizedRandomAccessStream(new ByteArrayStream(buffer));
+		InputStream is = new RandomAccessInputStream(bufferStream);
+
+		Ass encodingParser = Ass.create(new InputStreamReader(is, "US-ASCII"),
+						new NullXMLContentHandler(Charset.forName("US-ASCII")));
 		String encoding = encodingParser.xmlDecl();
 		if(verbose) System.out.println("XML Encoding: " + encoding);
 		if(encoding == null)
 		    encoding = "US-ASCII";
 		
-		is = new ByteArrayInputStream(buffer);
+		
+		is = new RandomAccessInputStream(bufferStream);
 		Reader usedReader = new BufferedReader(new InputStreamReader(is, encoding));
-		Ass assParser = Ass.create(usedReader, new NodeBuilderContentHandler(handler));
+		Ass assParser = Ass.create(usedReader, new NodeBuilderContentHandler(handler, bufferStream,
+										     Charset.forName(encoding)));
 		assParser.xmlDocument();
 	    } catch(ParseException pe) {
 		println("Could not read the partition list... exiting.");
@@ -213,7 +228,7 @@ public class DMGExtractor {
 	    if(progmon != null && progmon.isCanceled()) System.exit(0);
 	    if(xe instanceof XMLNode) {
 		XMLNode xn = (XMLNode)xe;
-		byte[] data = Base64.decode(xn.getKeyValue("Data"));
+		byte[] data = Base64.decode(Util.readFully(xn.getKeyValue("Data")));
 		
 		long partitionSize = calculatePartitionSize(data);
 		totalSize += partitionSize;
@@ -663,8 +678,8 @@ public class DMGExtractor {
     }
 
     public static void printCurrentLine(String s) {
-	System.out.print(BACKSPACE79);
-	System.out.print(s);
+	//System.out.print(BACKSPACE79);
+	System.out.println(s);
     }
     public static void println() {
 	System.out.print(BACKSPACE79);

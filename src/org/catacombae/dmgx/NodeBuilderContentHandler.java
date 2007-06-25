@@ -20,13 +20,22 @@
 
 package org.catacombae.dmgx;
 
+import org.catacombae.xml.*;
 import org.catacombae.xml.parser.*;
+import org.catacombae.io.*;
 import java.util.List;
+import java.nio.charset.Charset;
 
-public class NodeBuilderContentHandler implements XMLContentHandler {
+public class NodeBuilderContentHandler extends XMLContentHandler {
     private NodeBuilder nodeBuilder;
-    public NodeBuilderContentHandler(NodeBuilder nodeBuilder) {
+    private SynchronizedRandomAccessStream sras;
+    private Charset encoding;
+    
+    public NodeBuilderContentHandler(NodeBuilder nodeBuilder, SynchronizedRandomAccessStream sras, Charset encoding) {
+	super(encoding);
 	this.nodeBuilder = nodeBuilder;
+	this.sras = sras;
+	this.encoding = encoding;
     }
     public void xmlDecl(String version, String encoding, Boolean standalone) {}
     public void pi(String id, String content) {}
@@ -37,23 +46,23 @@ public class NodeBuilderContentHandler implements XMLContentHandler {
 	    nodeBuilder.characters(cdata.toCharArray(), 0, cdata.length());
 	} catch(Exception e) { throw new RuntimeException(e); }
     }
-    public void emptyElement(String name, List<org.catacombae.xml.parser.Attribute> attributes) {
+    public void emptyElement(String name, List<org.catacombae.xml.Attribute> attributes) {
 	try {
 	    startElement(name, attributes);
 	    endElement(name);
 	} catch(Exception e) { throw new RuntimeException(e); }
     }
-    public void startElement(String name, List<org.catacombae.xml.parser.Attribute> attributes) {
+    public void startElement(String name, List<org.catacombae.xml.Attribute> attributes) {
 	try {
 	    Attribute[] attrs = new Attribute[attributes.size()];
 	    //for(int i = 0; i < attributes.length; ++i) {
 	    int i = 0;
-	    for(org.catacombae.xml.parser.Attribute a : attributes) {
+	    for(org.catacombae.xml.Attribute a : attributes) {
 		attrs[i++] = new Attribute("", a.identifier, 
 					      "CDATA", "", a.value.toString());
 	    }
 // 	    org.xml.sax.ext.Attributes2Impl a2i = new org.xml.sax.ext.Attributes2Impl();
-// 	    for(org.catacombae.xml.parser.Attribute a : attributes) {
+// 	    for(org.catacombae.xml.Attribute a : attributes) {
 // 		System.err.println("id: " + a.identifier + " value: " + a.value.toString());
 // 		a2i.addAttribute("", a.identifier, a.identifier, "CDATA", a.value.toString());
 // 	    }
@@ -65,12 +74,16 @@ public class NodeBuilderContentHandler implements XMLContentHandler {
 	    nodeBuilder.endElement(null, null, name);
 	} catch(Exception e) { throw new RuntimeException(e); }
     }
-    public void chardata(String data) {
-	try {
-	    char[] ca = data.toCharArray();
-	    nodeBuilder.characters(ca, 0, ca.length);
-	} catch(Exception e) { throw new RuntimeException(e); }
+    public void chardata(int beginLine, int beginColumn, int endLine, int endColumn) {
+	nodeBuilder.characters(sras, encoding, beginLine, beginColumn, endLine, endColumn);
     }
+//     public void chardata(CharSequence data) {
+// 	try {
+// 	    //char[] ca = data.toCharArray();
+// 	    //nodeBuilder.characters(ca, 0, ca.length);
+// 	    nodeBuilder.characters(data);
+// 	} catch(Exception e) { throw new RuntimeException(e); }
+//     }
     public void reference(String ref) {
 	try {
 	    if(ref.startsWith("&#")) {

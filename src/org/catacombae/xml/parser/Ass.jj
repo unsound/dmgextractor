@@ -5,21 +5,35 @@ options {
 
 PARSER_BEGIN(Ass)
 package org.catacombae.xml.parser;
+import org.catacombae.xml.*;
 
 import java.util.*;
 import java.io.*;
-  
+import java.nio.charset.Charset;
+
 public class Ass {
+    public static final String DEFAULT_ENCODING = "US-ASCII";
     //private Reader usedReader;
     private XMLContentHandler contentHandler;
     
     public static void main(String[] args) throws Exception {
-        MutableInputStreamReader usedReader;
-        if(args.length == 1)
-	   usedReader = new MutableInputStreamReader(new FileInputStream(args[0]), "US-ASCII");
-	else
-           usedReader = new MutableInputStreamReader(System.in, "US-ASCII");
-        Ass a = create(usedReader, new DebugXMLContentHandler());
+        InputStream is;
+        if(args.length != 1)
+	   throw new RuntimeException("The only valid argument is the name of the input file!");
+	
+        // First, we read the encoding from the xml declaration (if it exists)
+	Ass encodingParser = create(new InputStreamReader(new FileInputStream(args[0]), DEFAULT_ENCODING), 
+	                            new NullXMLContentHandler(Charset.forName(DEFAULT_ENCODING)));
+        String encoding = null;
+        try { encoding = encodingParser.xmlDecl();} catch(ParseException pe) {}
+	if(encoding == null) encoding = DEFAULT_ENCODING;
+        
+	encodingParser = null; // GC candy
+	
+	// Then we create a new stream, and parse the entire document using the appropriate encoding
+        InputStreamReader usedReader;
+	usedReader = new InputStreamReader(new FileInputStream(args[0]), encoding);
+        Ass a = create(usedReader, new DebugXMLContentHandler(Charset.forName(encoding))); //new NullXMLContentHandler(encoding));//
 	a.xmlDocument();
     }
 
@@ -37,9 +51,11 @@ PARSER_END(Ass)
    escape does not allow it, since you have to convert it to UTF-16BE first. Do this conversion
    asap! (might be non trivial) */
 <*> TOKEN: {
-      < #S: (" " | "\t" | "\n" | "\r")+ >
+      < #SINGLE_S: (" " | "\t" | "\n" | "\r") >
+    //| < #S: ( <SINGLE_S> )+ >
     | < #CHAR: ["\u0009", "\n", "\r", "\u0020"-"\uD7FF", "\uE000"-"\uFFFD"/*, "\u10000"-"\u10FFFF"*/] >
-    | < #NAME: ( <LETTER> | "_" | ":" ) (<NAMECHAR>)* >
+    | < #NAME: <NAMESTART> ( <NAMECHAR> )* >
+    | < #NAMESTART: ( <LETTER> | "_" | ":" ) >
     | < #NAMECHAR: <LETTER> | <DIGIT> | "." | "-" | "_" | ":" | <COMBININGCHAR> | <EXTENDER> >
     | < #LETTER: ( <BASECHAR> | <IDEOGRAPHIC> ) >
     | < #BASECHAR: ["\u0041"-"\u005A","\u0061"-"\u007A","\u00C0"-"\u00D6","\u00D8"-"\u00F6",
@@ -121,8 +137,14 @@ PARSER_END(Ass)
     | < #EXTENDER: ["\u00B7", "\u02D0", "\u02D1", "\u0387", "\u0640", "\u0E46", "\u0EC6", 
                    "\u3005", "\u3031"-"\u3035", "\u309D"-"\u309E", "\u30FC"-"\u30FE"] >
     | < #REFERENCE: <ENTITYREF> | <CHARREF> >
-    | < #ENTITYREF: "&" <NAME> ";" >
+    | < #ENTITYREF: "&" <NAMESTART> (<NAMECHAR>)* ";" >
     | < #CHARREF: "&#" (["0"-"9"])+ ";" | "&#x" (["0"-"9", "a"-"f", "A"-"F"])+ ";" >
+}
+
+
+SKIP: // Whitespace is skipped in lexical state DEFAULT
+{
+	< <SINGLE_S> >
 }
 
 TOKEN : {
@@ -133,8 +155,7 @@ TOKEN : {
     | < STARTDOCTYPEDECL: "<!DOCTYPE" > : WithinDoctypeDecl
     | < STARTCOMMENT: "<!--"          > : Comment
     | < STARTCDATA: "<![CDATA["       > : WithinCData
-    | < DEFAULT_S: (" " | "\t" | "\n" | "\r")+ >
-    | < CHARDATA: ( ~["<", "&", "]"] | ( "]" ~["<", "&", "]"] | ( "]]" ~["<", "&", ">"] ) ) )+ >
+    | < CHARDATA: ( ~["<", "&", "]"] | ( "]" ~["<", "&", "]"] | ( "]]" ~["<", "&", ">"] ) ) ) >
     | < DEFAULT_REFERENCE: <REFERENCE> >
 
 
@@ -144,13 +165,14 @@ TOKEN : {
 void xmlDocument() :
 {}
 {
-	prolog() element() misc() <EOF>
+	//content() <EOF> 
+	prolog() element() (misc())* <EOF>
 }
 
 void prolog() :
 {}
 {
-	( xmlDecl() )? ( misc() )* ( doctypeDecl() misc() )*
+	( xmlDecl() )? ( misc() )* ( doctypeDecl() ( misc() )* )?
 }
 
 /**************************************************
@@ -159,13 +181,16 @@ void prolog() :
 
 <WithinXMLDecl> TOKEN: {
       < ENDXMLDECL: "?>" > : DEFAULT
-    | < XMLDECL_S: <S> >
+    //| < XMLDECL_S: <S> >
     | < XMLDECL_EQ: "=" >
     | < XD_DQUOTE_OPEN: "\"" > : WithinXMLDecl_DquoteString
     | < XD_SQUOTE_OPEN: "'" > : WithinXMLDecl_SquoteString
     | < VERSION: "version" > : WithinXMLDecl_Version
     | < ENCODING: "encoding" >
     | < STANDALONE: "standalone" > : WithinXMLDecl_Standalone
+}
+<WithinXMLDecl> SKIP: {
+      < <SINGLE_S> >
 }
 <WithinXMLDecl_DquoteString> TOKEN: {
       < XD_DQUOTE_STRING: (~["\""])+ >
@@ -185,9 +210,8 @@ String xmlDecl() :
 {
 	<STARTXMLDECL> // Takes us to state WithinXMLDecl
 	version = versionInfo() 
-	(LOOKAHEAD(2) encoding = encodingDecl())? // encodingDecl and sdDecl have common prefixes..
-	(LOOKAHEAD(2) standalone = sdDecl())? 
-	(<XMLDECL_S>)?
+	(/*LOOKAHEAD(2)*/ encoding = encodingDecl())? // encodingDecl and sdDecl have common prefixes..
+	(/*LOOKAHEAD(2)*/ standalone = sdDecl())? 
 	<ENDXMLDECL> // Back to DEFAULT
 	{ contentHandler.xmlDecl(version, encoding, standalone); return encoding; }
 }
@@ -204,7 +228,7 @@ String versionInfo() :
 	Token versionString;
 }
 {
-	<XMLDECL_S> <VERSION> // Takes us to state WithinXMLDecl_Version
+	/*<XMLDECL_S>*/ <VERSION> // Takes us to state WithinXMLDecl_Version
 	(<VERSION_DOPEN> versionString = <VER> <VERSION_DCLOSE> | 
 	 <VERSION_SOPEN> versionString = <VER> <VERSION_SCLOSE> )
 	{ return versionString.image; }
@@ -215,7 +239,7 @@ String encodingDecl() :
 	Token encoding;
 }
 {
-	<XMLDECL_S> <ENCODING> <XMLDECL_EQ> 
+	/*<XMLDECL_S>*/ <ENCODING> <XMLDECL_EQ> 
 	(<XD_SQUOTE_OPEN> encoding = <XD_SQUOTE_STRING> <XD_SQUOTE_CLOSE> | 
 	 <XD_DQUOTE_OPEN> encoding = <XD_DQUOTE_STRING> <XD_DQUOTE_CLOSE> )
 	//{ try { usedReader.changeEncoding(encoding.image); } catch(Exception e) { throw new RuntimeException(e); } }
@@ -235,7 +259,7 @@ boolean sdDecl() :
 	boolean b;
 }
 {
-	<XMLDECL_S> <STANDALONE> // Takes us to state WithinXMLDecl_Standalone
+	/*<XMLDECL_S>*/ <STANDALONE> // Takes us to state WithinXMLDecl_Standalone
 	( <STANDALONE_DOPEN> (<STANDALONE_YES> {b = true;} | <STANDALONE_NO> {b = false;}) <STANDALONE_DCLOSE> |
 	  <STANDALONE_SOPEN> (<STANDALONE_YES> {b = true;} | <STANDALONE_NO> {b = false;}) <STANDALONE_SCLOSE> )
 	{ return b; }
@@ -249,11 +273,11 @@ boolean sdDecl() :
    set so I wouldn't be forced to withdraw that later, when dealing with ''-strings... */
 
 <WithinDoctypeDecl> TOKEN: {
-      < WDD_S: <S> >
-    | < WDD_NAME: <NAME> >
+      < WDD_NAME: <NAME> >
+    //| < WDD_S: <S> >
     | < ENDDOCTYPEDECL: ">" > : DEFAULT
-    | < EXTERNALID: "SYSTEM" <S> <SYSTEMLITERAL> |
-                    "PUBLIC" <S> <PUBIDLITERAL> <S> <SYSTEMLITERAL> >
+    | < EXTERNALID: "SYSTEM" (<SINGLE_S>)+ <SYSTEMLITERAL> |
+                    "PUBLIC" (<SINGLE_S>)+ <PUBIDLITERAL> (<SINGLE_S>)+ <SYSTEMLITERAL> >
     | < #SYSTEMLITERAL: ("\"" (~["\""])* "\"") | ("'" (~["'"])* "'") >
     | < #PUBIDLITERAL: ("\"" (<PUBIDCHAR> | "'")* "\"") | ("'" (<PUBIDCHAR>)* "'") >
     | < #PUBIDCHAR: ( "\u0020" | "\r" | "\n" | ["a"-"z","A"-"Z","0"-"9"] | 
@@ -262,6 +286,10 @@ boolean sdDecl() :
     | < BEGIN_INTSUBSET: "[" > : WithinIntSubset
     //| < CURRENTLYIGNOREDSTUFF: "[" (~["]"])*  "]" >
 
+}
+
+<WithinDoctypeDecl> SKIP: {
+      < <SINGLE_S> >
 }
 
 // Needs more work to support inline DTD declarations
@@ -274,10 +302,10 @@ void doctypeDecl() :
 	<STARTDOCTYPEDECL> // DEFAULT -> WithinDoctypeDecl
 	
 	// Lexical state: WithinDoctypeDecl
-	<WDD_S> name = <WDD_NAME>
-	( LOOKAHEAD(2) <WDD_S> <EXTERNALID> )?
-	( <WDD_S> )?
-	( <BEGIN_INTSUBSET> intSubset() (<WDD_S>)? )?
+	/*<WDD_S>*/ name = <WDD_NAME>
+	( /*LOOKAHEAD(2) <WDD_S>*/ <EXTERNALID> )?
+	/*( <WDD_S> )?*/
+	( <BEGIN_INTSUBSET> intSubset() /*(<WDD_S>)?*/ )?
 	<ENDDOCTYPEDECL> // WithinDoctypeDecl -> DEFAULT
 
 	// Lexical state: DEFAULT
@@ -315,7 +343,7 @@ void intSubset() :
 void misc() :
 {}
 {
-	comment() | pi() | <DEFAULT_S>
+	comment() | pi()
 }
 
 
@@ -358,7 +386,7 @@ void comment() :
 <WithinPI> TOKEN: {
       < ILLEGALTARGET: ( "X" | "x") ("M" | "m") ("L" | "l") (<NAME>)* >
     | < PITARGET: <NAME> >
-    | < WITHINPI_S: <S> > : WithinPIContent
+    | < WITHINPI_S: <SINGLE_S> > : WithinPIContent
 }
 void pi() :
 {
@@ -396,48 +424,45 @@ StringBuilder piContent() :
  * Here starts the parsing of the actual elements *
  **************************************************/
 <WithinTag> TOKEN: {
-      < WT_NAME: <NAME> >
-    | < WT_EQ: "=" >
-    | < WT_S: <S> >
+      < WT_EQ: "=" >
+    | < WT_NAME: <NAME> >
+    //| < WT_S: <S> >
     | < WT_DQUOTE: "\"" > : Attribute
     | < WT_SQUOTE: "'" > : Attribute
     | < EMPTY_ENDTAG: "/>" > : DEFAULT 
     | < ENDTAG: ">" > : DEFAULT 
-//    | < DQUOTE_OPEN: "\"" > : WithinTag_DquoteString
-//    | < SQUOTE_OPEN: "'" > : WithinTag_SquoteString
 }
 
-//<WithinTag> SKIP: {
-//      " " | "\t" | "\n" | "\r"
-//}
-
-//<WithinTag_DquoteString> TOKEN: {
-//      < DQUOTE_STRING: (~["\""])+ >
-//    | < DQUOTE_CLOSE: "\"" > : WithinTag
-//}
-//<WithinTag_SquoteString> TOKEN: {
-//      < SQUOTE_STRING: (~["'"])+ >
-//    | < SQUOTE_CLOSE: "'" > : WithinTag
-//}
+<WithinTag> SKIP: {
+      < <SINGLE_S> >
+}
 
 void element() :
 {
-	Token name;
+	String name;
 	Attribute currentAttribute;
 	LinkedList<Attribute> attributes = new LinkedList<Attribute>();
 }
 {
 	<STARTTAG> // DEFAULT -> WithinTag
-	name = <WT_NAME>
-	( LOOKAHEAD(2) <WT_S> currentAttribute = attribute() {attributes.add(currentAttribute);} )*
-	(<WT_S>)?
+	name = elementname() //name = <WT_NAME>
+	( currentAttribute = attribute() {attributes.add(currentAttribute);} )*
 	( <EMPTY_ENDTAG> // WithinTag -> DEFAULT
-	  { contentHandler.emptyElement(name.image, attributes); }
+	  { contentHandler.emptyElement(name, attributes); }
 	  | 
 	  <ENDTAG> // WithinTag -> DEFAULT
-	  { contentHandler.startElement(name.image, attributes); }
-	  content() 
+	  { contentHandler.startElement(name, attributes); }
+	  content()
 	  etag(name) )
+}
+
+String elementname() :
+{
+	Token t;
+}
+{
+	t = <WT_NAME>
+	{ return t.image; }
 }
 
 <Attribute> TOKEN: {
@@ -450,11 +475,12 @@ void element() :
 
 Attribute attribute() :
 {
-	Token t, name;
+	Token t;
+	String name;
 	LinkedList<Attribute.ValueComponent> value = new LinkedList<Attribute.ValueComponent>();
 }
 {
-	name = <WT_NAME> <WT_EQ>
+	name = elementname() <WT_EQ>
 	( 
 	  (
 	    <WT_DQUOTE> // WithinTag -> Attribute
@@ -470,38 +496,54 @@ Attribute attribute() :
 	    <ATTR_SQUOTE> // Attribute -> WithinTag
 	  )
 	)
-	{ return new Attribute(name.image, new Attribute.Value(value)); }
+	{ return new Attribute(name, new Attribute.Value(value)); }
 }
 
-void etag(Token startName) :
+void etag(String startName) :
 {
-	Token name;
+	String name;
 }
 {
 	<STARTCLOSINGTAG> // DEFAULT -> WithinTag
-	name = <WT_NAME> (<WT_S>)? 
+	name = elementname() /*(<WT_S>)? */
 	<ENDTAG> // WithinTag -> DEFAULT
-	{ if(startName.image.equals(name.image))
-	      contentHandler.endElement(name.image);
+	{
+	  if(startName.equals(name))
+	    contentHandler.endElement(name);
 	  else
-	      throw new ParseException("Expected \"</" + startName.image + "\" but got \"</" + name.image + "\"."); }
+	      throw new ParseException("Expected \"</" + startName + "\" but got \"</" + name + "\".");
+	}
 }
 
 void content() :
 {
-	StringBuilder sb = new StringBuilder();
+	//StringBuilder sb = new StringBuilder();
 	Token t;
 }
 {
-	// Lexical state: DEFAULT
-	// CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
-	(t = <CHARDATA> {sb.append(t.image);} | <DEFAULT_S>)*
-	{ if(sb.length() > 0) contentHandler.chardata(sb.toString()); sb = new StringBuilder(); }
-	( ( element() | t = <DEFAULT_REFERENCE> { contentHandler.reference(t.image); } | 
-	    cdSect() | pi() | comment() )
-	  (t = <CHARDATA> {if(sb.length() != 0) sb.append(" "); sb.append(t.image);} | <DEFAULT_S>)* 
-	  { if(sb.length() > 0) contentHandler.chardata(sb.toString()); sb = new StringBuilder(); } )*
+	// Lexical state:  DEFAULT
+	// Original:       CharData? ((element | Reference | CDSect | PI | Comment) CharData?)*
+	// Ekvivalent(?):  (element | Reference | CDSect | PI | Comment | CharData)*
+	( charData() )?
+	( ( element() | t = <DEFAULT_REFERENCE> | cdSect() | pi() | comment() ) ( charData() )? )*
+	
+	//( element() | <DEFAULT_REFERENCE> | cdSect() | pi() | comment() | charData() )*
 }
+
+void charData() :
+{
+	Token t;
+	int beginLine = -1, beginColumn = -1;
+	//StringBuilder sb = new StringBuilder();
+}
+{
+	( t = <CHARDATA>
+	 { if(beginLine == -1) { beginLine = t.beginLine; beginColumn = t.beginColumn; } } )+
+	{ contentHandler.chardata(beginLine, beginColumn, t.endLine, t.endColumn); }
+	
+	//( t = <CHARDATA> { System.out.println("chardata1: \"" + t.image + "\""); })+
+}
+
 
 /******************************************
  * Here starts the parsing CDATA sections *

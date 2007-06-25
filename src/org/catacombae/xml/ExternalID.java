@@ -1,4 +1,4 @@
-package org.catacombae.xml.parser;
+package org.catacombae.xml;
 
 public class ExternalID {
     public static final int SYSTEM = 0;

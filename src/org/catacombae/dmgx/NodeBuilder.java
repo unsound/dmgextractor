@@ -20,9 +20,11 @@
 
 package org.catacombae.dmgx;
 
+import org.catacombae.io.*;
 import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.Attributes;
+import java.nio.charset.Charset;
 
 /**
  * Plugs into a SAXParser to build a tree of XMLElements representing the document.
@@ -59,6 +61,10 @@ class NodeBuilder extends DefaultHandler {
 			   String qName) throws SAXException {
 	//System.out.println("EE");
 	currentNode = currentNode.parent;
+    }
+    public void characters(SynchronizedRandomAccessStream file, Charset encoding,
+			   int startLine, int startColumn, int endLine, int endColumn) {
+	currentNode.addChild(new XMLText(file, encoding, startLine, startColumn, endLine, endColumn));
     }
     public void characters(char[] buf, int offset, int len)
         throws SAXException {
