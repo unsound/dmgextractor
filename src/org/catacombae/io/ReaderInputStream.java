@@ -1,3 +1,23 @@
+/*-
+ * Copyright (C) 2007 Erik Larsson
+ * 
+ * All rights reserved.
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
 package org.catacombae.io;
 
 import org.catacombae.dmgx.Util;
@@ -16,7 +36,7 @@ public class ReaderInputStream extends InputStream {
 	private final byte[] buffer;
 	private int bufpos = 0;
 	public LousyByteArrayStream(int buflen) {
-	    System.err.println("Creating a LousyByteArrayStream with length " + buflen);
+	    //System.err.println("Creating a LousyByteArrayStream with length " + buflen);
 	    buffer = new byte[buflen];
 	}
 	public void write(int b) {
@@ -33,15 +53,14 @@ public class ReaderInputStream extends InputStream {
     public ReaderInputStream(Reader r, Charset c) {
 	this.r = r;
 	this.encoder = c.newEncoder();
-	System.err.println("Creating a ReaderInputStream. encoder.maxBytesPerChar() == " + encoder.maxBytesPerChar());
+	//System.err.println("Creating a ReaderInputStream. encoder.maxBytesPerChar() == " + encoder.maxBytesPerChar());
 	this.chardata = new byte[(int)Math.ceil(encoder.maxBytesPerChar())];
 
 	lbas = new LousyByteArrayStream(chardata.length);
 	osw = new OutputStreamWriter(lbas, encoder);
 
     }
-    /** When this method is called, SHIT FUCKS UP. I think there is a problem with the 
-	remainingChardata implementstion but I don't feel like fixing it right now. TODOTODOTODO! */
+
     public int read() throws IOException {
 	byte[] b = new byte[1];
 	int res = read(b, 0, 1);

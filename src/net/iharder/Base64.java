@@ -1,3 +1,5 @@
+package net.iharder;
+
 /**
  * <p>Encodes and decodes to and from Base64 notation.</p>
  * <p>Homepage: <a href="http://iharder.net/base64">http://iharder.net/base64</a>.</p>
@@ -64,7 +66,6 @@
  * @author rob@iharder.net
  * @version 2.2.1
  */
-package net.iharder;
 
 public class Base64
 {

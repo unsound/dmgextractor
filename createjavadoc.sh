@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SOURCEFILES="../src/org/catacombae/dmgx/*.java ../src/org/catacombae/dmgx/gui/*.java ../src/org/catacombae/io/*.java ../src/org/catacombae/xml/*.java ../src/org/catacombae/xml/parser/*.java ../src/net/iharder/*.java"
+SOURCEFILES="../src/org/catacombae/dmgx/*.java ../src/org/catacombae/dmgx/gui/*.java ../src/org/catacombae/io/*.java ../src/org/catacombae/xml/*.java ../src/org/catacombae/xml/apx/*.java ../src/net/iharder/*.java"
 CLASSPATH=../lib/filedrop.jar:../lib/swing-layout-1.0.1-stripped.jar
 
 

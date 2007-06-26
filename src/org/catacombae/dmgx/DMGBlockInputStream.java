@@ -210,16 +210,16 @@ public abstract class DMGBlockInputStream extends InputStream {
 		    if(res >= 0)
 			bytesInflated += res;
 		    else
-			throw new RuntimeException("Negative return value when inflating");
+			throw new DmgException("Negative return value when inflating");
 		}
 		
 		// The fillBuffer method is responsible for updating bufferPos and bufferDataLength
 		bufferPos = 0;
 		bufferDataLength = bytesInflated;
 	    } catch(DataFormatException e) {
-		IOException ioe = new IOException("Invalid zlib data!");
-		ioe.initCause(e);
-		throw ioe;
+		DmgException re = new DmgException("Invalid zlib data!");
+		re.initCause(e);
+		throw re;
 	    }
 	    //System.out.println("}");
 	}

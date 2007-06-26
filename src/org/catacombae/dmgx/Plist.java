@@ -31,10 +31,10 @@ import org.xml.sax.SAXException;
 //import org.xml.sax.helpers.DefaultHandler;
 import org.catacombae.io.*;
 import org.catacombae.xml.*;
-import org.catacombae.xml.parser.*;
+import org.catacombae.xml.apx.*;
 
 public class Plist {
-    private final byte[] plistData;
+    //private final byte[] plistData;
     private XMLNode rootNode;
     private boolean useSaxParser = false;
     
@@ -43,12 +43,12 @@ public class Plist {
     }
     
     public Plist(byte[] data, int offset, int length) {
-	plistData = new byte[length];
-	System.arraycopy(data, offset, plistData, 0, length);
-	rootNode = parseXMLData();
+	//plistData = new byte[length];
+	//System.arraycopy(data, offset, plistData, 0, length);
+	rootNode = parseXMLData(data);
     }
     
-    public byte[] getData() { return Util.createCopy(plistData); }
+    //public byte[] getData() { return Util.createCopy(plistData); }
     
     public DmgPlistPartition[] getPartitions() throws IOException {
 	LinkedList<DmgPlistPartition> partitionList = new LinkedList<DmgPlistPartition>();
@@ -71,11 +71,11 @@ public class Plist {
 		String partitionName = Util.readFully(xn.getKeyValue("Name"));
 		String partitionID = Util.readFully(xn.getKeyValue("ID"));
 		String partitionAttributes = Util.readFully(xn.getKeyValue("Attributes"));
-		System.err.println("Retrieving data...");
+		//System.err.println("Retrieving data...");
 		//(new BufferedReader(new InputStreamReader(System.in))).readLine();
 		Reader base64Data = xn.getKeyValue("Data");
-		System.gc();
-		System.err.println("Converting data to binary form... free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
+		//System.gc();
+		//System.err.println("Converting data to binary form... free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
 		//byte[] data = Base64.decode(base64Data);
 		
 // 		try {
@@ -112,7 +112,7 @@ public class Plist {
 		
 		InputStream base64DataInputStream = new Base64.InputStream(new ReaderInputStream(base64Data, Charset.forName("US-ASCII")));
 		
-		System.err.println("Creating DmgPlistPartition.");
+		//System.err.println("Creating DmgPlistPartition.");
 		//System.out.println("Block list for partition " + i++ + ":");
 		DmgPlistPartition dpp = new DmgPlistPartition(partitionName, partitionID, partitionAttributes, 
 							      base64DataInputStream, previousOutOffset, previousInOffset);
@@ -125,18 +125,19 @@ public class Plist {
 	return partitionList.toArray(new DmgPlistPartition[partitionList.size()]);
     }
     
-    public XMLNode parseXMLData() {
+    private XMLNode parseXMLData(byte[] plistData) {
 	//InputStream is = new ByteArrayInputStream(plistData);
 	NodeBuilder handler = new NodeBuilder();
 	
 	/* First try to parse with the internal homebrew parser, and if it
 	 * doesn't succeed, go for the SAX parser. */
-	System.err.println("Trying to parse xml data...");
+	//System.err.println("Trying to parse xml data...");
 	try {
-	    parseXMLDataAss(plistData, handler);
-	    System.err.println("xml data parsed...");
+	    parseXMLDataAPX(plistData, handler);
+	    //System.err.println("xml data parsed...");
 	} catch(Exception e) {
-	    System.err.println("Ass threw exception...");
+	    e.printStackTrace();
+	    System.err.println("APX parser threw exception... falling back to SAX parser. Report this error!");
 	    handler = new NodeBuilder();
 	    parseXMLDataSAX(plistData, handler);
  	}
@@ -148,19 +149,19 @@ public class Plist {
 	    return rootNodes[0];
     }
 
-    private void parseXMLDataAss(byte[] buffer, NodeBuilder handler) {
+    private void parseXMLDataAPX(byte[] buffer, NodeBuilder handler) {
 	try {
 	    ByteArrayStream ya = new ByteArrayStream(buffer);
 	    SynchronizedRandomAccessStream bufferStream =
 		new SynchronizedRandomAccessStream(ya);//new ByteArrayStream(buffer));
 	    
 	    // First we parse the xml declaration using a US-ASCII charset just to extract the charset description
-	    System.err.println("parsing encoding");
+	    //System.err.println("parsing encoding");
 	    InputStream is = new RandomAccessInputStream(bufferStream);
-	    Ass encodingParser = Ass.create(new InputStreamReader(is, "US-ASCII"),
+	    APXParser encodingParser = APXParser.create(new InputStreamReader(is, "US-ASCII"),
 					    new NullXMLContentHandler(Charset.forName("US-ASCII")));
 	    String encodingName = encodingParser.xmlDecl();
-	    System.err.println("encodingName=" + encodingName);
+	    //System.err.println("encodingName=" + encodingName);
 	    if(encodingName == null)
 		encodingName = "US-ASCII";
 	    
@@ -169,18 +170,18 @@ public class Plist {
 	    // Then we proceed to parse the entire document
 	    is = new RandomAccessInputStream(bufferStream);
 	    Reader usedReader = new BufferedReader(new InputStreamReader(is, encoding));
-	    System.err.println("parsing document");
+	    //System.err.println("parsing document");
 	    //try { FileOutputStream dump = new FileOutputStream("dump.xml"); dump.write(buffer); dump.close(); }
 	    //catch(Exception e) { e.printStackTrace(); }
 
-	    if(false) {
-		Ass assParser = Ass.create(usedReader, new DebugXMLContentHandler(encoding));
-		assParser.xmlDocument();
+	    if(false) { // 
+		APXParser documentParser = APXParser.create(usedReader, new DebugXMLContentHandler(encoding));
+		documentParser.xmlDocument();
 		System.exit(0);
 	    }
 	    else {
-		Ass assParser = Ass.create(usedReader, new NodeBuilderContentHandler(handler, bufferStream, encoding));
-		assParser.xmlDocument();
+		APXParser documentParser = APXParser.create(usedReader, new NodeBuilderContentHandler(handler, bufferStream, encoding));
+		documentParser.xmlDocument();
 	    }
 
 	} catch(ParseException pe) {

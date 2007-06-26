@@ -48,42 +48,67 @@ public class DMGBlock {
 	equal to 0, so it's probably some marker, like BT_END. */
     public static final int BT_UNKNOWN = 0x7ffffffe;
     
+
+    private static final String BT_ADC_STRING = "BT_ADC";
+    private static final String BT_ZLIB_STRING = "BT_ZLIB";
+    private static final String BT_BZIP2_STRING = "BT_BZIP2";
+    private static final String BT_COPY_STRING = "BT_COPY";
+    private static final String BT_ZERO_STRING = "BT_ZERO";
+    private static final String BT_ZERO2_STRING = "BT_ZERO2";
+    private static final String BT_END_STRING = "BT_END";
+    private static final String BT_UNKNOWN_STRING = "BT_UNKNOWN";
+
     /*
-     * 4
-     * 4
-     * 8
-     * 8
-     * 8
-     * 8
-     * ---
-     * 40 bytes / 0x28 bytes
+     * BP  Name       Size
+     * -------------------
+     * 0   blockType  4
+     * 4   skipped    4
+     * 8   outOffset  8
+     * 16  outSize    8
+     * 24  inOffset   8
+     * 32  inSize     8
+     * -------------------
+     *                40 bytes / 0x28 bytes
      */
-    private int blockType;
-    private int skipped;
-    private long outOffset;
-    private long outSize;
-    private long inOffset;
-    private long inSize;
+    private final int blockType;
+    private final int skipped;
+    private final long outOffset;
+    private final long outSize;
+    private final long inOffset;
+    private final long inSize;
+    private final long outOffsetComp;
+    private final long inOffsetComp;
     
-    private long outOffsetComp = 0;
-    private long inOffsetComp = 0;
+    //private boolean immutable = false;
     
-    public DMGBlock(byte[] data, int offset) {
-	this.blockType = Util.readIntBE(data, offset+0);
-	this.skipped = Util.readIntBE(data, offset+4);
-	this.outOffset = Util.readLongBE(data, offset+8)*0x200;
-	this.outSize = Util.readLongBE(data, offset+16)*0x200;
-	this.inOffset = Util.readLongBE(data, offset+24);
-	this.inSize = Util.readLongBE(data, offset+32);
+    public DMGBlock(byte[] data, int offset, long outOffsetComp, long inOffsetComp) {
+	this(Util.readIntBE(data, offset+0),
+	     Util.readIntBE(data, offset+4),
+	     Util.readLongBE(data, offset+8)*0x200,
+	     Util.readLongBE(data, offset+16)*0x200,
+	     Util.readLongBE(data, offset+24),
+	     Util.readLongBE(data, offset+32),
+	     outOffsetComp,
+	     inOffsetComp);
+
+// 	this.blockType = Util.readIntBE(data, offset+0);
+// 	this.skipped = Util.readIntBE(data, offset+4);
+// 	this.outOffset = Util.readLongBE(data, offset+8)*0x200;
+// 	this.outSize = Util.readLongBE(data, offset+16)*0x200;
+// 	this.inOffset = Util.readLongBE(data, offset+24);
+// 	this.inSize = Util.readLongBE(data, offset+32);
     }
     
-    public DMGBlock(int blockType, int skipped, long outOffset, long outSize, long inOffset, long inSize) {
+    public DMGBlock(int blockType, int skipped, long outOffset, long outSize, long inOffset, long inSize,
+		    long outOffsetComp, long inOffsetComp) {
 	this.blockType = blockType;
 	this.skipped = skipped;
 	this.outOffset = outOffset;
 	this.outSize = outSize;
 	this.inOffset = inOffset;
 	this.inSize = inSize;
+	this.outOffsetComp = outOffsetComp;
+	this.inOffsetComp = inOffsetComp;
     }
     
     public static int structSize() { return 40; }
@@ -98,42 +123,70 @@ public class DMGBlock {
     public String getBlockTypeAsString() {
 	switch(blockType) {
 	case BT_ADC:
-	    return "BT_ADC";
+	    return BT_ADC_STRING;
 	case BT_ZLIB:
-	    return "BT_ZLIB";
+	    return BT_ZLIB_STRING;
 	case BT_BZIP2:
-	    return "BT_BZIP2";
+	    return BT_BZIP2_STRING;
 	case BT_COPY:
-	    return "BT_COPY";
+	    return BT_COPY_STRING;
 	case BT_ZERO:
-	    return "BT_ZERO";
+	    return BT_ZERO_STRING;
 	case BT_ZERO2:
-	    return "BT_ZERO2";
+	    return BT_ZERO2_STRING;
 	case BT_END:
-	    return "BT_END";
+	    return BT_END_STRING;
 	case BT_UNKNOWN:
-	    return "BT_UNKNOWN";
+	    return BT_UNKNOWN_STRING;
 	default:
 	    return "[Unknown block type! ID=0x" + Integer.toHexString(blockType) + "]";
 	}
     }
     
-    public void setOutOffsetCompensation(long offset) {
-	outOffsetComp = offset;
-    }
-    public void setInOffsetCompensation(long offset) {
-	inOffsetComp = offset;
-    }
+    /** This field is not part of the structure itself. It is metadata used to determine the actual byte
+	position of the out offset. */
+    public long getOutOffsetCompensation() { return outOffsetComp; }
+    /** This field is not part of the structure itself. It is metadata used to determine the actual byte
+	position of the in offset. */
+    public long getInOffsetCompensation() { return inOffsetComp; }
+    
+//     public void setOutOffsetCompensation(long offset) {
+// 	if(immutable)
+// 	    throw new RuntimeException("This block has been toggled immutable!");
+// 	outOffsetComp = offset;
+//     }
+//     public void setInOffsetCompensation(long offset) {
+// 	if(immutable)
+// 	    throw new RuntimeException("This block has been toggled immutable!");
+// 	inOffsetComp = offset;
+//     }
+    /** Convenience method for determining the actual compensated out offset. This is what you should use. */
     public long getTrueOutOffset() {
 	return outOffset+outOffsetComp;
     }
+    /** Convenience method for determining the actual compensated in offset. This is what you should use. */
     public long getTrueInOffset() {
 	return inOffset+inOffsetComp;
     }
+    
+//     public void markImmutable() {
+// 	immutable = true;
+//     }
     
     public String toString() {
 	return getBlockTypeAsString() + 
 	    "(skipped=0x" + Integer.toHexString(skipped) + ",outOffset=" + outOffset + 
 	    ",outSize=" + outSize + ",inOffset=" + inOffset + ",inSize=" + inSize + ",outOffsetComp=" + outOffsetComp + ",inOffsetComp=" + inOffsetComp + ")";
+    }
+    
+    /** Reads the inOffset field from <code>data</code> at <code>offset</code> which
+	is supposed to be a valid raw DMG block structure at 40 bytes. */
+    public static long peekInOffset(byte[] data, int offset) {
+	return Util.readLongBE(data, offset+24);
+    }
+    /** Reads the inSize field from <code>data</code> at <code>offset</code> which
+	is supposed to be a valid raw DMG block structure at 40 bytes. */
+    public static long peekInSize(byte[] data, int offset) {
+	return Util.readLongBE(data, offset+32);
     }
 }

@@ -1,7 +1,7 @@
 package org.catacombae.dmgx;
 
 public class Debug {
-    public static boolean debug = true;
+    public static boolean debug = false;
     
     public static void warning(String message) {
 	if(debug)

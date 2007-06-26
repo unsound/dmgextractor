@@ -1,29 +1,76 @@
+/*-
+ * Copyright (C) 2007 Erik Larsson
+ * 
+ * All rights reserved.
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
+// Name explanation: APX = APX Parser for XML (at least officially)
+
 options {
 	STATIC = false;
 	UNICODE_INPUT = true;
 }
 
-PARSER_BEGIN(Ass)
-package org.catacombae.xml.parser;
+PARSER_BEGIN(APXParser)
+/*-
+ * Copyright (C) 2007 Erik Larsson
+ * 
+ * All rights reserved.
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ */
+
+package org.catacombae.xml.apx;
 import org.catacombae.xml.*;
 
 import java.util.*;
 import java.io.*;
 import java.nio.charset.Charset;
 
-public class Ass {
+/** Early version of the APX Parser for XML. Currently does not parse DTDs and so doesn't check
+    for any validity constraints. It just breaks up the syntactic structure of an XML file and
+    reports it to an org.catacombae.xml.XMLContentHandler. This is sufficient for my needs so it
+    remains to be seen if the parser will be extended in the future. */
+public class APXParser {
     public static final String DEFAULT_ENCODING = "US-ASCII";
     //private Reader usedReader;
     private XMLContentHandler contentHandler;
     
+    /** Test main method. The first and only argument denotes a file containing an XML document. */
     public static void main(String[] args) throws Exception {
         InputStream is;
         if(args.length != 1)
 	   throw new RuntimeException("The only valid argument is the name of the input file!");
 	
         // First, we read the encoding from the xml declaration (if it exists)
-	Ass encodingParser = create(new InputStreamReader(new FileInputStream(args[0]), DEFAULT_ENCODING), 
-	                            new NullXMLContentHandler(Charset.forName(DEFAULT_ENCODING)));
+	APXParser encodingParser = create(new InputStreamReader(new FileInputStream(args[0]), DEFAULT_ENCODING), 
+	                                  new NullXMLContentHandler(Charset.forName(DEFAULT_ENCODING)));
         String encoding = null;
         try { encoding = encodingParser.xmlDecl();} catch(ParseException pe) {}
 	if(encoding == null) encoding = DEFAULT_ENCODING;
@@ -33,23 +80,30 @@ public class Ass {
 	// Then we create a new stream, and parse the entire document using the appropriate encoding
         InputStreamReader usedReader;
 	usedReader = new InputStreamReader(new FileInputStream(args[0]), encoding);
-        Ass a = create(usedReader, new DebugXMLContentHandler(Charset.forName(encoding))); //new NullXMLContentHandler(encoding));//
+        APXParser a = create(usedReader, new DebugXMLContentHandler(Charset.forName(encoding))); //new NullXMLContentHandler(encoding));//
 	a.xmlDocument();
     }
-
-    public static Ass create(Reader misr, XMLContentHandler xch) {
-        Ass a = new Ass(misr);
+    
+    /** This is the way to create an APXParser. Don't use the constructor even if it would be possible.
+        @param misr the reader supplying the input data for the parser. Can not be null.
+	@param xch the content handler that takes care of the contents of the parsed XML document. Can
+	           not be null. Use NullXMLContentHandler if you are not intrested in the contents of
+		   the document.
+	@return the parser (parser.xmlDocument() will start the parsing) */
+    public static APXParser create(Reader misr, XMLContentHandler xch) {
+        APXParser a = new APXParser(misr);
 	//a.usedReader = misr;
 	a.contentHandler = xch;
 	return a;
     }
 }
-PARSER_END(Ass)
+PARSER_END(APXParser)
 
 /* Tokens common to all states. */
 /* PROBLEMS: The class CHAR should be able to match the 10000-10FFFF range, but java's Unicode
-   escape does not allow it, since you have to convert it to UTF-16BE first. Do this conversion
-   asap! (might be non trivial) */
+   escape does not allow it, since you have to convert it to UTF-16BE first. This conversion
+   might not be easy to do as part of a token, and it's really not urgent, considering this
+   parser is only used to parse the Plist. This is non-urgent TODO. */
 <*> TOKEN: {
       < #SINGLE_S: (" " | "\t" | "\n" | "\r") >
     //| < #S: ( <SINGLE_S> )+ >
