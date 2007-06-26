@@ -21,7 +21,6 @@
 package org.catacombae.dmgx;
 
 import org.catacombae.xml.*;
-import org.catacombae.xml.parser.*;
 import org.catacombae.io.*;
 import java.util.List;
 import java.nio.charset.Charset;

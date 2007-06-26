@@ -39,16 +39,19 @@ public class DmgFileView {
 	this.dmgRaf = dmgRaf;
     }
     
-    public Plist getPlist() throws IOException {
-	System.err.println("getting koly");
+    public byte[] getPlistData() throws IOException {
 	Koly koly = getKoly();
-	System.err.println("plist size: " + koly.getPlistSize());
 	byte[] plistData = new byte[(int)koly.getPlistSize()]; // Let's hope the plistsize is within int range... (though memory will run out long before that)
-	System.err.println("seek&read");
+	
 	dmgRaf.seek(koly.getPlistBegin1());
-	dmgRaf.read(plistData);
-	System.err.println("new Plist");
-	return new Plist(plistData);
+	if(dmgRaf.read(plistData) == plistData.length)
+	    return plistData;
+	else
+	    throw new RuntimeException("Could not read the entire region of data containing the Plist");
+    }
+    
+    public Plist getPlist() throws IOException {
+	return new Plist(getPlistData());
     }
     
     public Koly getKoly() throws IOException {

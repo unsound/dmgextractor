@@ -24,7 +24,7 @@
 package org.catacombae.dmgx;
 
 import org.catacombae.xml.*;
-import org.catacombae.xml.parser.*;
+import org.catacombae.xml.apx.*;
 import org.catacombae.io.*;
 import net.iharder.Base64;
 import java.io.*;
@@ -99,7 +99,7 @@ public class DMGExtractor {
 	
 	parseArgs(args);
 	
-	printlnVerbose("Processing: " + dmgFile);
+	printlnVerbose("Processing: \"" + dmgFile + "\"");
 	RandomAccessFile dmgRaf = new RandomAccessFile(dmgFile, "r");
 	RandomAccessFile isoRaf = null;
 	boolean testOnly = false;
@@ -130,7 +130,7 @@ public class DMGExtractor {
 		    plistBegin1 + " != " + plistBegin2);
 	    System.exit(0);
 	}
-	if(false && plistSize != (plistEnd-plistBegin1)) { // This assumption is proven false. plistEnd is not interpreted correctly
+	if(false && plistSize != (plistEnd-plistBegin1)) { // This assumption is proven false. plistEnd means something else
 	    println("NOTE: plistSize field does not match plistEnd marker. Assumption false.",
 		    "plistSize=" + plistSize + " plistBegin1=" + plistBegin1 + " plistEnd=" + plistEnd + " plistEnd-plistBegin1=" + (plistEnd-plistBegin1));
 	}
@@ -138,72 +138,75 @@ public class DMGExtractor {
  	dmgRaf.seek(plistBegin1);
 	byte[] buffer = new byte[(int)plistSize];
 	dmgRaf.read(buffer);
+	
+	Plist plist = new Plist(buffer);
 
-	String dumpfilename = "dump_" + System.currentTimeMillis() + ".xml";
-	System.out.println("DUMPING XML DATA TO FILE: \"" + dumpfilename + "\"...");
-	try { FileOutputStream dump = new FileOutputStream(dumpfilename); dump.write(buffer); dump.close(); }
-	catch(Exception e) { e.printStackTrace(); }
+// 	String dumpfilename = "dump_" + System.currentTimeMillis() + ".xml";
+// 	System.out.println("DUMPING XML DATA TO FILE: \"" + dumpfilename + "\"...");
+// 	try { FileOutputStream dump = new FileOutputStream(dumpfilename); dump.write(buffer); dump.close(); }
+// 	catch(Exception e) { e.printStackTrace(); }
 	
 
-	NodeBuilder handler = new NodeBuilder();
-	if(useSaxParser) {
-	    InputStream is = new ByteArrayInputStream(buffer);
-	    SAXParser saxParser = SAXParserFactory.newInstance().newSAXParser();
-	    try {
-		if(verbose)
-		    printSAXParserInfo(saxParser.getXMLReader(), System.out, "");
-		saxParser.parse(is, handler);
-	    } catch(SAXException se) {
-		se.printStackTrace();
-		System.err.println("Could not read the partition list... exiting.");
-		System.exit(1);
-	    }
-	}
-	else {
-	    try {
-		SynchronizedRandomAccessStream bufferStream =
-		    new SynchronizedRandomAccessStream(new ByteArrayStream(buffer));
-		InputStream is = new RandomAccessInputStream(bufferStream);
+// 	NodeBuilder handler = new NodeBuilder();
+// 	if(useSaxParser) {
+// 	    InputStream is = new ByteArrayInputStream(buffer);
+// 	    SAXParser saxParser = SAXParserFactory.newInstance().newSAXParser();
+// 	    try {
+// 		if(verbose)
+// 		    printSAXParserInfo(saxParser.getXMLReader(), System.out, "");
+// 		saxParser.parse(is, handler);
+// 	    } catch(SAXException se) {
+// 		se.printStackTrace();
+// 		System.err.println("Could not read the partition list... exiting.");
+// 		System.exit(1);
+// 	    }
+// 	}
+// 	else {
+// 	    try {
+// 		SynchronizedRandomAccessStream bufferStream =
+// 		    new SynchronizedRandomAccessStream(new ByteArrayStream(buffer));
+// 		InputStream is = new RandomAccessInputStream(bufferStream);
 
-		Ass encodingParser = Ass.create(new InputStreamReader(is, "US-ASCII"),
-						new NullXMLContentHandler(Charset.forName("US-ASCII")));
-		String encoding = encodingParser.xmlDecl();
-		if(verbose) System.out.println("XML Encoding: " + encoding);
-		if(encoding == null)
-		    encoding = "US-ASCII";
+// 		APXParser encodingParser = APXParser.create(new InputStreamReader(is, "US-ASCII"),
+// 							    new NullXMLContentHandler(Charset.forName("US-ASCII")));
+// 		String encoding = encodingParser.xmlDecl();
+// 		if(verbose) System.out.println("XML Encoding: " + encoding);
+// 		if(encoding == null)
+// 		    encoding = "US-ASCII";
 		
 		
-		is = new RandomAccessInputStream(bufferStream);
-		Reader usedReader = new BufferedReader(new InputStreamReader(is, encoding));
-		Ass assParser = Ass.create(usedReader, new NodeBuilderContentHandler(handler, bufferStream,
-										     Charset.forName(encoding)));
-		assParser.xmlDocument();
-	    } catch(ParseException pe) {
-		println("Could not read the partition list... exiting.");
-		System.exit(1);
-	    }
-	}
+// 		is = new RandomAccessInputStream(bufferStream);
+// 		Reader usedReader = new BufferedReader(new InputStreamReader(is, encoding));
+// 		APXParser documentParser = APXParser.create(usedReader, new NodeBuilderContentHandler(handler, bufferStream,
+// 												      Charset.forName(encoding)));
+// 		documentParser.xmlDocument();
+// 	    } catch(ParseException pe) {
+// 		println("Could not read the partition list... exiting.");
+// 		System.exit(1);
+// 	    }
+// 	}
 	
-	XMLNode[] rootNodes = handler.getRoots();
-	if(rootNodes.length != 1) {
-	    println("Could not parse UDIF-file!");
-	    System.exit(0);
-	}
+// 	XMLNode[] rootNodes = handler.getRoots();
+// 	if(rootNodes.length != 1) {
+// 	    println("Could not parse UDIF-file!");
+// 	    System.exit(0);
+// 	}
 
 	/* Ok, now we have a tree built from the XML-document. Let's walk to the right place. */
 	/* cd plist 
 	   cd dict
 	   cdkey resource-fork (type:dict)
 	   cdkey blkx (type:array) */
-	XMLNode current;
-	XMLElement[] children;
-	boolean keyFound;
-	current = rootNodes[0]; //We are at plist... probably (there should be only one root node)
+// 	XMLNode current;
+// 	XMLElement[] children;
+// 	boolean keyFound;
+// 	current = rootNodes[0]; //We are at plist... probably (there should be only one root node)
 	
-	current = current.cd("dict");
-	current = current.cdkey("resource-fork");
-	current = current.cdkey("blkx");
-	printlnVerbose("Found " + current.getChildren().length + " partitions:");
+// 	current = current.cd("dict");
+// 	current = current.cdkey("resource-fork");
+// 	current = current.cdkey("blkx");
+// 	printlnVerbose("Found " + current.getChildren().length + " partitions:");
+	DmgPlistPartition[] partitions = plist.getPartitions();
 	
 	byte[] inBuffer = new byte[0x40000];
 	byte[] outBuffer = new byte[0x40000];
@@ -213,265 +216,428 @@ public class DMGExtractor {
 	   but let's play safe. */
 	for(int y = 0; y < zeroblock.length; ++y)
 	    zeroblock[y] = 0;
-	
-	LinkedList<DMGBlock> blocks = new LinkedList<DMGBlock>();
-	
-	long elementNumber = 0;
-	//long lastOffs = 0;
-	long lastOutOffset = 0;
-	long lastInOffset = 0;
-	long totalSize = 0;
+
+	int partitionNumber = 0;
 	int errorsReported = 0;
 	int warningsReported = 0;
+	long totalSize = 0;
 	reportProgress(0);
-	for(XMLElement xe : current.getChildren()) {
-	    if(progmon != null && progmon.isCanceled()) System.exit(0);
-	    if(xe instanceof XMLNode) {
-		XMLNode xn = (XMLNode)xe;
-		byte[] data = Base64.decode(Util.readFully(xn.getKeyValue("Data")));
-		
-		long partitionSize = calculatePartitionSize(data);
-		totalSize += partitionSize;
-		
-		printlnVerbose("  " + xn.getKeyValue("Name"));
-		printlnVerbose("    ID: " + xn.getKeyValue("ID"));
-		printlnVerbose("    Attributes: " + xn.getKeyValue("Attributes"));
-		printlnVerbose("    Partition map data length: " + data.length + " bytes");
-		printlnVerbose("    Partition size: " + partitionSize + " bytes");
-
-		if(debug) {
-		    File dumpFile = new File("data(" + xn.getKeyValue("ID") + ").bin");
-		    println("    Dumping partition map to file: " + dumpFile);
+	for(DmgPlistPartition dpp : partitions) {
+	    long partitionSize = dpp.getPartitionSize();
+	    totalSize += partitionSize;
+	    
+	    printlnVerbose("  " + dpp.getName());
+	    printlnVerbose("    ID: " + dpp.getID());
+	    printlnVerbose("    Attributes: " + dpp.getAttributes());
+	    //printlnVerbose("    Partition map data length: " + data.length + " bytes");
+	    printlnVerbose("    Partition size: " + partitionSize + " bytes");
+	    
+	    /* // variable data is not applicable to this reconstructed DMGExtractor
+	    if(debug) {
+		File dumpFile = new File("data(" + dpp.getID() + ").bin");
+		println("    Dumping partition map to file: " + dumpFile);
 		    
-		    FileOutputStream dump = new FileOutputStream(dumpFile);
-		    dump.write(data);
-		    dump.close();
-		}
-
-		int offset = 0xCC;
-		int blockType = 0;
+		FileOutputStream dump = new FileOutputStream(dumpFile);
+		dump.write(data);
+		dump.close();
+	    }
+	    */
+	    
+	    int blockCount = 0;
+	    Iterator<DMGBlock> blockIterator = dpp.getBlockIterator();
+	    while(blockIterator.hasNext()) {
+		if(progmon != null && progmon.isCanceled()) System.exit(0);
+		DMGBlock currentBlock = blockIterator.next();
 		
 		/* Offset of the input data for the current block in the input file */
-		long inOffset = 0;
+		final int blockType = currentBlock.getBlockType();
+		/* Offset of the input data for the current block in the input file */
+		final long inOffset = currentBlock.getTrueInOffset();
 		/* Size of the input data for the current block */
-		long inSize = 0;
+		final long inSize = currentBlock.getInSize();
 		/* Offset of the output data for the current block in the output file */
-		long outOffset = 0;
+		final long outOffset = currentBlock.getTrueOutOffset();
 		/* Size of the output data (possibly larger than inSize because of
 		   decompression, zero expansion...) */
-		long outSize = 0;
+		final long outSize = currentBlock.getOutSize();
 		
-		long lastByteReadInBlock = -1;
-
-		boolean addInOffset = false;
-		
-		//, lastInOffs = 0;
-		int blockCount = 0;
-		while(blockType != BT_END) {		    
-		    if(progmon != null && progmon.isCanceled()) System.exit(0);
-		    DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
-		    int bytesSkipped = 0;
-		    while(bytesSkipped < offset)
-			bytesSkipped += dis.skipBytes(offset-bytesSkipped);
+		final long trueOutOffset = currentBlock.getTrueOutOffset();
+		final long trueInOffset = currentBlock.getTrueInOffset();
+		final String blockTypeString = currentBlock.getBlockTypeAsString();
 		    
-		    blockType = dis.readInt();
-		    int skipped = dis.readInt(); //Skip 4 bytes forward
-		    outOffset = dis.readLong()*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
-		    //dis.readInt(); //Skip 4 bytes forward
-		    outSize = dis.readLong()*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
-		    inOffset = dis.readLong();// & 0xffffffffL; //unsigned int -> long
-		    //dis.readInt(); //Skip 4 bytes forward
-		    inSize = dis.readLong();//dis.readInt() & 0xffffffffL; //unsigned int -> long
-
-		    
-		    String blockTypeString = blockTypeToString(blockType);
-		    if(debug)
-			println("      " + elementNumber + ":" + blockCount + ". " + blockTypeString + " processing...");
-		    
-		    if(lastByteReadInBlock == -1)
-			lastByteReadInBlock = inOffset;
-		    lastByteReadInBlock += inSize;
-		    
-		    /* The lines below are a "hack" that I had to do to make dmgx work with
-		       certain dmg-files. I don't understand the issue at all, which is why
-		       this hack is here, but sometimes inOffset == 0 means that it is 0
-		       relative to the previous partition's last inOffset. And sometimes it
-		       doesn't (meaning the actual position 0 in the dmg file). */
-		    if(addInOffset) {
-			if(debug)
-			    println("------->NOTE: addInOffset mode: inOffset tranformation " + inOffset + "->" + (inOffset+lastInOffset));
-			inOffset += lastInOffset;
-		    }
-		    else if(inOffset == 0 && blockCount == 0) {
-			if(debug)
-			    println("------->NOTE: Detected inOffset == 0, setting to " + lastInOffset);
-			addInOffset = true;
-			inOffset = lastInOffset;
-		    }
-		    outOffset += lastOutOffset;
-		    
-		    DMGBlock currentBlock = new DMGBlock(blockType, skipped, outOffset, outSize, inOffset, inSize);
-		    blocks.add(currentBlock);
-
-		    if(debug) {
-			println("        outOffset=" + outOffset + " outSize=" + outSize + " inOffset=" + inOffset,
-				"        inSize=" + inSize + " lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset
-				/*+ " lastInOffs=" + lastInOffs + " lastOffs=" + lastOffs*/);
-		    }
-		    
-		    if(blockType == BT_ADC) {
-			println("!------>ERROR: BT_ADC not supported.");
-			++errorsReported;
-			if(!testOnly)
-			    System.exit(0);
-		    }
-		    else if(blockType == BT_ZLIB) {
-// 			if(debug)
-// 			    println("      " + elementNumber + ":"  + blockCount + ". BT_ZLIB processing...");
-			
-			if(!testOnly && isoRaf.getFilePointer() != outOffset)
-			    println("!------>WARNING: BT_ZLIB FP != outOffset (" +
-				    isoRaf.getFilePointer() + " != " + outOffset + ")");
-
-			try {
-			    DMGBlockHandlers.processZlibBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
-			} catch(DataFormatException dfe) {
-			    println("!------>ERROR: BT_ZLIB Could not decode...");
-			    ++errorsReported;
-			    if(!debug) {
-				println("!------>  outOffset=" + outOffset + " outSize=" + outSize + 
-					" inOffset=" + inOffset + " inSize=" + inSize +
-					" lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset);
-			    }
-			    dfe.printStackTrace();
-			    if(!testOnly)
-				System.exit(0);
-			    else {
-				println("!------>  Testing mode, so continuing...");
-				//System.exit(0);
-				break;
-			    }
-			}
-		    }
-		    else if(blockType == BT_BZIP2) {
-			println("!------>ERROR: BT_BZIP2 not currently supported.");
-			++errorsReported;
-			if(!testOnly)
-			    System.exit(0);
-		    }
-		    else if(blockType == BT_COPY) {
-// 			if(debug)
-// 			    println("      " + elementNumber + ":" + blockCount + ". BT_COPY processing...");
-
-			if(!testOnly && isoRaf.getFilePointer() != outOffset) {
-			    println("!------>WARNING: BT_COPY FP != outOffset (" + isoRaf.getFilePointer() + " != " + outOffset + ")");
-			    ++warningsReported;
-			}
-			dmgRaf.seek(/*lastOffs+*/inOffset);
-			
-			int bytesRead = dmgRaf.read(inBuffer, 0, Math.min((int)inSize, inBuffer.length));
-			long totalBytesRead = bytesRead;
-			while(bytesRead != -1) {
-			    reportFilePointerProgress(dmgRaf);
-
-			    if(!testOnly)
-				isoRaf.write(inBuffer, 0, bytesRead);
-			    if(totalBytesRead >= inSize)
-				break;
-			    bytesRead = dmgRaf.read(inBuffer, 0, Math.min((int)(inSize-totalBytesRead), inBuffer.length));
-			    if(bytesRead > 0)
-				totalBytesRead += bytesRead;
-			}
-			
- 			//lastInOffs = inOffset+inSize;
-		    }
-		    else if(blockType == BT_ZERO) {
-// 			if(debug)
-// 			    println("      " + elementNumber + ":" + blockCount + ". BT_ZERO processing...");
-			if(!testOnly && isoRaf.getFilePointer() != outOffset) {
-			    println("!------>WARNING: BT_ZERO FP != outOffset (" + 
-				    isoRaf.getFilePointer() + " != " + outOffset + ")");
-			    ++warningsReported;
-			}
-
-			reportFilePointerProgress(dmgRaf);
-
-			long numberOfZeroBlocks = outSize/zeroblock.length;
-			int numberOfRemainingBytes = (int)(outSize%zeroblock.length);
-			for(int j = 0; j < numberOfZeroBlocks; ++j) {
-			    if(!testOnly)
-				isoRaf.write(zeroblock);
-			}
-			if(!testOnly)
-			    isoRaf.write(zeroblock, 0, numberOfRemainingBytes);
-			
- 			//lastInOffs = inOffset+inSize;
-		    }
-		    else if(blockType == BT_ZERO2) {
-// 			if(debug)
-// 			    println("      " + elementNumber + ":" + blockCount + ". BT_ZERO2 processing...");
-			if(!testOnly && isoRaf.getFilePointer() != outOffset) {
-			    println("!------>WARNING: BT_ZERO2 FP != outOffset (" + 
-				    isoRaf.getFilePointer() + " != " + outOffset + ")");
-			    ++warningsReported;
-			}
-
-			reportFilePointerProgress(dmgRaf);
-
-			long numberOfZeroBlocks = outSize/zeroblock.length;
-			int numberOfRemainingBytes = (int)(outSize%zeroblock.length);
-			for(int j = 0; j < numberOfZeroBlocks; ++j) {
-			    if(!testOnly)
-				isoRaf.write(zeroblock);
-			}
-			if(!testOnly)
-			    isoRaf.write(zeroblock, 0, numberOfRemainingBytes);
-			
- 			//lastInOffs = inOffset+inSize;
-		    }
-		    else if(blockType == BT_UNKNOWN) {
-			/* I have no idea what this blocktype is... but it's common, and usually
-			   doesn't appear more than 2-3 times in a dmg. As long as its input and
-			   output sizes are 0, there's no reason to complain... is there? */
-// 			if(debug)
-// 			    println("      " + elementNumber + ":" + blockCount + ". BT_UNKNOWN processing...");
-			if(!(inSize == 0 && outSize == 0)) {
-			    println("!------>WARNING: Blocktype BT_UNKNOWN had non-zero sizes...",
-				    "!------>  inSize=" + inSize + ", outSize=" + outSize);
-			    ++warningsReported;
-			    //println("        The author of the program would be pleased if you contacted him about this.");
-			    // ...or would I?
-			}
-		    }
-		    else if(blockType == BT_END) {
-// 			if(debug)
-// 			    println("      " + elementNumber + ":" + blockCount + ". BT_END processing...");
- 			if(!testOnly && isoRaf.getFilePointer() != outOffset) {
-			    println("!------>WARNING: BT_END FP != outOffset (" + isoRaf.getFilePointer() + " != " + outOffset + ")");
-			    ++warningsReported;
-			}
-			
-			//lastOffs += lastInOffs;
-			lastOutOffset = outOffset;
-			lastInOffset += lastByteReadInBlock;
-		    }
- 		    else {
- 			println("!------>WARNING: previously unseen blocktype " + blockType + " [0x" + Integer.toHexString(blockType) + "]",
-				"!------>  outOffset=" + outOffset + " outSize=" + outSize + " inOffset=" + inOffset + " inSize=" + inSize);
-			++warningsReported;
-			
- 			if(!testOnly && isoRaf.getFilePointer() != outOffset)
-			    println("!------>WARNING: unknown blocktype FP != outOffset (" +
-				    isoRaf.getFilePointer() + " != " + outOffset + ")");
-			
-		    }
-		    
-		    offset += 0x28;
-		    ++blockCount;
+		if(debug) {
+		    println("      " + partitionNumber + ":" + blockCount + ". " + blockTypeString + " processing...");
+		    println("        outOffset=" + outOffset + " outSize=" + outSize,
+			    "        inOffset=" + inOffset + " inSize=" + inSize,
+			    "        trueOutOffset=" + trueOutOffset + " trueInOffset=" + trueInOffset);
 		}
+		
+		if(!testOnly && isoRaf.getFilePointer() != trueOutOffset) {
+		    println("!------>WARNING: " + blockTypeString + " FP != trueOutOffset (" +
+			    isoRaf.getFilePointer() + " != " + trueOutOffset + ")");
+		    ++warningsReported;
+		}
+		    
+
+		if(blockType == BT_ADC) {
+		    println("!------>ERROR: BT_ADC not supported.");
+		    ++errorsReported;
+		    if(!testOnly)
+			System.exit(0);
+		}
+		else if(blockType == BT_ZLIB) {
+		    try {
+			DMGBlockHandlers.processBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
+		    } catch(DmgException de) {
+			de.printStackTrace();
+			println("!------>ERROR: BT_ZLIB Could not decode...");
+			++errorsReported;
+			if(!debug) {
+			    println("!------>  outOffset=" + outOffset + " outSize=" + outSize,
+				    "          inOffset=" + inOffset + " inSize=" + inSize,
+				    "          trueOutOffset=" + trueOutOffset + " trueInOffset=" + trueInOffset);
+			}
+			if(!testOnly)
+			    System.exit(0);
+			else {
+			    println("!------>  Testing mode, so continuing...");
+			    //System.exit(0);
+			    break;
+			}
+		    }
+		}
+		else if(blockType == BT_BZIP2) {
+		    println("!------>ERROR: BT_BZIP2 not currently supported.");
+		    ++errorsReported;
+		    if(!testOnly)
+			System.exit(0);
+		}
+		else if(blockType == BT_COPY) {
+		    DMGBlockHandlers.processBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
+		}
+		else if(blockType == BT_ZERO) {
+		    DMGBlockHandlers.processBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
+		}
+		else if(blockType == BT_ZERO2) {
+		    DMGBlockHandlers.processBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
+		}
+		else if(blockType == BT_UNKNOWN) {
+		    /* I have no idea what this blocktype is... but it's common, and usually
+		       doesn't appear more than 2-3 times in a dmg. As long as its input and
+		       output sizes are 0, there's no reason to complain... is there? */
+		    if(!(inSize == 0 && outSize == 0)) {
+			println("!------>ERROR: Blocktype BT_UNKNOWN had non-zero sizes...",
+				"!------>  inSize=" + inSize + ", outSize=" + outSize,
+				"!------>  Please contact the author of the program to report this bug!");
+			
+			++errorsReported;
+			if(!debug) {
+			    println("!------>  outOffset=" + outOffset + " outSize=" + outSize,
+				    "          inOffset=" + inOffset + " inSize=" + inSize,
+				    "          trueOutOffset=" + trueOutOffset + " trueInOffset=" + trueInOffset);
+			}
+			if(!testOnly)
+			    System.exit(0);
+			else {
+			    println("!------>  Testing mode, so continuing...");
+			    break;
+			}
+		    }
+		}
+		else if(blockType == BT_END) {
+		    // Nothing needs to be done in this pass.
+		}
+		else {
+		    if(inSize == 0 && outSize == 0) {
+			println("!------>WARNING: previously unseen blocktype " + blockType + " [0x" + Integer.toHexString(blockType) + "]",
+				"!------>  outOffset=" + outOffset + " outSize=" + outSize + " inOffset=" + inOffset + " inSize=" + inSize,
+				"!------>  As inSize and outSize is 0 (block is a marker?), we try to continue the operation...");
+			++warningsReported;
+		    }
+		    else {
+			println("!------>ERROR: previously unseen blocktype " + blockType + " [0x" + Integer.toHexString(blockType) + "]",
+				"!------>  outOffset=" + outOffset + " outSize=" + outSize + " inOffset=" + inOffset + " inSize=" + inSize,
+				"!------>  CRITICAL. inSize and/or outSize are not 0!");
+			++errorsReported;
+			if(!debug) {
+			    println("!------>  outOffset=" + outOffset + " outSize=" + outSize,
+				    "          inOffset=" + inOffset + " inSize=" + inSize,
+				    "          trueOutOffset=" + trueOutOffset + " trueInOffset=" + trueInOffset);
+			}
+			if(!testOnly)
+			    System.exit(0);
+			else {
+			    println("!------>  Testing mode, so continuing...");
+			    break;
+			}
+		    }			
+		    
+		}
+
+		++blockCount;
 	    }
-	    ++elementNumber;
+	    ++partitionNumber;
 	}
+	
+	
+// 	LinkedList<DMGBlock> blocks = new LinkedList<DMGBlock>();
+	
+// 	long elementNumber = 0;
+// 	//long lastOffs = 0;
+// 	long lastOutOffset = 0;
+// 	long lastInOffset = 0;
+// 	long totalSize = 0;
+// 	int errorsReported = 0;
+// 	int warningsReported = 0;
+// 	reportProgress(0);
+// 	for(XMLElement xe : current.getChildren()) {
+// 	    if(progmon != null && progmon.isCanceled()) System.exit(0);
+// 	    if(xe instanceof XMLNode) {
+// 		XMLNode xn = (XMLNode)xe;
+// 		byte[] data = Base64.decode(Util.readFully(xn.getKeyValue("Data")));
+		
+// 		long partitionSize = calculatePartitionSize(data);
+// 		totalSize += partitionSize;
+		
+// 		printlnVerbose("  " + xn.getKeyValue("Name"));
+// 		printlnVerbose("    ID: " + xn.getKeyValue("ID"));
+// 		printlnVerbose("    Attributes: " + xn.getKeyValue("Attributes"));
+// 		printlnVerbose("    Partition map data length: " + data.length + " bytes");
+// 		printlnVerbose("    Partition size: " + partitionSize + " bytes");
+		
+// 		if(debug) {
+// 		    File dumpFile = new File("data(" + xn.getKeyValue("ID") + ").bin");
+// 		    println("    Dumping partition map to file: " + dumpFile);
+		    
+// 		    FileOutputStream dump = new FileOutputStream(dumpFile);
+// 		    dump.write(data);
+// 		    dump.close();
+// 		}
+
+// 		int offset = 0xCC;
+// 		int blockType = 0;
+		
+// 		/* Offset of the input data for the current block in the input file */
+// 		long inOffset = 0;
+// 		/* Size of the input data for the current block */
+// 		long inSize = 0;
+// 		/* Offset of the output data for the current block in the output file */
+// 		long outOffset = 0;
+// 		/* Size of the output data (possibly larger than inSize because of
+// 		   decompression, zero expansion...) */
+// 		long outSize = 0;
+		
+// 		long lastByteReadInBlock = -1;
+
+// 		boolean addInOffset = false;
+		
+// 		//, lastInOffs = 0;
+// 		int blockCount = 0;
+// 		while(blockType != BT_END) {		    
+// 		    if(progmon != null && progmon.isCanceled()) System.exit(0);
+// 		    DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
+// 		    int bytesSkipped = 0;
+// 		    while(bytesSkipped < offset)
+// 			bytesSkipped += dis.skipBytes(offset-bytesSkipped);
+		    
+// 		    blockType = dis.readInt();
+// 		    int skipped = dis.readInt(); //Skip 4 bytes forward
+// 		    outOffset = dis.readLong()*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
+// 		    //dis.readInt(); //Skip 4 bytes forward
+// 		    outSize = dis.readLong()*0x200;//(dis.readInt() & 0xffffffffL)*0x200; //unsigned int -> long
+// 		    inOffset = dis.readLong();// & 0xffffffffL; //unsigned int -> long
+// 		    //dis.readInt(); //Skip 4 bytes forward
+// 		    inSize = dis.readLong();//dis.readInt() & 0xffffffffL; //unsigned int -> long
+
+		    
+// 		    String blockTypeString = blockTypeToString(blockType);
+// 		    if(debug)
+// 			println("      " + elementNumber + ":" + blockCount + ". " + blockTypeString + " processing...");
+		    
+// 		    if(lastByteReadInBlock == -1)
+// 			lastByteReadInBlock = inOffset;
+// 		    lastByteReadInBlock += inSize;
+		    
+// 		    /* The lines below are a "hack" that I had to do to make dmgx work with
+// 		       certain dmg-files. I don't understand the issue at all, which is why
+// 		       this hack is here, but sometimes inOffset == 0 means that it is 0
+// 		       relative to the previous partition's last inOffset. And sometimes it
+// 		       doesn't (meaning the actual position 0 in the dmg file). */
+// 		    if(addInOffset) {
+// 			if(debug)
+// 			    println("------->NOTE: addInOffset mode: inOffset tranformation " + inOffset + "->" + (inOffset+lastInOffset));
+// 			inOffset += lastInOffset;
+// 		    }
+// 		    else if(inOffset == 0 && blockCount == 0) {
+// 			if(debug)
+// 			    println("------->NOTE: Detected inOffset == 0, setting to " + lastInOffset);
+// 			addInOffset = true;
+// 			inOffset = lastInOffset;
+// 		    }
+// 		    outOffset += lastOutOffset;
+		    
+// 		    DMGBlock currentBlock = new DMGBlock(blockType, skipped, outOffset, outSize, inOffset, inSize);
+// 		    blocks.add(currentBlock);
+
+// 		    if(debug) {
+// 			println("        outOffset=" + outOffset + " outSize=" + outSize + " inOffset=" + inOffset,
+// 				"        inSize=" + inSize + " lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset
+// 				/*+ " lastInOffs=" + lastInOffs + " lastOffs=" + lastOffs*/);
+// 		    }
+		    
+// 		    if(blockType == BT_ADC) {
+// 			println("!------>ERROR: BT_ADC not supported.");
+// 			++errorsReported;
+// 			if(!testOnly)
+// 			    System.exit(0);
+// 		    }
+// 		    else if(blockType == BT_ZLIB) {
+// // 			if(debug)
+// // 			    println("      " + elementNumber + ":"  + blockCount + ". BT_ZLIB processing...");
+			
+// 			if(!testOnly && isoRaf.getFilePointer() != outOffset)
+// 			    println("!------>WARNING: BT_ZLIB FP != outOffset (" +
+// 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
+
+// 			try {
+// 			    DMGBlockHandlers.processZlibBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
+// 			} catch(DataFormatException dfe) {
+// 			    println("!------>ERROR: BT_ZLIB Could not decode...");
+// 			    ++errorsReported;
+// 			    if(!debug) {
+// 				println("!------>  outOffset=" + outOffset + " outSize=" + outSize + 
+// 					" inOffset=" + inOffset + " inSize=" + inSize +
+// 					" lastOutOffset=" + lastOutOffset + " lastInOffset=" + lastInOffset);
+// 			    }
+// 			    dfe.printStackTrace();
+// 			    if(!testOnly)
+// 				System.exit(0);
+// 			    else {
+// 				println("!------>  Testing mode, so continuing...");
+// 				//System.exit(0);
+// 				break;
+// 			    }
+// 			}
+// 		    }
+// 		    else if(blockType == BT_BZIP2) {
+// 			println("!------>ERROR: BT_BZIP2 not currently supported.");
+// 			++errorsReported;
+// 			if(!testOnly)
+// 			    System.exit(0);
+// 		    }
+// 		    else if(blockType == BT_COPY) {
+// // 			if(debug)
+// // 			    println("      " + elementNumber + ":" + blockCount + ". BT_COPY processing...");
+
+// 			if(!testOnly && isoRaf.getFilePointer() != outOffset) {
+// 			    println("!------>WARNING: BT_COPY FP != outOffset (" + isoRaf.getFilePointer() + " != " + outOffset + ")");
+// 			    ++warningsReported;
+// 			}
+// 			dmgRaf.seek(/*lastOffs+*/inOffset);
+			
+// 			int bytesRead = dmgRaf.read(inBuffer, 0, Math.min((int)inSize, inBuffer.length));
+// 			long totalBytesRead = bytesRead;
+// 			while(bytesRead != -1) {
+// 			    reportFilePointerProgress(dmgRaf);
+
+// 			    if(!testOnly)
+// 				isoRaf.write(inBuffer, 0, bytesRead);
+// 			    if(totalBytesRead >= inSize)
+// 				break;
+// 			    bytesRead = dmgRaf.read(inBuffer, 0, Math.min((int)(inSize-totalBytesRead), inBuffer.length));
+// 			    if(bytesRead > 0)
+// 				totalBytesRead += bytesRead;
+// 			}
+			
+//  			//lastInOffs = inOffset+inSize;
+// 		    }
+// 		    else if(blockType == BT_ZERO) {
+// // 			if(debug)
+// // 			    println("      " + elementNumber + ":" + blockCount + ". BT_ZERO processing...");
+// 			if(!testOnly && isoRaf.getFilePointer() != outOffset) {
+// 			    println("!------>WARNING: BT_ZERO FP != outOffset (" + 
+// 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
+// 			    ++warningsReported;
+// 			}
+
+// 			reportFilePointerProgress(dmgRaf);
+
+// 			long numberOfZeroBlocks = outSize/zeroblock.length;
+// 			int numberOfRemainingBytes = (int)(outSize%zeroblock.length);
+// 			for(int j = 0; j < numberOfZeroBlocks; ++j) {
+// 			    if(!testOnly)
+// 				isoRaf.write(zeroblock);
+// 			}
+// 			if(!testOnly)
+// 			    isoRaf.write(zeroblock, 0, numberOfRemainingBytes);
+			
+//  			//lastInOffs = inOffset+inSize;
+// 		    }
+// 		    else if(blockType == BT_ZERO2) {
+// // 			if(debug)
+// // 			    println("      " + elementNumber + ":" + blockCount + ". BT_ZERO2 processing...");
+// 			if(!testOnly && isoRaf.getFilePointer() != outOffset) {
+// 			    println("!------>WARNING: BT_ZERO2 FP != outOffset (" + 
+// 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
+// 			    ++warningsReported;
+// 			}
+
+// 			reportFilePointerProgress(dmgRaf);
+
+// 			long numberOfZeroBlocks = outSize/zeroblock.length;
+// 			int numberOfRemainingBytes = (int)(outSize%zeroblock.length);
+// 			for(int j = 0; j < numberOfZeroBlocks; ++j) {
+// 			    if(!testOnly)
+// 				isoRaf.write(zeroblock);
+// 			}
+// 			if(!testOnly)
+// 			    isoRaf.write(zeroblock, 0, numberOfRemainingBytes);
+			
+//  			//lastInOffs = inOffset+inSize;
+// 		    }
+// 		    else if(blockType == BT_UNKNOWN) {
+// 			/* I have no idea what this blocktype is... but it's common, and usually
+// 			   doesn't appear more than 2-3 times in a dmg. As long as its input and
+// 			   output sizes are 0, there's no reason to complain... is there? */
+// // 			if(debug)
+// // 			    println("      " + elementNumber + ":" + blockCount + ". BT_UNKNOWN processing...");
+// 			if(!(inSize == 0 && outSize == 0)) {
+// 			    println("!------>WARNING: Blocktype BT_UNKNOWN had non-zero sizes...",
+// 				    "!------>  inSize=" + inSize + ", outSize=" + outSize);
+// 			    ++warningsReported;
+// 			    //println("        The author of the program would be pleased if you contacted him about this.");
+// 			    // ...or would I?
+// 			}
+// 		    }
+// 		    else if(blockType == BT_END) {
+// // 			if(debug)
+// // 			    println("      " + elementNumber + ":" + blockCount + ". BT_END processing...");
+//  			if(!testOnly && isoRaf.getFilePointer() != outOffset) {
+// 			    println("!------>WARNING: BT_END FP != outOffset (" + isoRaf.getFilePointer() + " != " + outOffset + ")");
+// 			    ++warningsReported;
+// 			}
+			
+// 			//lastOffs += lastInOffs;
+// 			lastOutOffset = outOffset;
+// 			lastInOffset += lastByteReadInBlock;
+// 		    }
+//  		    else {
+//  			println("!------>WARNING: previously unseen blocktype " + blockType + " [0x" + Integer.toHexString(blockType) + "]",
+// 				"!------>  outOffset=" + outOffset + " outSize=" + outSize + " inOffset=" + inOffset + " inSize=" + inSize);
+// 			++warningsReported;
+			
+//  			if(!testOnly && isoRaf.getFilePointer() != outOffset)
+// 			    println("!------>WARNING: unknown blocktype FP != outOffset (" +
+// 				    isoRaf.getFilePointer() + " != " + outOffset + ")");
+			
+// 		    }
+		    
+// 		    offset += 0x28;
+// 		    ++blockCount;
+// 		}
+// 	    }
+// 	    ++elementNumber;
+// 	}
 	//printlnVerbose("Progress: 100% Done!");
 	reportProgress(100);
 	String summary = (errorsReported != 0)?errorsReported+" errors reported":"No errors reported";
@@ -500,7 +666,11 @@ public class DMGExtractor {
 // 	System.out.println("blocks.size()=" + blocks.size());
 // 	for(DMGBlock b : blocks)
 // 	    System.out.println("  " + b.toString());
-	    LinkedList<DMGBlock> merged = mergeBlocks(blocks);
+	    ConcatenatedIterator<DMGBlock> cit = new ConcatenatedIterator<DMGBlock>();
+	    for(DmgPlistPartition dpp : partitions)
+		cit.add(dpp.getBlockIterator());
+	    
+	    LinkedList<DMGBlock> merged = mergeBlocks(cit);
 // 	System.out.println("merged.size()=" + merged.size());
 // 	for(DMGBlock b : merged)
 // 	    System.out.println("  " + b.toString());
@@ -551,6 +721,7 @@ public class DMGExtractor {
 	    int i;
 	    for(i = 0; i < args.length; ++i) {
 		String cur = args[i];
+		//System.out.println("Parsing argument: \"" + cur + "\"");
 		if(!cur.startsWith("-"))
 		    break;
 		else if(cur.equals("-gui")) {
@@ -565,8 +736,10 @@ public class DMGExtractor {
 		    useSaxParser = true;
 		else if(cur.equals("-v"))
 		    verbose = true;
-		else if(cur.equals("-debug"))
+		else if(cur.equals("-debug")) {
+		    Debug.debug = true;
 		    debug = true;
+		}
 		else if(cur.equals("-startupcommand")) {
 		    startupCommand = args[i+1];
 		    ++i;
@@ -583,14 +756,18 @@ public class DMGExtractor {
 		    "");
 	    
 	    if(i == args.length) {
-		dmgFile = getInputFileFromUser();
-		if(dmgFile == null)
-		    System.exit(0);
-		if(getOutputConfirmationFromUser()) {
-		    isoFile = getOutputFileFromUser();
-		    if(isoFile == null)
+		if(graphical) {
+		    dmgFile = getInputFileFromUser();
+		    if(dmgFile == null)
 			System.exit(0);
+		    if(getOutputConfirmationFromUser()) {
+			isoFile = getOutputFileFromUser();
+			if(isoFile == null)
+			    System.exit(0);
+		    }
 		}
+		else
+		    throw new Exception();
 	    }
 	    else {
 		dmgFile = new File(args[i++]);
@@ -599,27 +776,35 @@ public class DMGExtractor {
 		    System.exit(0);
 		}
 		
-		if(i == args.length-1)
-		    isoFile = new File(args[i]);
-		else if(i != args.length)
-		    throw new Exception();
+		if(i >= args.length-1 && !args[i].trim().equals(""))
+		    isoFile = new File(args[i++]);
+		
+		if(i != args.length) {
+		    if(!args[i].trim().equals(""))
+			throw new Exception();
+		}
 	    }
 	    
 	    parseSuccessful = true;
 	} catch(Exception e) {
-	    println();
-	    println("  usage: " + startupCommand + " [options] <dmgFile> [<isoFile>]");
-	    println("  if an iso-file is not supplied, the program will simulate an extraction");
-	    println("  (useful for detecting errors in dmg-files)");
-	    println();
-	    println("  options:");
-	    println("    -v          verbose operation... for finding out what went wrong");
-	    println("    -saxparser  use the standard SAX parser for XML processing instead of");
-	    println("                the homewritten parser (will connect to Apple's website");
-	    println("                for validation)");
-	    println();
+	    e.printStackTrace();
+	    printUsageInstructions();
 	    System.exit(0);
 	}
+    }
+    private static void printUsageInstructions() {
+	println("  usage: " + startupCommand + " [options] <dmgFile> [<isoFile>]",
+	        "  if an iso-file is not supplied, the program will simulate an extraction",
+	        "  (useful for detecting errors in dmg-files)",
+	        "",
+	        "  options:",
+	        "    -v          verbose operation... for finding out what went wrong",
+	        "    -saxparser  use the standard SAX parser for XML processing instead of",
+	        "                the homewritten parser (will connect to Apple's website",
+	        "                for DTD validation)",
+	        "    -debug      performs unspecified debug operations (only intended for",
+	        "                development use)",
+	        "");
     }
     
     private static String blockTypeToString(int blockType) {
@@ -872,15 +1057,21 @@ public class DMGExtractor {
     }
     
     public static LinkedList<DMGBlock> mergeBlocks(LinkedList<DMGBlock> blockList) {
-	LinkedList<DMGBlock> result = new LinkedList<DMGBlock>();
 	Iterator<DMGBlock> it = blockList.iterator();
+	return mergeBlocks(it);
+    }
+    public static LinkedList<DMGBlock> mergeBlocks(Iterator<DMGBlock> it) {
+	LinkedList<DMGBlock> result = new LinkedList<DMGBlock>();
 	DMGBlock previous = it.next();
 	DMGBlock current;
 	while(it.hasNext()) {
 	    current = it.next();
 	    if(current.getInSize() != 0) {
 		if(current.getInOffset() == previous.getInOffset()+previous.getInSize()) {
-		    DMGBlock mergedBlock = new DMGBlock(previous.getBlockType(), previous.getSkipped(), previous.getOutOffset(), previous.getOutSize()+current.getOutSize(), previous.getInOffset(), previous.getInSize()+current.getInSize());
+		    DMGBlock mergedBlock = new DMGBlock(previous.getBlockType(), previous.getSkipped(), previous.getOutOffset(),
+							previous.getOutSize()+current.getOutSize(), previous.getInOffset(),
+							previous.getInSize()+current.getInSize(),
+							previous.getOutOffsetCompensation(), previous.getInOffsetCompensation());
 		    previous = mergedBlock;
 		}
 		else {

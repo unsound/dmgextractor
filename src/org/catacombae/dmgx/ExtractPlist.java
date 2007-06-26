@@ -36,7 +36,7 @@ public class ExtractPlist {
 	}
 	
 	DmgFileView dfw = new DmgFileView(new RandomAccessFileStream(inFile));
-	byte[] plistData = dfw.getPlist().getData();
+	byte[] plistData = dfw.getPlistData();
 	/*int bytesWritten = */outStream.write(plistData);
 // 	if(bytesWritten != plistData.length)
 // 	    System.out.println("ERROR: Could not write all data to output file. " + bytesWritten + " of " + plistData.length + " bytes written.");

@@ -20,16 +20,33 @@
 
 package org.catacombae.dmgx;
 
+import org.catacombae.io.*;
 import java.io.*;
 import java.util.zip.*;
 
+/** Please don't try to use this code by concurrent threads... :) */
 public class DMGBlockHandlers {
     private static byte[] inBuffer = new byte[0x40000];
     private static byte[] outBuffer = new byte[0x40000];
     private static Inflater inflater = new Inflater();
-
-    public static void processZlibBlock(DMGBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
-					boolean testOnly, UserInterface ui) throws IOException, DataFormatException {
+    
+    public static void processBlock(DMGBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
+				    boolean testOnly, UserInterface ui) throws IOException {
+	DMGBlockInputStream is = DMGBlockInputStream.getStream(new RandomAccessFileStream(dmgRaf), block);
+	processStream(is, dmgRaf, isoRaf, testOnly, ui);
+    }
+    private static void processStream(DMGBlockInputStream is, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
+				      boolean testOnly, UserInterface ui) throws IOException {
+	int bytesRead = is.read(inBuffer);
+	while(bytesRead > 0) {
+	    ui.reportProgress((int)(dmgRaf.getFilePointer()*100/dmgRaf.length()));
+	    if(!testOnly) isoRaf.write(inBuffer, 0, bytesRead);
+	    bytesRead = is.read(inBuffer);
+	}
+    }
+    
+    public static void oldprocessZlibBlock(DMGBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
+					   boolean testOnly, UserInterface ui) throws IOException, DataFormatException {
 	inflater.reset();
 	
 	dmgRaf.seek(/*block.lastOffs+*/block.getInOffset());

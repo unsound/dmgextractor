@@ -51,7 +51,7 @@ public class ValidateDmg {
 			System.out.println("  " + warnings.length + " warnings:");
 		    System.out.println("    " + warnings[i].toString());
 		}
-		dfw.getPlist().parseXMLData();
+		dfw.getPlist(); // Creates a new Plist, which automatically parses the XML data (and validates it).
 	    } catch(Exception e) { e.printStackTrace(); }
 	    System.out.println();
 	}
