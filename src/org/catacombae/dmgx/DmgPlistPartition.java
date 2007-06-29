@@ -117,7 +117,7 @@ public class DmgPlistPartition {
 		throw new RuntimeException("Could not read the desired amount of bytes... (desired: " + blockData.length + " read: " + bytesRead + ")");
 	    //DMGBlock currentBlock = new DMGBlock(blockData, 0, previousOutOffset);
 	    long inOffset = DMGBlock.peekInOffset(blockData, 0);
-	    long inSize = DMGBlock.peekInOffset(blockData, 0);
+	    long inSize = DMGBlock.peekInSize(blockData, 0);
 	    //System.err.println("  blockType=" + currentBlock.getBlockTypeAsString());
 	    //(new BufferedReader(new InputStreamReader(System.in))).readLine();
 
@@ -148,7 +148,6 @@ public class DmgPlistPartition {
 	    
 	    DMGBlock currentBlock = new DMGBlock(blockData, 0, outOffsetCompensation, inOffsetCompensation);
 	    blocks.add(currentBlock);
-	    //offset += 40;
 	    ++blockNumber;
 	    
 	    //System.out.println("  " + currentBlock.toString());

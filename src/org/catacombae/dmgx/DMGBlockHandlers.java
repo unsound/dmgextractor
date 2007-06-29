@@ -24,77 +24,87 @@ import org.catacombae.io.*;
 import java.io.*;
 import java.util.zip.*;
 
-/** Please don't try to use this code by concurrent threads... :) */
+/** Please don't try to use this code with concurrent threads... :) It would be easy to synchronize the code
+    but i don't wanna. */
 public class DMGBlockHandlers {
     private static byte[] inBuffer = new byte[0x40000];
     private static byte[] outBuffer = new byte[0x40000];
     private static Inflater inflater = new Inflater();
     
-    public static void processBlock(DMGBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
+    /** Extracts a DMGBlock describing a region of the file dmgRaf to the file isoRaf. If the testOnly flag
+	is set, nothing is written to isoRaf (in fact, it can be null in this case). ui may not be null. in
+	that case, use UserInterface.NullUI. */
+    public static long processBlock(DMGBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
 				    boolean testOnly, UserInterface ui) throws IOException {
 	DMGBlockInputStream is = DMGBlockInputStream.getStream(new RandomAccessFileStream(dmgRaf), block);
-	processStream(is, dmgRaf, isoRaf, testOnly, ui);
+	long res = processStream(is, dmgRaf, isoRaf, testOnly, ui);
+	if(res != block.getOutSize())
+	    System.err.println("WARNING: Could not extract entire block! Extracted " + res + " of " + block.getOutSize() + " bytes");
+	return res;
     }
-    private static void processStream(DMGBlockInputStream is, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
+    private static long processStream(DMGBlockInputStream is, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
 				      boolean testOnly, UserInterface ui) throws IOException {
+	long totalBytesRead = 0;
 	int bytesRead = is.read(inBuffer);
 	while(bytesRead > 0) {
+	    totalBytesRead += bytesRead;
 	    ui.reportProgress((int)(dmgRaf.getFilePointer()*100/dmgRaf.length()));
 	    if(!testOnly) isoRaf.write(inBuffer, 0, bytesRead);
 	    bytesRead = is.read(inBuffer);
 	}
+	return totalBytesRead;
     }
     
-    public static void oldprocessZlibBlock(DMGBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
-					   boolean testOnly, UserInterface ui) throws IOException, DataFormatException {
-	inflater.reset();
+//     public static void oldprocessZlibBlock(DMGBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
+// 					   boolean testOnly, UserInterface ui) throws IOException, DataFormatException {
+// 	inflater.reset();
 	
-	dmgRaf.seek(/*block.lastOffs+*/block.getInOffset());
+// 	dmgRaf.seek(/*block.lastOffs+*/block.getInOffset());
 	
-	/*
-	 * medan det finns komprimerat data att läsa:
-	 *   läs in komprimerat data i inbuffer
-	 *   medan det finns data kvar att läsa i inbuffer
-	 *     dekomprimera data från inbuffer till utbuffer
-	 *     skriv utbuffer till fil
-	 */
+// 	/*
+// 	 * medan det finns komprimerat data att läsa:
+// 	 *   läs in komprimerat data i inbuffer
+// 	 *   medan det finns data kvar att läsa i inbuffer
+// 	 *     dekomprimera data från inbuffer till utbuffer
+// 	 *     skriv utbuffer till fil
+// 	 */
 	    
-	long totalBytesRead = 0;
-	while(totalBytesRead < block.getInSize()) {
-	    long bytesRemainingToRead = block.getInSize()-totalBytesRead;
-	    int curBytesRead = dmgRaf.read(inBuffer, 0, 
-					   (int)Math.min(bytesRemainingToRead, inBuffer.length));
+// 	long totalBytesRead = 0;
+// 	while(totalBytesRead < block.getInSize()) {
+// 	    long bytesRemainingToRead = block.getInSize()-totalBytesRead;
+// 	    int curBytesRead = dmgRaf.read(inBuffer, 0, 
+// 					   (int)Math.min(bytesRemainingToRead, inBuffer.length));
 		
-	    ui.reportProgress((int)(dmgRaf.getFilePointer()*100/dmgRaf.length()));
+// 	    ui.reportProgress((int)(dmgRaf.getFilePointer()*100/dmgRaf.length()));
 
-	    if(curBytesRead < 0)
-		throw new RuntimeException("Unexpectedly reached end of file. (bytesRemainingToRead=" + bytesRemainingToRead + ", curBytesRead=" + curBytesRead + ", totalBytesRead=" + totalBytesRead + ", block.getInSize()=" + block.getInSize() + ", inBuffer.length=" + inBuffer.length + ")");
-	    else {
-		totalBytesRead += curBytesRead;
-		inflater.setInput(inBuffer, 0, curBytesRead);
-		long totalBytesInflated = 0;
-		while(!inflater.needsInput() && !inflater.finished()) {
-		    long bytesRemainingToInflate = block.getOutSize()-totalBytesInflated;
-		    //System.out.println();
-		    //System.out.println("inflater.needsInput()" + inflater.needsInput());
-		    int curBytesInflated = inflater.inflate(outBuffer, 0, 
-							    (int)Math.min(bytesRemainingToInflate, outBuffer.length));
-		    if(curBytesInflated == 0 && !inflater.needsInput()) {
-			System.out.println("inflater.finished()" + inflater.finished());
-			System.out.println("inflater.needsDictionary()" + inflater.needsDictionary());
-			System.out.println("inflater.needsInput()" + inflater.needsInput());
-			//System.out.println("inflater.()" + inflater.());
-			throw new RuntimeException("Unexpectedly blocked inflate.");
-		    }
-		    else {
-			totalBytesInflated += curBytesInflated;
-			if(!testOnly)
-			    isoRaf.write(outBuffer, 0, curBytesInflated);
-		    }
-		}
-	    }
-	}
-	if(!inflater.finished())
-	    throw new RuntimeException("Unclosed ZLIB stream!");
-    }
+// 	    if(curBytesRead < 0)
+// 		throw new RuntimeException("Unexpectedly reached end of file. (bytesRemainingToRead=" + bytesRemainingToRead + ", curBytesRead=" + curBytesRead + ", totalBytesRead=" + totalBytesRead + ", block.getInSize()=" + block.getInSize() + ", inBuffer.length=" + inBuffer.length + ")");
+// 	    else {
+// 		totalBytesRead += curBytesRead;
+// 		inflater.setInput(inBuffer, 0, curBytesRead);
+// 		long totalBytesInflated = 0;
+// 		while(!inflater.needsInput() && !inflater.finished()) {
+// 		    long bytesRemainingToInflate = block.getOutSize()-totalBytesInflated;
+// 		    //System.out.println();
+// 		    //System.out.println("inflater.needsInput()" + inflater.needsInput());
+// 		    int curBytesInflated = inflater.inflate(outBuffer, 0, 
+// 							    (int)Math.min(bytesRemainingToInflate, outBuffer.length));
+// 		    if(curBytesInflated == 0 && !inflater.needsInput()) {
+// 			System.out.println("inflater.finished()" + inflater.finished());
+// 			System.out.println("inflater.needsDictionary()" + inflater.needsDictionary());
+// 			System.out.println("inflater.needsInput()" + inflater.needsInput());
+// 			//System.out.println("inflater.()" + inflater.());
+// 			throw new RuntimeException("Unexpectedly blocked inflate.");
+// 		    }
+// 		    else {
+// 			totalBytesInflated += curBytesInflated;
+// 			if(!testOnly)
+// 			    isoRaf.write(outBuffer, 0, curBytesInflated);
+// 		    }
+// 		}
+// 	    }
+// 	}
+// 	if(!inflater.finished())
+// 	    throw new RuntimeException("Unclosed ZLIB stream!");
+//     }
 }

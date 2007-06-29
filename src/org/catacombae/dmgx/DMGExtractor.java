@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2006 Erik Larsson
+ * Copyright (C) 2006-2007 Erik Larsson
  *           (C) 2004 vu1tur (not the actual java code, but the C-code which
  *                            has been used for reference)
  * 
@@ -457,7 +457,7 @@ public class DMGExtractor {
 		    System.exit(0);
 		}
 		
-		if(i >= args.length-1 && !args[i].trim().equals(""))
+		if(i <= args.length-1 && !args[i].trim().equals(""))
 		    isoFile = new File(args[i++]);
 		
 		if(i != args.length) {
