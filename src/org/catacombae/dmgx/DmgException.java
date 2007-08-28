@@ -18,6 +18,9 @@
 package org.catacombae.dmgx;
 
 public class DmgException extends RuntimeException {
+    public DmgException() {
+	super();
+    }
     public DmgException(String message) {
 	super(message);
     }
