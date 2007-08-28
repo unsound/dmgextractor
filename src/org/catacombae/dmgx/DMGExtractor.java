@@ -233,10 +233,6 @@ public class DMGExtractor {
 		}
 		else if(blockType == BT_BZIP2) {
 		    DMGBlockHandlers.processBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
-// 		    errorMessage("BT_BZIP2 not currently supported.");
-// 		    ++errorsReported;
-// 		    if(!testOnly)
-// 			System.exit(0);
 		}
 		else if(blockType == BT_COPY) {
 		    DMGBlockHandlers.processBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
@@ -428,12 +424,20 @@ public class DMGExtractor {
 		    "  based on dmg2iso, Copyright (c) 2004 vu1tur <v@vu1tur.eu.org>",
 		    "  using the iHarder Base64 Encoder/Decoder <http://iharder.sf.net>",
 		    "  and the Apache Ant bzip2 library <http://ant.apache.org/>",
+		    "    released under The Apache Software License Version 2.0",
 		    "",
 		    "This program is distributed under the GNU General Public License version 3 or",
 		    "later. See <http://www.gnu.org/copyleft/gpl.html> for the details.",
 		    "");
 	    
-	    if(i == args.length) {
+	    int emptyTrailingEntries = 0;
+	    for(int j = i; j < args.length; ++j) {
+		if(args[i].equals(""))
+		    ++emptyTrailingEntries;
+	    }
+	    //System.out.println("empty: " + emptyTrailingEntries);
+	    
+	    if(i == args.length || (args.length-i) == emptyTrailingEntries) {
 		if(graphical) {
 		    dmgFile = getInputFileFromUser();
 		    if(dmgFile == null)
@@ -445,7 +449,7 @@ public class DMGExtractor {
 		    }
 		}
 		else
-		    throw new Exception();
+		    throw new DmgException();
 	    }
 	    else {
 		dmgFile = new File(args[i++]);
@@ -459,11 +463,14 @@ public class DMGExtractor {
 		
 		if(i != args.length) {
 		    if(!args[i].trim().equals(""))
-			throw new Exception();
+			throw new DmgException();
 		}
 	    }
 	    
 	    parseSuccessful = true;
+	} catch(DmgException e) {
+	    printUsageInstructions();
+	    System.exit(0);
 	} catch(Exception e) {
 	    e.printStackTrace();
 	    printUsageInstructions();
