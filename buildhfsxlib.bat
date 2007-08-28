@@ -7,8 +7,7 @@ set CLASSFILES_DIR=build.~
 set LIBRARY_PATH=lib
 set JARFILE=hfsx_dmglib.jar
 set MANIFEST=meta\manifest.txt
-set BUILD_CP=%CLASSFILES_DIR%;%LIBRARY_PATH%\apache-ant-1.7.0-bzip2.jar
-set BUILDTOOLS_CP=buildenumerator\buildenumerator.jar
+set BUILD_CP=%LIBRARY_PATH%\apache-ant-1.7.0-bzip2.jar;%LIBRARY_PATH%\iharder-base64.jar
 
 pushd %~dp0
 
@@ -24,7 +23,7 @@ if not "%JAVAC_EXIT_CODE%"=="0" goto error
 echo Building jar-file...
 if not exist %LIBRARY_PATH% mkdir %LIBRARY_PATH%
 jar cvf %LIBRARY_PATH%\%JARFILE% -C %CLASSFILES_DIR% . >NUL:
-if "%ERRORLEVEL%"=="0" (echo Done!) else echo Problems while building jar-file...
+if "%ERRORLEVEL%"=="0" (echo Done! Remember to include dependencies %BUILD_CP% in target.) else echo Problems while building jar-file...
 
 popd
 goto end
