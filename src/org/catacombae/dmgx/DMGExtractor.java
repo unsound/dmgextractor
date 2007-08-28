@@ -424,11 +424,12 @@ public class DMGExtractor {
 	    }
 
 	    println(APPNAME + " " + BUILDSTRING,
-		    "Copyright (c) 2006 Erik Larsson <erik82@kth.se>",
+		    "Copyright (c) 2006-2007 Erik Larsson <erik82@kth.se>",
 		    "  based on dmg2iso, Copyright (c) 2004 vu1tur <v@vu1tur.eu.org>",
-		    "  also using the iHarder Base64 Encoder/Decoder <http://iharder.sf.net>",
+		    "  using the iHarder Base64 Encoder/Decoder <http://iharder.sf.net>",
+		    "  and the Apache Ant bzip2 library <http://ant.apache.org/>",
 		    "",
-		    "This program is distributed under the GNU General Public License version 2 or",
+		    "This program is distributed under the GNU General Public License version 3 or",
 		    "later. See <http://www.gnu.org/copyleft/gpl.html> for the details.",
 		    "");
 	    
