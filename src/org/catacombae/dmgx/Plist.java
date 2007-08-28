@@ -23,7 +23,7 @@ package org.catacombae.dmgx;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.LinkedList;
-import net.iharder.Base64;
+import net.iharder.base64.Base64;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
