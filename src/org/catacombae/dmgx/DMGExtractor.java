@@ -26,7 +26,7 @@ package org.catacombae.dmgx;
 import org.catacombae.xml.*;
 import org.catacombae.xml.apx.*;
 import org.catacombae.io.*;
-import net.iharder.Base64;
+// import net.iharder.Base64;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.LinkedList;
@@ -44,7 +44,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 public class DMGExtractor {
-    public static final String APPNAME = "DMGExtractor 0.51pre";
+    public static final String APPNAME = "DMGExtractor 0.60pre";
     public static final String BUILDSTRING = "(Build #" + BuildNumber.BUILD_NUMBER + ")";
     // Constants defining block types in the dmg file
     public static final int BT_ADC = 0x80000004;
