@@ -92,7 +92,7 @@ public class NodeBuilderContentHandler extends XMLContentHandler {
 		    codePoints[0] = Integer.parseInt(ref.substring(3), 16);
 		else
 		    codePoints[0] = Integer.parseInt(ref.substring(2), 10);
-		char[] cp_ca = new String(codePoints, 0, 1).toCharArray();
+		char[] cp_ca = Character.toChars(codePoints[0]);
 		nodeBuilder.characters(cp_ca, 0, cp_ca.length);
 	    }
 	    else

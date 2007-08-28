@@ -116,7 +116,8 @@ public class ReaderInputStream extends InputStream {
 		
 		cur = Character.toCodePoint((char)cur, (char)lowSurrogate);
 	    }
-	    String charString = new String(new int[] { cur }, 0, 1);
+	    char[] charArray = Character.toChars(cur);
+	    String charString = new String(charArray, 0, charArray.length);
 	    
 	    // Now we need to write
 	    //System.out.println("Writing codepoint: 0x" + Util.toHexStringBE(cur));

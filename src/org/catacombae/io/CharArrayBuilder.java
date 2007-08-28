@@ -16,8 +16,9 @@
  */
 
 package org.catacombae.io;
-/* unused... remnants of old ideas */
+// /* unused... remnants of old ideas */
 public class CharArrayBuilder {
+    /*
     private int growConstant;
     private char[] backingArray;
     private int pos;
@@ -49,4 +50,5 @@ public class CharArrayBuilder {
 	System.arraycopy(oldArray, 0, newArray, 0, oldArray.length);
 	backingArray = newArray;
     }
+    */
 }
