@@ -7,7 +7,7 @@ error() {
 SOURCES_DIR=src
 CLASSFILES_DIR=build.~
 LIBRARY_PATH=lib
-BUILD_CP=$CLASSFILES_DIR
+BUILD_CP=$LIBRARY_PATH/apache-ant-1.7.0-bzip2.jar:$LIBRARY_PATH/iharder-base64.jar
 JARFILE=hfsx_dmglib.jar
 
 if [ -d "$CLASSFILES_DIR" ]; then # if exists $CLASSFILES_DIR...
@@ -29,7 +29,7 @@ else
     fi
     jar cvf $LIBRARY_PATH/$JARFILE -C $CLASSFILES_DIR .
     if [ "$?" == 0 ]; then
-	echo Done!
+	echo "Done! Remember to include dependencies $BUILD_CP in target."
     else
 	error
     fi

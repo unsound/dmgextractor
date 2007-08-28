@@ -33,10 +33,15 @@ cd $CLASSFILES_DIR
 jar xf "../$LIBRARY_PATH/filedrop.jar"
 cd ..
 
-#echo "Extracting base64 to classfiles directory..."
-#cd $CLASSFILES_DIR
-#jar xf "../$LIBRARY_PATH/base64.jar"
-#cd ..
+echo "Extracting Apache bzip2 libraries to classfiles directory..."
+cd $CLASSFILES_DIR
+jar xf "../$LIBRARY_PATH/apache-ant-1.7.0-bzip2.jar"
+cd ..
+
+echo "Extracting iharder-base64 to classfiles directory..."
+cd $CLASSFILES_DIR
+jar xf "../$LIBRARY_PATH/iharder-base64.jar"
+cd ..
 
 echo "Incrementing build number..."
 java -cp $BUILDTOOLS_CP BuildEnumerator $SOURCES_DIR/org/catacombae/dmgx/BuildNumber.java 1
