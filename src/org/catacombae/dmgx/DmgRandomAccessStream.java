@@ -6,7 +6,6 @@ public class DmgRandomAccessStream implements RandomAccessStream {
     /*
       We have a string of data divided into blocks. Different algorithms must be applied to
       different types of blocks in order to extract the data.
-      Whe
      */
     private DmgFile dmgFile;
     private DMGBlock[] allBlocks;
@@ -15,31 +14,32 @@ public class DmgRandomAccessStream implements RandomAccessStream {
     private DMGBlockInputStream currentBlockStream;
     
     private long length;
-    private long globalFilePointer = 0;
+    /** This is the pointer to the current position in the virtual file provided by this stream. */
+    private long logicalFilePointer = 0;
     private boolean seekCalled = false;
     
-    private void dbg(String s) { System.err.println(s); }
+    private static void dbg(String s) { System.err.println(s); }
     
     public DmgRandomAccessStream(DmgFile dmgFile) throws IOException {
 	this.dmgFile = dmgFile;
-	dbg("dmgFile.getView().getPlist(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
+	//dbg("dmgFile.getView().getPlist(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
 	Plist plist = dmgFile.getView().getPlist();
-	dbg("before gc(): free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
-	Runtime.getRuntime().gc();
-	dbg("plist.getPartitions(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
+	//dbg("before gc(): free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
+	//Runtime.getRuntime().gc();
+	//dbg("plist.getPartitions(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
 	DmgPlistPartition[] partitions = plist.getPartitions();
 
 	int totalBlockCount = 0;
 	for(DmgPlistPartition pp : partitions)
 	    totalBlockCount += pp.getBlockCount();
-	dbg("totalBlockCount = " + totalBlockCount);
+	//dbg("totalBlockCount = " + totalBlockCount);
 	
 	allBlocks = new DMGBlock[totalBlockCount];
 	int pos = 0;
-	dbg("looping for each of " + partitions.length + " partitions...");
+	//dbg("looping for each of " + partitions.length + " partitions...");
 	for(DmgPlistPartition pp : partitions) {
 	    DMGBlock[] blocks = pp.getBlocks();
-	    dbg("Blocks in partition: " + blocks.length);
+	    //dbg("Blocks in partition: " + blocks.length);
 	    System.arraycopy(blocks, 0, allBlocks, pos, blocks.length);
 	    pos += blocks.length;
 	    length += pp.getPartitionSize();
@@ -47,9 +47,9 @@ public class DmgRandomAccessStream implements RandomAccessStream {
 	if(totalBlockCount > 0) {
 	    currentBlock = allBlocks[0];
 	    currentBlockIndex = 0;
-	    dbg("Repositioning stream");
+	    //dbg("Repositioning stream");
 	    repositionStream();
-	    dbg("repositioning done.");
+	    //dbg("repositioning done.");
 	}
 	else
 	    throw new RuntimeException("Could not find any blocks in the DMG file...");
@@ -59,7 +59,7 @@ public class DmgRandomAccessStream implements RandomAccessStream {
     public void close() throws IOException {}
 
     /** @see java.io.RandomAccessFile */
-    public long getFilePointer() throws IOException { return globalFilePointer; }
+    public long getFilePointer() throws IOException { return logicalFilePointer; }
 
     /** @see java.io.RandomAccessFile */
     public long length() throws IOException { return length; }
@@ -75,28 +75,30 @@ public class DmgRandomAccessStream implements RandomAccessStream {
 
     /** @see java.io.RandomAccessFile */
     public int read(byte[] b, int off, int len) throws IOException {
- 	//System.out.println("DmgRandomAccessStream.read(b, " + off + ", " + len + ") {");
+ 	//System.out.println("DmgRandomAccessStream.read(b.length=" + b.length + ", " + off + ", " + len + ") {");
 	if(seekCalled) {
 	    seekCalled = false;
-	    //System.out.println("  Repositioning stream after seek (global file pointer: " + globalFilePointer + ")...");
+	    //System.out.print("  Repositioning stream after seek (logical file pointer: " + logicalFilePointer + ")...");
 	    try { repositionStream(); }
 	    catch(RuntimeException re) {
 // 		System.out.println("return: -1 }");
 		return -1;
 	    }
+	    //System.out.println("done.");
 	}
 	int bytesRead = 0;
 	while(bytesRead < len) {
 	    
 	    int curBytesRead = currentBlockStream.read(b, off+bytesRead, len-bytesRead);
 	    if(curBytesRead < 0) {
-		//System.out.println("  Repositioning stream...");
+		//System.out.print("  Repositioning stream...");
 		try { repositionStream(); }
 		catch(RuntimeException re) {
 		    if(bytesRead == 0)
 			bytesRead = -1; // If no bytes could be read, we must indicate that the stream has no more data
 		    break;
 		}
+		//System.out.println("done.");
 		curBytesRead = currentBlockStream.read(b, off+bytesRead, len-bytesRead);
 		if(curBytesRead < 0) {
 		    throw new RuntimeException("No bytes could be read, and no exception was thrown! Program error...");
@@ -108,7 +110,7 @@ public class DmgRandomAccessStream implements RandomAccessStream {
 	    
 // 	    if(curBytesRead >= 0)
 	    bytesRead += curBytesRead;
-	    globalFilePointer += curBytesRead;
+	    logicalFilePointer += curBytesRead;
 	}
 	
 	
@@ -119,19 +121,22 @@ public class DmgRandomAccessStream implements RandomAccessStream {
 
     /** @see java.io.RandomAccessFile */
     public void seek(long pos) throws IOException {
-	seekCalled = true;
-	globalFilePointer = pos;
+	if(logicalFilePointer != pos) {
+	    seekCalled = true;
+	    logicalFilePointer = pos;
+	}
     }
     
     private void repositionStream() throws IOException {
+// 	System.out.println("<DmgRandomAccessStream.repositionStream()>");
 	// if the global file pointer is not within the bounds of the current block, then find the accurate block
-	if(!(currentBlock.getTrueOutOffset() <= globalFilePointer &&
-	     (currentBlock.getTrueOutOffset()+currentBlock.getOutSize()) > globalFilePointer)) {
+	if(!(currentBlock.getTrueOutOffset() <= logicalFilePointer &&
+	     (currentBlock.getTrueOutOffset()+currentBlock.getOutSize()) > logicalFilePointer)) {
 	    DMGBlock soughtBlock = null;
 	    for(DMGBlock dblk : allBlocks) {
 		long startPos = dblk.getTrueOutOffset();
 		long endPos = startPos + dblk.getOutSize();
-		if(startPos <= globalFilePointer && endPos > globalFilePointer) {
+		if(startPos <= logicalFilePointer && endPos > logicalFilePointer) {
 		    soughtBlock = dblk;
 		    break;
 		}
@@ -149,8 +154,11 @@ public class DmgRandomAccessStream implements RandomAccessStream {
 	}
 	
 	currentBlockStream = DMGBlockInputStream.getStream(dmgFile.getStream(), currentBlock);
-	long bytesToSkip = globalFilePointer - currentBlock.getTrueOutOffset();
+	long bytesToSkip = logicalFilePointer - currentBlock.getTrueOutOffset();
+// 	System.out.print("  skipping " + bytesToSkip + " bytes...");
 	currentBlockStream.skip(bytesToSkip);
+// 	System.out.println("done.");
+// 	System.out.println("</DmgRandomAccessStream.repositionStream()>");
     }
     
     public static void main(String[] args) throws IOException {

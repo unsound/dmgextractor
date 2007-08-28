@@ -24,6 +24,7 @@ package org.catacombae.dmgx;
 import org.catacombae.io.*;
 import java.io.*;
 import java.util.zip.*;
+import org.apache.tools.bzip2.*;
 
 public abstract class DMGBlockInputStream extends InputStream {
     protected RandomAccessStream raf;
@@ -57,6 +58,8 @@ public abstract class DMGBlockInputStream extends InputStream {
 	switch(block.getBlockType()) {
 	case DMGBlock.BT_ZLIB:
 	    return new ZlibBlockInputStream(raf, block, 0);
+	case DMGBlock.BT_BZIP2:
+	    return new Bzip2BlockInputStream(raf, block, 0);
 	case DMGBlock.BT_COPY:
 	    return new CopyBlockInputStream(raf, block, 0);
 	case DMGBlock.BT_ZERO:
@@ -66,7 +69,6 @@ public abstract class DMGBlockInputStream extends InputStream {
  	case DMGBlock.BT_UNKNOWN:
 	    throw new RuntimeException("Block type is a marker and contains no data.");
 	case DMGBlock.BT_ADC:
-	case DMGBlock.BT_BZIP2:
 	default:
 	    throw new RuntimeException("No handler for block type " + block.getBlockTypeAsString());
   	}
@@ -236,7 +238,7 @@ public abstract class DMGBlockInputStream extends InputStream {
 	    final int bytesToRead = (int)Math.min(block.getInSize()-inPos, buffer.length);
 	    int totalBytesRead = 0;
 	    while(totalBytesRead < bytesToRead) {
-		int bytesRead = raf.read(buffer, 0, bytesToRead-totalBytesRead);
+		int bytesRead = raf.read(buffer, totalBytesRead, bytesToRead-totalBytesRead);
 		if(bytesRead < 0)
 		    break;
 		else {
@@ -248,6 +250,17 @@ public abstract class DMGBlockInputStream extends InputStream {
 	    // The fillBuffer method is responsible for updating bufferPos and bufferDataLength
 	    bufferPos = 0;
 	    bufferDataLength = totalBytesRead;
+	}
+	/** Extremely more efficient skip method! */
+	public long skip(long n) throws IOException {
+	    final int bytesToSkip = (int)Math.min(block.getInSize()-inPos, n);
+	    inPos += bytesToSkip;
+
+	    // make read() refill buffer at next call..
+	    bufferPos = 0;
+	    bufferDataLength = 0;
+	    
+	    return bytesToSkip;
 	}
     }
     public static class ZeroBlockInputStream extends DMGBlockInputStream {
@@ -264,6 +277,93 @@ public abstract class DMGBlockInputStream extends InputStream {
 	    // The fillBuffer method is responsible for updating bufferPos and bufferDataLength
 	    bufferPos = 0;
 	    bufferDataLength = bytesToWrite;
+	}
+	/** Extremely more efficient skip method! */
+	public long skip(long n) throws IOException {
+	    final int bytesToSkip = (int)Math.min(block.getOutSize()-outPos, n);
+	    outPos += bytesToSkip;
+	    
+	    // make read() refill buffer at next call..
+	    bufferPos = 0;
+	    bufferDataLength = 0;
+	    
+	    return bytesToSkip;
+	}
+    }
+    public static class Bzip2BlockInputStream extends DMGBlockInputStream {
+	private final byte[] BZIP2_SIGNATURE = { 0x42, 0x5A }; // 'BZ'
+	
+	private InputStream bzip2DataStream;
+	private CBZip2InputStream uncompressedOutStream;
+	private long outPos = 0;
+	
+	public Bzip2BlockInputStream(RandomAccessStream raf, DMGBlock block, int addInOffset) throws IOException {
+	    super(raf, block, addInOffset);
+	    System.err.println("Creating new Bzip2BlockInputStream.");
+	    
+	    if(false) {
+		byte[] inBuffer = new byte[4096];
+		String basename = System.nanoTime() + "";
+		File outFile = new File(basename + "_bz2.bin");
+		int i = 1;
+		while(outFile.exists())
+		    outFile = new File(basename + "_" + i++ + "_bz2.bin");
+		System.err.println("Creating a new Bzip2BlockInputStream. Dumping bzip2 block data to file \"" + outFile + "\"");
+		FileOutputStream outStream = new FileOutputStream(outFile);
+		raf.seek(block.getTrueInOffset());
+		long bytesWritten = 0;
+		long bytesToWrite = block.getInSize();
+		while(bytesWritten < bytesToWrite) {
+		    int curBytesRead = raf.read(inBuffer, 0, (int)Math.min(bytesToWrite-bytesWritten, inBuffer.length));
+		    if(curBytesRead <= 0)
+			throw new RuntimeException("Unable to read bzip2 block fully.");
+		    outStream.write(inBuffer, 0, curBytesRead);
+		    bytesWritten += curBytesRead;
+		}
+		outStream.close();
+	    }
+
+	    System.err.println("  Creating new RandomAccessInputStream...");
+	    bzip2DataStream = new RandomAccessInputStream(new SynchronizedRandomAccessStream(raf), 
+							  block.getTrueInOffset(), block.getInSize());
+	    
+	    System.err.println("  Reading signature...");
+	    byte[] signature = new byte[2];
+	    if(bzip2DataStream.read(signature) != signature.length)
+		throw new RuntimeException("Read error!");
+	    System.err.println("  Comparing signatures...");
+	    if(!Util.arraysEqual(signature, BZIP2_SIGNATURE))
+		throw new RuntimeException("Invalid bzip2 block!");
+
+	    System.err.println("  Creating new CBZip2InputStream...");
+	    uncompressedOutStream = new CBZip2InputStream(new BufferedInputStream(bzip2DataStream));
+	    System.err.println("  Leaving constructor...");
+	}
+	
+	protected void fillBuffer() throws IOException {
+	    
+	    final int bytesToRead = (int)Math.min(block.getOutSize()-outPos, buffer.length);
+	    int totalBytesRead = 0;
+	    while(totalBytesRead < bytesToRead) {
+		System.out.print("Reading " + (bytesToRead-totalBytesRead) + " bytes from bzip2 stream...");
+		int bytesRead = uncompressedOutStream.read(buffer, totalBytesRead, bytesToRead-totalBytesRead);
+		System.out.println("done!");
+		if(bytesRead < 0)
+		    break;
+		else {
+		    totalBytesRead += bytesRead;
+		    outPos += bytesRead;
+		}
+	    }
+	    
+	    // The fillBuffer method is responsible for updating bufferPos and bufferDataLength
+	    bufferPos = 0;
+	    bufferDataLength = totalBytesRead;
+	}
+
+	public void close() throws IOException {
+	    uncompressedOutStream.close();
+	    bzip2DataStream.close();
 	}
     }
 }
