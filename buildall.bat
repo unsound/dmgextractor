@@ -26,6 +26,11 @@ pushd %CLASSFILES_DIR%
 jar xf "..\%LIBRARY_PATH%\filedrop.jar"
 popd
 
+echo Extracting Apache bzip2 libraries to classfiles directory...
+pushd %CLASSFILES_DIR%
+jar xf "..\%LIBRARY_PATH%\apache-ant-1.7.0-bzip2.jar"
+popd
+
 echo Incrementing build number...
 java -cp %BUILDTOOLS_CP% BuildEnumerator "%SOURCES_DIR%\org\catacombae\dmgx\BuildNumber.java" 1
 

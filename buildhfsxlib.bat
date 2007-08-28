@@ -7,7 +7,7 @@ set CLASSFILES_DIR=build.~
 set LIBRARY_PATH=lib
 set JARFILE=hfsx_dmglib.jar
 set MANIFEST=meta\manifest.txt
-set BUILD_CP=%CLASSFILES_DIR%
+set BUILD_CP=%CLASSFILES_DIR%;%LIBRARY_PATH%\apache-ant-1.7.0-bzip2.jar
 set BUILDTOOLS_CP=buildenumerator\buildenumerator.jar
 
 pushd %~dp0
@@ -17,7 +17,7 @@ if exist %CLASSFILES_DIR% rmdir /s /q %CLASSFILES_DIR%
 mkdir %CLASSFILES_DIR%
 
 echo Compiling org.catacombae.dmgx.DmgRandomAccessStream (and dependencies)...
-javac -sourcepath %SOURCES_DIR% -d %CLASSFILES_DIR% -Xlint:unchecked %SOURCES_DIR%\org\catacombae\dmgx\DmgRandomAccessStream.java
+javac -cp %BUILD_CP% -sourcepath %SOURCES_DIR% -d %CLASSFILES_DIR% -Xlint:unchecked %SOURCES_DIR%\org\catacombae\dmgx\DmgRandomAccessStream.java
 set JAVAC_EXIT_CODE=%ERRORLEVEL%
 if not "%JAVAC_EXIT_CODE%"=="0" goto error
 

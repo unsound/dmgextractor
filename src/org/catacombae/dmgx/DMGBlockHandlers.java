@@ -38,6 +38,7 @@ public class DMGBlockHandlers {
 				    boolean testOnly, UserInterface ui) throws IOException {
 	DMGBlockInputStream is = DMGBlockInputStream.getStream(new RandomAccessFileStream(dmgRaf), block);
 	long res = processStream(is, dmgRaf, isoRaf, testOnly, ui);
+	is.close();
 	if(res != block.getOutSize())
 	    System.err.println("WARNING: Could not extract entire block! Extracted " + res + " of " + block.getOutSize() + " bytes");
 	return res;

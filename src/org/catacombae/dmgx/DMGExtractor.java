@@ -237,10 +237,11 @@ public class DMGExtractor {
 		    }
 		}
 		else if(blockType == BT_BZIP2) {
-		    errorMessage("BT_BZIP2 not currently supported.");
-		    ++errorsReported;
-		    if(!testOnly)
-			System.exit(0);
+		    DMGBlockHandlers.processBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
+// 		    errorMessage("BT_BZIP2 not currently supported.");
+// 		    ++errorsReported;
+// 		    if(!testOnly)
+// 			System.exit(0);
 		}
 		else if(blockType == BT_COPY) {
 		    DMGBlockHandlers.processBlock(currentBlock, dmgRaf, isoRaf, testOnly, dummyMonitor);
