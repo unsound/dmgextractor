@@ -6,8 +6,9 @@ error() {
 
 SOURCES_DIR=src
 CLASSFILES_DIR=build.~
-LIBRARY_PATH=lib
-BUILD_CP=$LIBRARY_PATH/apache-ant-1.7.0-bzip2.jar:$LIBRARY_PATH/iharder-base64.jar
+BUILD_LIB_PATH=lib
+DIST_LIB_PATH=dist/lib
+BUILD_CP=$DIST_LIB_PATH/apache-ant-1.7.0-bzip2.jar:$DIST_LIB_PATH/iharder-base64.jar
 JARFILE=hfsx_dmglib.jar
 
 if [ -d "$CLASSFILES_DIR" ]; then # if exists $CLASSFILES_DIR...
@@ -23,11 +24,11 @@ if [ "$JAVAC_EXIT_CODE" != 0 ]; then
     error
 else
     echo "Building jar-file..."
-    if [ ! -d "$LIBRARY_PATH" ]; then # if not exists $LIBRARY_PATH...
+    if [ ! -d "$BUILD_LIB_PATH" ]; then # if not exists $BUILD_LIB_PATH...
 	echo "Making library path"
-    	mkdir $LIBRARY_PATH
+    	mkdir $BUILD_LIB_PATH
     fi
-    jar cvf $LIBRARY_PATH/$JARFILE -C $CLASSFILES_DIR .
+    jar cvf $BUILD_LIB_PATH/$JARFILE -C $CLASSFILES_DIR .
     if [ "$?" == 0 ]; then
 	echo "Done! Remember to include dependencies $BUILD_CP in target."
     else
