@@ -2,71 +2,118 @@
 
 error() {
     echo "There were errors..."
-    echo "Decrementing build number..."
-    java -cp $BUILDTOOLS_CP BuildEnumerator $SOURCES_DIR/org/catacombae/dmgx/BuildNumber.java -1
+    decrement_buildnumber
+}
+jobCompleted() {
+    echo "Done!"
 }
 
+
 SOURCES_DIR=src
-CLASSFILES_DIR=build.~
-LIBRARY_PATH=lib
-MANIFEST=meta/manifest.txt
-BUILD_CP=$CLASSFILES_DIR
+BUILD_DIR=build.~
+DIST_LIB_PATH=dist/lib
+BUILD_LIB_PATH=lib
+#MANIFEST=meta/manifest.txt
+BUILD_CP=$BUILD_DIR:dist/lib/apache-ant-1.7.0-bzip2.jar:dist/lib/filedrop.jar:dist/lib/iharder-base64.jar:dist/lib/swing-layout-1.0.1-stripped.jar
 #:$LIBRARY_PATH/filedrop.jar
-BUILDTOOLS_CP=buildenumerator/buildenumerator.jar
+BUILDTOOLS_CP=$BUILD_LIB_PATH/buildenumerator.jar
+JARFILE_DIR=$DIST_LIB_PATH
 JARFILE=dmgextractor.jar
 #PACKAGES=org.catacombae.dmgx org.catacombae.dmgx.gui
 #COMPILEPATHS=org/catacombae/dmgx/*.java org/catacombae/dmgx/gui/*.java
 
-if [ -d "$CLASSFILES_DIR" ]; then # if exists $CLASSFILES_DIR...
-    echo "Removing all class files..."
-    rm -r $CLASSFILES_DIR
-fi
-mkdir $CLASSFILES_DIR
+removeclassfiles() {
+    if [ -d "$BUILD_DIR" ]; then # if exists $BUILD_DIR...
+	echo "Removing all class files..."
+	rm -r $BUILD_DIR
+    fi
+    mkdir $BUILD_DIR
+    return $?
+}
 
-echo "Extracting swing-layout to classfiles directory..."
-cd $CLASSFILES_DIR
-jar xf "../$LIBRARY_PATH/swing-layout-1.0.1-stripped.jar"
-cd ..
+increment_buildnumber() {
+    echo "Incrementing build number..."
+    java -cp $BUILDTOOLS_CP BuildEnumerator $SOURCES_DIR/org/catacombae/dmgx/BuildNumber.java 1
+}
+decrement_buildnumber() {
+    echo "Decrementing build number..."
+    java -cp $BUILDTOOLS_CP BuildEnumerator $SOURCES_DIR/org/catacombae/dmgx/BuildNumber.java -1
+}
 
-echo "Extracting filedrop to classfiles directory..."
-cd $CLASSFILES_DIR
-jar xf "../$LIBRARY_PATH/filedrop.jar"
-cd ..
+build_xml() {
+    echo "Building org.catacombae.xml..."
+    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/xml/*.java
+    return $?
+}
+build_xml_apx() {
+    echo "Building org.catacombae.xml.apx..."
+    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/xml/apx/*.java
+    return $?
+}
+build_io() {
+    echo "Building org.catacombae.io..."
+    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/io/*.java
+    return $?
+}
+build_dmgx() {
+    echo "Building org.catacombae.dmgx..."
+    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/*.java
+    return $?
+}
+build_dmgx_gui() {
+    echo "Building org.catacombae.dmgx.gui..."
+    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/gui/*.java
+    return $?
+}
+buildjar() {
+    echo "Building jar-file..."
+    if [ ! -d "$JARFILE_DIR" ]; then # if not exists $LIBRARY_PATH...
+	echo "Making library path"
+    	mkdir $JARFILE_DIR
+    fi
+    jar cf $JARFILE_DIR/$JARFILE -C $BUILD_DIR .
+    return $?
+}
 
-echo "Extracting Apache bzip2 libraries to classfiles directory..."
-cd $CLASSFILES_DIR
-jar xf "../$LIBRARY_PATH/apache-ant-1.7.0-bzip2.jar"
-cd ..
-
-echo "Extracting iharder-base64 to classfiles directory..."
-cd $CLASSFILES_DIR
-jar xf "../$LIBRARY_PATH/iharder-base64.jar"
-cd ..
-
-echo "Incrementing build number..."
-java -cp $BUILDTOOLS_CP BuildEnumerator $SOURCES_DIR/org/catacombae/dmgx/BuildNumber.java 1
-echo "Compiling org.catacombae.xml.apx..."
-javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation $SOURCES_DIR/org/catacombae/xml/apx/*.java
-JAVAC_EXIT_CODE=$?
-if [ "$JAVAC_EXIT_CODE" != 0 ]; then
-    error
-else
-    echo "Compiling org.catacombae.dmgx..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/*.java
-    JAVAC_EXIT_CODE=$?
-    if [ "$JAVAC_EXIT_CODE" == 0 ]; then
-        echo "Building jar-file..."
-        if [ ! -d "$LIBRARY_PATH" ]; then # if not exists $LIBRARY_PATH...
-	    echo "Making library path"
-    	    mkdir $LIBRARY_PATH
-	fi
-	jar cfm $LIBRARY_PATH/$JARFILE $MANIFEST -C $CLASSFILES_DIR .
+main() {
+    removeclassfiles
+    increment_buildnumber
+    if [ "$?" == 0 ]; then
+	build_xml
 	if [ "$?" == 0 ]; then
-	    echo Done!
+	    build_xml_apx
+	    if [ "$?" == 0 ]; then
+		build_io
+		if [ "$?" == 0 ]; then
+		    build_dmgx
+		    if [ "$?" == 0 ]; then
+			build_dmgx_gui
+			if [ "$?" == 0 ]; then
+			    buildjar
+			    if [ "$?" == 0 ]; then
+				jobCompleted
+			    else
+				error
+			    fi
+			else
+			    error
+			fi
+		    else
+			error
+		    fi
+		else
+		    error
+		fi
+	    else
+		error
+	    fi
 	else
 	    error
 	fi
     else
 	error
     fi
-fi
+}
+
+# Entry point
+main
