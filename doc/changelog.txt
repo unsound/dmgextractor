@@ -1,0 +1,16 @@
+- Parser overhaul, reducing memory footprint and working with streams/readers instead of
+  arrays when getting results from the parser.
+
+Changes between 0.5 and 0.51pre1
+--------------------------------
+
+- Switched XML-parser to a homebrew parser after getting frustrated with not being able
+  to turn off the SAX parser's inability to work in offline conditions, just because it
+  needed to contact www.apple.com every single time to get a DTD.
+  If my own XML parser bugs out, you can always supply the switch -saxparser to the command
+  line to use the SAX parser.
+- Worked further on compatibility issues... discovered a new block type which supposedly
+  also means zero fill... at least in the cases I tested. The new version should be more
+  compatible than the previous (I have no DMG images in my possession that it should handle
+  and yet doesn't).
+- Code cleanup started, but needs more work. It's a mess...
