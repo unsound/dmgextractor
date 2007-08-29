@@ -295,7 +295,6 @@ public abstract class DMGBlockInputStream extends InputStream {
 	
 	public Bzip2BlockInputStream(RandomAccessStream raf, DMGBlock block, int addInOffset) throws IOException {
 	    super(raf, block, addInOffset);
-	    System.err.println("Creating new Bzip2BlockInputStream.");
 	    
 	    if(false) {
 		byte[] inBuffer = new byte[4096];
@@ -319,21 +318,17 @@ public abstract class DMGBlockInputStream extends InputStream {
 		outStream.close();
 	    }
 
-	    System.err.println("  Creating new RandomAccessInputStream...");
 	    bzip2DataStream = new RandomAccessInputStream(new SynchronizedRandomAccessStream(raf), 
 							  block.getTrueInOffset(), block.getInSize());
 	    
-	    System.err.println("  Reading signature...");
 	    byte[] signature = new byte[2];
 	    if(bzip2DataStream.read(signature) != signature.length)
 		throw new RuntimeException("Read error!");
-	    System.err.println("  Comparing signatures...");
 	    if(!Util.arraysEqual(signature, BZIP2_SIGNATURE))
 		throw new RuntimeException("Invalid bzip2 block!");
 
-	    System.err.println("  Creating new CBZip2InputStream...");
+	    /* Buffering needed because of implementation issues in CBZip2InputStream. */
 	    uncompressedOutStream = new CBZip2InputStream(new BufferedInputStream(bzip2DataStream));
-	    System.err.println("  Leaving constructor...");
 	}
 	
 	protected void fillBuffer() throws IOException {
@@ -341,9 +336,7 @@ public abstract class DMGBlockInputStream extends InputStream {
 	    final int bytesToRead = (int)Math.min(block.getOutSize()-outPos, buffer.length);
 	    int totalBytesRead = 0;
 	    while(totalBytesRead < bytesToRead) {
-		System.out.print("Reading " + (bytesToRead-totalBytesRead) + " bytes from bzip2 stream...");
 		int bytesRead = uncompressedOutStream.read(buffer, totalBytesRead, bytesToRead-totalBytesRead);
-		System.out.println("done!");
 		if(bytesRead < 0)
 		    break;
 		else {
