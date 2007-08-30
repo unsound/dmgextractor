@@ -1,9 +1,19 @@
-- Parser overhaul, reducing memory footprint and working with streams/readers instead of
-  arrays when getting results from the parser.
+DMGExtractor changelog
+----------------------
 
-Changes between 0.5 and 0.51pre1
---------------------------------
+0.60 (build ???)
+----------------
+- APX XML parser overhaul, reducing memory footprint and working with streams/readers
+  instead of arrays when getting results from the parser. This should result in an ability
+  to extract larger DMG files.
+- Support for bzip2-compressed images (type UDBZ) through the Apache Ant bzip2 library.
+- Upgraded license to GPL version 3 in order to use the Apache bzip2 code which is released
+  under the Apache Software License Version 2.0, incompatible with GPLv2, but compatible
+  with GPLv3.
+- Made DMGExtractor startable through Java Web Start.
 
+0.51pre1 (build 226)
+--------------------
 - Switched XML-parser to a homebrew parser after getting frustrated with not being able
   to turn off the SAX parser's inability to work in offline conditions, just because it
   needed to contact www.apple.com every single time to get a DTD.
@@ -14,3 +24,7 @@ Changes between 0.5 and 0.51pre1
   compatible than the previous (I have no DMG images in my possession that it should handle
   and yet doesn't).
 - Code cleanup started, but needs more work. It's a mess...
+
+0.5 (build 48)
+--------------
+- First release

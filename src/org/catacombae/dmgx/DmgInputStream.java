@@ -21,58 +21,115 @@ import org.catacombae.io.*;
 import java.io.*;
 
 /**
- * An InputStream outputting the contents of a DMG UDIF file.
+ * An InputStream for reading the "block device" contents of a DMG UDIF file. Make sure that
+ * no other stream concurrently uses the input file. This class isn't thread safe either, so
+ * use external synchronization if needed.
  */
 public class DmgInputStream extends InputStream {
-    private RandomAccessFile raf;
-    private DmgFileView dmgView;
-    private Plist plist;
-    private DMGBlock[] allBlocks;
-    private int currentBlock;
-    private long totalReadableBytes;
-    private long bytesRead;
+    private DmgRandomAccessStream wrapped;
+    private long filePointer;
     
     public DmgInputStream(RandomAccessFile raf) throws IOException {
-	this.raf = raf;
-	this.dmgView = new DmgFileView(new RandomAccessFileStream(raf));
-	this.plist = dmgView.getPlist();
-	
-	DmgPlistPartition[] parts = plist.getPartitions();
-	int totalNumBlocks = 0;
-	for(DmgPlistPartition dpp : parts)
-	    totalNumBlocks += dpp.getBlockCount();
-	
-	this.allBlocks = new DMGBlock[totalNumBlocks];
-	int blockPtr = 0;
-	for(DmgPlistPartition dpp : parts) {
-	    for(DMGBlock block : dpp.getBlocks())
-		allBlocks[blockPtr++] = block;
-	}
-	
-	this.currentBlock = 0;
-	
-	this.totalReadableBytes = 0;
-	for(DMGBlock b : allBlocks)
-	    totalReadableBytes += b.getOutSize();
-	
-	this.bytesRead = 0;
+	this(new DmgRandomAccessStream(raf));
+    }
+    public DmgInputStream(DmgRandomAccessStream dras) throws IOException {
+	this.wrapped = dras;
     }
     
     public int available() throws IOException {
-	long available = totalReadableBytes;
-	available -= bytesRead;
-	if(available > Integer.MAX_VALUE)
+	long len = wrapped.length()-filePointer;
+	if(len > Integer.MAX_VALUE)
 	    return Integer.MAX_VALUE;
+	else if(len < 0)
+	    throw new IOException("Internal error! filePointer > wrapped.length! filePointer:" + filePointer + " wrapped.length():" + wrapped.length());
 	else
-	    return (int)available;
+	    return (int)len;
     }
-    /* IMPLEMENT: */
+    /** Does nothing. You will have to close the underlying RandomAccessFile or RandomAccessStream manually. */
     public void close() throws IOException {}
+    
+    /** Not supported. */
     public void mark(int readlimit) {}
+    
+    /** Mark is not supported. This method always returns false. */
     public boolean markSupported() { return false; }
-    public int read() throws IOException { return -1; }
-    public int read(byte[] b) throws IOException { return -1; }
-    public int read(byte[] b, int off, int len) throws IOException { return -1; }
+    
+    /** See the general contract of the read method for java.io.InputStream. */
+    public int read() throws IOException {
+	byte[] b = new byte[1];
+	if(read(b, 0, 1) != 1)
+	    return -1;
+	else
+	    return b[0] & 0xFF;
+    }
+    
+    /** See the general contract of the read method for java.io.InputStream. */
+    public int read(byte[] b) throws IOException {
+	return read(b, 0, b.length);
+    }
+    
+    /** See the general contract of the read method for java.io.InputStream. */
+    public int read(byte[] b, int off, int len) throws IOException {
+	if(wrapped.getFilePointer() != filePointer)
+	    wrapped.seek(filePointer);
+	int bytesRead = wrapped.read(b, off, len);
+	if(bytesRead > 0)
+	    filePointer += bytesRead;
+	return bytesRead;
+    }
+    
+    /** Not supported. */
     public void reset() throws IOException {}
-    public long skip(long n) throws IOException { return -1; }
+    
+    /** See the general contract of the skip method for java.io.InputStream. */
+    public long skip(long n) throws IOException {
+	if(n < 0) throw new IllegalArgumentException("n must be positive");
+	long newPos = filePointer+n;
+	if(newPos > wrapped.length())
+	    newPos = wrapped.length();
+	wrapped.seek(newPos);
+	long result = newPos - filePointer;
+	filePointer = newPos;
+	return result;
+    }
+    
+    /** Test code. */
+    public static void main(String[] args) throws IOException {
+	if(args.length != 2)
+	    System.out.println("usage: java org.catacombae.dmg.DmgInputStream <infile> <outfile>");
+	File inFile = new File(args[0]);
+	File outFile = new File(args[1]);
+	
+	RandomAccessFile inRaf = null;
+	FileOutputStream outFos = null;
+	
+	if(inFile.canRead())
+	    inRaf = new RandomAccessFile(inFile, "r");
+	else {
+	    System.out.println("Can't read from input file!");
+	    System.exit(0);
+	}
+	
+	if(!outFile.exists())
+	    outFos = new FileOutputStream(outFile);
+	else {
+	    System.out.println("Output file already exists!");
+	    System.exit(0);
+	}
+	
+	DmgInputStream dis = new DmgInputStream(inRaf);
+	byte[] buffer = new byte[8192];
+	long bytesExtracted = 0;
+	int bytesRead = dis.read(buffer);
+	while(bytesRead > 0) {
+	    bytesExtracted += bytesRead;
+	    outFos.write(buffer, 0, bytesRead);
+	    bytesRead = dis.read(buffer);
+	}
+	dis.close();
+	inRaf.close();
+	outFos.close();
+	
+	System.out.println("Extracted " + bytesExtracted + " bytes to \"" + outFile + "\".");
+    }
 }

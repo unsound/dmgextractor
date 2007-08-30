@@ -38,6 +38,9 @@ public class DmgRandomAccessStream implements RandomAccessStream {
     
     private static void dbg(String s) { System.err.println(s); }
     
+    public DmgRandomAccessStream(RandomAccessFile raf) throws IOException {
+	this(new DmgFile(new RandomAccessFileStream(raf)));
+    }
     public DmgRandomAccessStream(DmgFile dmgFile) throws IOException {
 	this.dmgFile = dmgFile;
 	//dbg("dmgFile.getView().getPlist(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
@@ -85,7 +88,10 @@ public class DmgRandomAccessStream implements RandomAccessStream {
     /** @see java.io.RandomAccessFile */
     public int read() throws IOException {
 	byte[] b = new byte[1];
-	return read(b, 0, 1);
+	if(read(b, 0, 1) != 1)
+	    return -1;
+	else
+	    return b[0] & 0xFF;
     }
 
     /** @see java.io.RandomAccessFile */
