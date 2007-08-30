@@ -17,7 +17,7 @@
 
 package org.catacombae.dmgx;
 
-public class DMGBlock {
+public class DMGBlock implements Comparable<DMGBlock>{
     /** This blocktype means the data is compressed using some "ADC" algorithm that I have no idea how to decompress... */
     public static final int BT_ADC = 0x80000004;
     
@@ -185,5 +185,16 @@ public class DMGBlock {
 	is supposed to be a valid raw DMG block structure at 40 bytes. */
     public static long peekInSize(byte[] data, int offset) {
 	return Util.readLongBE(data, offset+32);
+    }
+    
+    /** Orders blocks according to the "true" InOffset. */
+    public int compareTo(DMGBlock db) {
+	long res = getTrueInOffset()-db.getTrueInOffset();
+	if(res > Integer.MAX_VALUE)
+	    return Integer.MAX_VALUE;
+	else if(res < Integer.MIN_VALUE)
+	    return Integer.MIN_VALUE;
+	else
+	    return (int)res;
     }
 }

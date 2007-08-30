@@ -21,8 +21,8 @@ import org.catacombae.io.*;
 import java.io.*;
 import java.util.zip.*;
 
-/** Please don't try to use this code with concurrent threads... :) It would be easy to synchronize the code
-    but i don't wanna. */
+/** Please don't try to use this code with concurrent threads... :) Use external synchronization to protect
+    the shared data in this class.*/
 public class DMGBlockHandlers {
     private static byte[] inBuffer = new byte[0x40000];
     private static byte[] outBuffer = new byte[0x40000];
@@ -46,7 +46,8 @@ public class DMGBlockHandlers {
 	int bytesRead = is.read(inBuffer);
 	while(bytesRead > 0) {
 	    totalBytesRead += bytesRead;
-	    ui.reportProgress((int)(dmgRaf.getFilePointer()*100/dmgRaf.length()));
+	    //ui.reportProgress((int)(dmgRaf.getFilePointer()*100/dmgRaf.length()));
+	    ui.addProgressRaw(bytesRead);
 	    if(!testOnly) isoRaf.write(inBuffer, 0, bytesRead);
 	    bytesRead = is.read(inBuffer);
 	}
