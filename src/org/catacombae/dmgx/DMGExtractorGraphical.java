@@ -19,8 +19,9 @@ package org.catacombae.dmgx;
 
 public class DMGExtractorGraphical {
     public static void main(String[] args) throws Exception {
-	String[] newargs = new String[1];
+	String[] newargs = new String[args.length+1];
 	newargs[0] = "-gui";
+	System.arraycopy(args, 0, newargs, 1, args.length);
 	DMGExtractor.main(newargs);
     }
 }

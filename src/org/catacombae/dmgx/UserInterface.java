@@ -18,9 +18,13 @@
 package org.catacombae.dmgx;
 
 interface UserInterface {
-    public void reportProgress(int percentage);
+    public void reportProgressPercentage(int percentage);
+    public void setTotalProgressLength(long len);
+    public void addProgressRaw(long value);
     
     public static class NullUI implements UserInterface {
-	public void reportProgress(int percentage) {}
+	public void reportProgressPercentage(int percentage) {}
+	public void setTotalProgressLength(long len) {}
+	public void addProgressRaw(long value) {}
     }
 }

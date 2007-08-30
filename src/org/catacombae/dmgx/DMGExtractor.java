@@ -26,6 +26,7 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.Iterator;
+import java.util.Collections;
 import java.util.zip.Inflater;
 import java.util.zip.DataFormatException;
 import javax.xml.parsers.SAXParserFactory;
@@ -107,35 +108,51 @@ public class DMGExtractor {
 	    testOnly = true;
 	    printlnVerbose("Simulating extraction...");
 	}
-	
-	dmgRaf.seek(dmgRaf.length()-PLIST_ADDRESS_1);
-	long plistBegin1 = dmgRaf.readLong();
-	long plistEnd = dmgRaf.readLong();
-	dmgRaf.seek(dmgRaf.length()-PLIST_ADDRESS_2);
-	long plistBegin2 = dmgRaf.readLong();
-	long plistSize = dmgRaf.readLong();
+
+	Koly koly;
+	{
+	    dmgRaf.seek(dmgRaf.length()-Koly.length());
+	    byte[] kolyData = new byte[512];
+	    int kolyDataRead = dmgRaf.read(kolyData);
+	    if(kolyDataRead != kolyData.length)
+		throw new RuntimeException("Could not read koly completely. Read " + kolyDataRead + "/" +
+					   kolyData.length + " bytes.");
+	    else
+		koly = new Koly(kolyData, 0);
+	}
 	
 	if(debug) {
-	    println("Read addresses:",
-		    "  " + plistBegin1,
-		    "  " + plistBegin2);
+	    println("plist addresses:",
+		    "  " + koly.getPlistBegin1(),
+		    "  " + koly.getPlistBegin2());
 	}
-	if(plistBegin1 != plistBegin2) {
-	    println("ERROR: Addresses not equal! Assumption false.",
-		    plistBegin1 + " != " + plistBegin2);
-	    System.exit(0);
+	if(koly.getPlistBegin1() != koly.getPlistBegin2()) {
+	    println("WARNING: Addresses not equal! Assumption false.",
+		    koly.getPlistBegin1() + " != " + koly.getPlistBegin2());
+	    //System.exit(0);
 	}
-	if(false && plistSize != (plistEnd-plistBegin1)) { // This assumption is proven false. plistEnd means something else
-	    println("NOTE: plistSize field does not match plistEnd marker. Assumption false.",
-		    "plistSize=" + plistSize + " plistBegin1=" + plistBegin1 + " plistEnd=" + plistEnd + " plistEnd-plistBegin1=" + (plistEnd-plistBegin1));
-	}
+// 	if(false && plistSize != (plistEnd-plistBegin1)) { // This assumption is proven false. plistEnd means something else
+// 	    println("NOTE: plistSize field does not match plistEnd marker. Assumption false.",
+// 		    "plistSize=" + plistSize + " plistBegin1=" + plistBegin1 + " plistEnd=" + plistEnd + " plistEnd-plistBegin1=" + (plistEnd-plistBegin1));
+// 	}
 	printlnVerbose("Jumping to address...");
- 	dmgRaf.seek(plistBegin1);
-	byte[] buffer = new byte[(int)plistSize];
+ 	dmgRaf.seek(koly.getPlistBegin1());
+	if(koly.getPlistSize() > Integer.MAX_VALUE)
+	    throw new RuntimeException("getPlistSize() way too large!");
+	byte[] buffer = new byte[(int)koly.getPlistSize()];
 	dmgRaf.read(buffer);
 	
-	Plist plist = new Plist(buffer);
+	Plist plist = new Plist(buffer, useSaxParser);
 	DmgPlistPartition[] partitions = plist.getPartitions();
+	
+	long totalOutSize = 0;
+	for(DmgPlistPartition p : partitions) {
+	    Iterator<DMGBlock> blockIt = p.getBlockIterator();
+	    while(blockIt.hasNext())
+		totalOutSize += blockIt.next().getOutSize();
+	}
+	printlnVerbose("Target size: " + totalOutSize + " bytes");
+	dummyMonitor.setTotalProgressLength(totalOutSize);
 	
 	byte[] inBuffer = new byte[0x40000];
 	byte[] outBuffer = new byte[0x40000];
@@ -145,7 +162,7 @@ public class DMGExtractor {
 	   but let's play safe. */
 	for(int y = 0; y < zeroblock.length; ++y)
 	    zeroblock[y] = 0;
-
+	
 	int partitionNumber = 0;
 	int errorsReported = 0;
 	int warningsReported = 0;
@@ -155,11 +172,11 @@ public class DMGExtractor {
 	    long partitionSize = dpp.getPartitionSize();
 	    totalSize += partitionSize;
 	    
-	    printlnVerbose("  " + dpp.getName());
-	    printlnVerbose("    ID: " + dpp.getID());
-	    printlnVerbose("    Attributes: " + dpp.getAttributes());
-	    printlnVerbose("    Partition map block count: " + dpp.getBlockCount());
-	    printlnVerbose("    Partition size: " + partitionSize + " bytes");
+	    printlnVerbose("  " + dpp.getName(),
+			   "    ID: " + dpp.getID(),
+			   "    Attributes: " + dpp.getAttributes(),
+			   "    Partition map block count: " + dpp.getBlockCount(),
+			   "    Partition size: " + partitionSize + " bytes");
 	    	    
 	    int blockCount = 0;
 	    Iterator<DMGBlock> blockIterator = dpp.getBlockIterator();
@@ -321,12 +338,12 @@ public class DMGExtractor {
 	if(!graphical) {
 	    newline();
 	    println(summary);
-	    printlnVerbose("Total extracted bytes: " + totalSize + " B");
+	    printlnVerbose("Size of extracted data: " + totalSize + " bytes");
 	}
 	else {
 	    progmon.close();
 	    JOptionPane.showMessageDialog(null, "Extraction complete! " + summary + "\n" +
-					  "Total extracted bytes: " + totalSize + " B", 
+					  "Size of extracted data: " + totalSize + " bytes",
 					  "Information", JOptionPane.INFORMATION_MESSAGE);
 	    System.exit(0);
 	}
@@ -343,45 +360,73 @@ public class DMGExtractor {
 	    for(DmgPlistPartition dpp : partitions)
 		cit.add(dpp.getBlockIterator());
 	    
-	    LinkedList<DMGBlock> merged = mergeBlocks(cit);
-// 	    System.out.println("merged.size()=" + merged.size());
-// 	    for(DMGBlock b : merged)
-// 	        System.out.println("  " + b.toString());
-	    println("Extracting all the parts not containing block data from source file:");
+	    LinkedList<DMGBlock> blocks = new LinkedList<DMGBlock>();
+	    while(cit.hasNext()) {
+		DMGBlock b = cit.next();
+		if(b.getInSize() == 0)
+		    continue; // Not relevant to the calculation
+		else if(b.getInSize() > 0)
+		    blocks.add(b);
+		else
+		    throw new RuntimeException("Negative inSize! inSize=" + b.getInSize());
+	    }
+	    Collections.sort(blocks);
+	    
+	    LinkedList<DMGBlock> merged = mergeBlocks(blocks.iterator());
+	    
+ 	    System.out.println("Merged regions (size: " + merged.size() + "):");
+ 	    for(DMGBlock b : merged)
+ 	        System.out.println("  " + b.getTrueInOffset() + " - " + (b.getTrueInOffset()+b.getInSize()));
+	    println("Extracting the regions not containing block data from source file:");
 	    int i = 1;
+	    Iterator<DMGBlock> mergedIt = merged.iterator();
 	    DMGBlock previous = null;
-	    for(DMGBlock b : merged) {
-		if(previous == null && b.getInOffset() > 0) {
-		    String filename = i++ + ".block";
-		    println("  " + new File(filename).getCanonicalPath() + "...");
+	    if(merged.size() > 0 && merged.getFirst().getTrueInOffset() == 0)
+		previous = mergedIt.next();
+		
+	    while(mergedIt.hasNext() || previous != null) {
+		DMGBlock b = null;
+		if(mergedIt.hasNext())
+		    b = mergedIt.next();
+		//else
+		//    b = 
+		if(b == null || b.getTrueInOffset() > 0) {
+		    long offset;
+		    int size;
+		    if(previous == null) {
+			offset = 0;
+			size = (int)(b.getInOffset());
+			if(size == 0) continue; // First part may be empty, then we just continue
+		    }
+		    else if(b == null) {
+			offset = previous.getTrueInOffset()+previous.getInSize();
+			size = (int)(dmgRaf.length()-offset);
+			if(size == 0) break; // Last part may be empty (in theory, though not in practice with true UDIF files)
+		    }
+		    else {
+			offset = previous.getTrueInOffset()+previous.getInSize();
+			size = (int)(b.getInOffset()-offset);
+		    }
+		    
+		    String filename = "[" + dmgFile.getName() + "]-" + i++ + "-[" + offset + "-" + (offset+size) + "].region";
+		    println("  " + new File(filename).getCanonicalPath() + " (" + size + " bytes)...");
 		    FileOutputStream curFos = new FileOutputStream(new File(filename));
-		    dmgRaf.seek(0);
-		    byte[] data = new byte[(int)(b.getInOffset())];
-		    dmgRaf.read(data);
-		    curFos.write(data);
-		    curFos.close();
-		}
-		else if(previous != null) {
-		    String filename = i++ + ".block";
-		    println("  " + new File(filename).getCanonicalPath() + "...");
-		    FileOutputStream curFos = new FileOutputStream(new File(filename));
-		    dmgRaf.seek(previous.getInOffset()+previous.getInSize());
-		    byte[] data = new byte[(int)(b.getInOffset()-(previous.getInOffset()+previous.getInSize()))];
+		    
+		    if(size < 0) {
+			System.out.println("ERROR: Negative array size coming up...");
+			System.out.println("  current:");
+			System.out.println("    " + b.toString());
+			System.out.println("  previous:");
+			System.out.println("    " + previous.toString());
+		    }
+		    
+		    byte[] data = new byte[size];
+		    dmgRaf.seek(offset);
 		    dmgRaf.read(data);
 		    curFos.write(data);
 		    curFos.close();
 		}
 		previous = b;
-	    }
-	    if(previous.getInOffset()+previous.getInSize() != dmgRaf.length()) {
-		String filename = i++ + ".block";
-		println("  " + new File(filename).getCanonicalPath() + "...");
-		FileOutputStream curFos = new FileOutputStream(new File(filename));
-		dmgRaf.seek(previous.getInOffset()+previous.getInSize());
-		byte[] data = new byte[(int)(dmgRaf.length()-(previous.getInOffset()+previous.getInSize()))];
-		dmgRaf.read(data);
-		curFos.write(data);		
-		curFos.close();
 	    }
 	    dmgRaf.close();
 	    System.out.println("done!");
@@ -416,6 +461,10 @@ public class DMGExtractor {
 		else if(cur.equals("-startupcommand")) {
 		    startupCommand = args[i+1];
 		    ++i;
+		}
+		else {
+		    println("Invalid argument: " + cur);
+		    throw new DmgException();
 		}
 	    }
 
@@ -485,8 +534,9 @@ public class DMGExtractor {
 	        "  options:",
 	        "    -v          verbose operation... for finding out what went wrong",
 	        "    -saxparser  use the standard SAX parser for XML processing instead of",
-	        "                the homewritten parser (will connect to Apple's website",
-	        "                for DTD validation)",
+	        "                the APX parser (will connect to Apple's website for DTD",
+		"                validation)",
+	        "    -gui        starts the program in graphical mode",
 	        "    -debug      performs unspecified debug operations (only intended for",
 	        "                development use)",
 	        "");
@@ -704,11 +754,17 @@ public class DMGExtractor {
     public static LinkedList<DMGBlock> mergeBlocks(Iterator<DMGBlock> it) {
 	LinkedList<DMGBlock> result = new LinkedList<DMGBlock>();
 	DMGBlock previous = it.next();
+	while(previous.getInSize() == 0 && it.hasNext()) {
+	    //System.err.println("Skipping: " + previous.toString());
+	    previous = it.next();
+	}
+	//System.err.println("First block in merge sequence: " + previous.toString());
+	
 	DMGBlock current;
 	while(it.hasNext()) {
 	    current = it.next();
 	    if(current.getInSize() != 0) {
-		if(current.getInOffset() == previous.getInOffset()+previous.getInSize()) {
+		if(current.getTrueInOffset() == previous.getTrueInOffset()+previous.getInSize()) {
 		    DMGBlock mergedBlock = new DMGBlock(previous.getBlockType(), previous.getSkipped(), previous.getOutOffset(),
 							previous.getOutSize()+current.getOutSize(), previous.getInOffset(),
 							previous.getInSize()+current.getInSize(),
@@ -726,9 +782,17 @@ public class DMGExtractor {
     }
     
     public static class DummyMonitor implements UserInterface {
-	public void reportProgress(int progress) {
+	private long totalProgressLength = 0;
+	private long currentProgress = 0;
+	public void reportProgressPercentage(int progress) {
 	    DMGExtractor.reportProgress(progress);
 	}
+	public void setTotalProgressLength(long len) { totalProgressLength = len; }
+	public void addProgressRaw(long value) {
+	    currentProgress += value;
+	    reportProgress((int)(currentProgress*100/totalProgressLength));
+	}
+	
     }
 }
 

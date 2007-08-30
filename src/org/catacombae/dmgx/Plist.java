@@ -38,11 +38,16 @@ public class Plist {
     public Plist(byte[] data) {
 	this(data, 0, data.length);
     }
-    
+    public Plist(byte[] data, boolean useSAXParser) {
+	this(data, 0, data.length, useSAXParser);
+    }
     public Plist(byte[] data, int offset, int length) {
+	this(data, offset, length, false);
+    }
+    public Plist(byte[] data, int offset, int length, boolean useSAXParser) {
 	//plistData = new byte[length];
 	//System.arraycopy(data, offset, plistData, 0, length);
-	rootNode = parseXMLData(data);
+	rootNode = parseXMLData(data, useSAXParser);
     }
     
     //public byte[] getData() { return Util.createCopy(plistData); }
@@ -122,22 +127,27 @@ public class Plist {
 	return partitionList.toArray(new DmgPlistPartition[partitionList.size()]);
     }
     
-    private XMLNode parseXMLData(byte[] plistData) {
+    private XMLNode parseXMLData(byte[] plistData, boolean defaultToSAX) {
 	//InputStream is = new ByteArrayInputStream(plistData);
 	NodeBuilder handler = new NodeBuilder();
 	
-	/* First try to parse with the internal homebrew parser, and if it
-	 * doesn't succeed, go for the SAX parser. */
-	//System.err.println("Trying to parse xml data...");
-	try {
-	    parseXMLDataAPX(plistData, handler);
-	    //System.err.println("xml data parsed...");
-	} catch(Exception e) {
-	    e.printStackTrace();
-	    System.err.println("APX parser threw exception... falling back to SAX parser. Report this error!");
-	    handler = new NodeBuilder();
+	if(defaultToSAX) {
 	    parseXMLDataSAX(plistData, handler);
- 	}
+	}
+	else {
+	    /* First try to parse with the internal homebrew parser, and if it
+	     * doesn't succeed, go for the SAX parser. */
+	    //System.err.println("Trying to parse xml data...");
+	    try {
+		parseXMLDataAPX(plistData, handler);
+		//System.err.println("xml data parsed...");
+	    } catch(Exception e) {
+		e.printStackTrace();
+		System.err.println("APX parser threw exception... falling back to SAX parser. Report this error!");
+		handler = new NodeBuilder();
+		parseXMLDataSAX(plistData, handler);
+	    }
+	}
 	
 	XMLNode[] rootNodes = handler.getRoots();
 	if(rootNodes.length != 1)
