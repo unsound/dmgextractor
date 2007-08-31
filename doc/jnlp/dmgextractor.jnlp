@@ -14,7 +14,7 @@
 		</shortcut>
 	</information>
 	<resources>     
-		<jar href="dmgextractor-standalone.jar"/>
+		<jar href="dmgextractor-0_60-standalone.jar"/>
 		<j2se version="1.5+" href="http://java.sun.com/products/autodl/j2se"/>
 	</resources>
 	<security>
