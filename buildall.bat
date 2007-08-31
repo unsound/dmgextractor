@@ -17,7 +17,7 @@ if exist %CLASSFILES_DIR% rmdir /s /q %CLASSFILES_DIR%
 mkdir %CLASSFILES_DIR%
 
 echo Incrementing build number...
-java -cp "%BUILDTOOLS_CP%" BuildEnumerator "%SOURCES_DIR%\org\catacombae\dmgx\BuildNumber.java" 1
+java -cp "%BUILDTOOLS_CP%" BuildEnumerator "%SOURCES_DIR%\org\catacombae\dmgextractor\BuildNumber.java" 1
 
 echo Compiling org.catacombae.xml...
 javac -sourcepath "%SOURCES_DIR%" -classpath %BUILD_CP% -d "%CLASSFILES_DIR%" -Xlint:unchecked \\.\\"%SOURCES_DIR%\org\catacombae\xml\*.java"
@@ -36,6 +36,11 @@ if not "%JAVAC_EXIT_CODE%"=="0" goto error
 
 echo Compiling org.catacombae.udif...
 javac -sourcepath "%SOURCES_DIR%" -classpath %BUILD_CP% -d "%CLASSFILES_DIR%" -Xlint:unchecked \\.\\"%SOURCES_DIR%\org\catacombae\udif\*.java"
+set JAVAC_EXIT_CODE=%ERRORLEVEL%
+if not "%JAVAC_EXIT_CODE%"=="0" goto error
+
+echo Compiling org.catacombae.dmgextractor...
+javac -sourcepath "%SOURCES_DIR%" -classpath %BUILD_CP% -d "%CLASSFILES_DIR%" -Xlint:unchecked \\.\\"%SOURCES_DIR%\org\catacombae\dmgextractor\*.java"
 set JAVAC_EXIT_CODE=%ERRORLEVEL%
 if not "%JAVAC_EXIT_CODE%"=="0" goto error
 
@@ -60,7 +65,7 @@ goto end
 :error
 echo There were errors...
 echo Decrementing build number...
-java -cp "%BUILDTOOLS_CP%" BuildEnumerator "%SOURCES_DIR%\org\catacombae\dmgx\BuildNumber.java" -1
+java -cp "%BUILDTOOLS_CP%" BuildEnumerator "%SOURCES_DIR%\org\catacombae\dmgextractor\BuildNumber.java" -1
 goto end
 
 :end

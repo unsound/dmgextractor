@@ -18,8 +18,8 @@
 package org.catacombae.udif;
 
 import org.catacombae.io.*;
-import org.catacombae.dmgx.Util;
-import org.catacombae.dmgx.DmgException;
+import org.catacombae.dmgextractor.Util;
+import org.catacombae.dmgextractor.DmgException;
 import java.io.*;
 import java.util.zip.*;
 import org.apache.tools.bzip2.*;

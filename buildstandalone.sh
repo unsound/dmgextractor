@@ -6,7 +6,7 @@ DIST_LIB_PATH=dist/lib
 BUILD_LIB_PATH=lib
 MANIFEST=doc/standalone-manifest/manifest.txt
 BUILD_CP=$BUILD_DIR:dist/lib/apache-ant-1.7.0-bzip2.jar:dist/lib/filedrop.jar:dist/lib/iharder-base64.jar:dist/lib/swing-layout-1.0.1-stripped.jar
-BUILDTOOLS_CP=$BUILD_LIB_PATH/buildenumerator.jar
+#BUILDTOOLS_CP=$BUILD_LIB_PATH/buildenumerator.jar
 JARFILE_DIR=$BUILD_LIB_PATH
 JARFILE=dmgextractor-standalone.jar
 
@@ -39,8 +39,8 @@ extractdependencies() {
     cd ..
 }
 build() {
-    echo "Building org.catacombae.dmgx.DMGExtractorGraphical and dependencies..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/DMGExtractorGraphical.java
+    echo "Building org.catacombae.dmgextractor.DMGExtractorGraphical and dependencies..."
+    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgextractor/DMGExtractorGraphical.java
     return $?
 }
 buildjar() {

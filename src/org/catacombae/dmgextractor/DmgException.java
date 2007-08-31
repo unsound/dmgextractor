@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2007 Erik Larsson
+ * Copyright (C) 2006 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,18 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.dmgextractor;
 
-public class Debug {
-    public static boolean debug = false;
-    
-    public static void warning(String message) {
-	if(debug)
-	    System.err.println(message);
+public class DmgException extends RuntimeException {
+    public DmgException() {
+	super();
     }
-    
-    public static void notification(String message) {
-	if(debug)
-	    System.out.println("------->NOTE: " + message);
+    public DmgException(String message) {
+	super(message);
     }
 }

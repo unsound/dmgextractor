@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.dmgextractor;
 
 import org.catacombae.xml.*;
 import org.catacombae.xml.apx.*;

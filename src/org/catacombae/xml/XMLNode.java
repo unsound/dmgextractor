@@ -18,7 +18,7 @@
 package org.catacombae.xml;
 
 import org.catacombae.io.*;
-import org.catacombae.dmgx.Util;
+import org.catacombae.dmgextractor.Util;
 import java.util.LinkedList;
 import java.io.*;
 

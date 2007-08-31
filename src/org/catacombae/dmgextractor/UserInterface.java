@@ -15,11 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.dmgextractor;
 
-public class BuildNumber {
-    //[BuildEnumerator:Opening] WARNING: The following lines are managed by an external program. Do NOT change.
-    public static final long BUILD_NUMBER = 384L;
-    //[BuildEnumerator:Closing] The lines managed by an external program end here.
+interface UserInterface {
+    public void reportProgressPercentage(int percentage);
+    public void setTotalProgressLength(long len);
+    public void addProgressRaw(long value);
+    
+    public static class NullUI implements UserInterface {
+	public void reportProgressPercentage(int percentage) {}
+	public void setTotalProgressLength(long len) {}
+	public void addProgressRaw(long value) {}
+    }
 }
-

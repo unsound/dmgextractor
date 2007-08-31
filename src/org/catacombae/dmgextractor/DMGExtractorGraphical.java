@@ -15,13 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.dmgextractor;
 
-public class DmgException extends RuntimeException {
-    public DmgException() {
-	super();
-    }
-    public DmgException(String message) {
-	super(message);
+public class DMGExtractorGraphical {
+    public static void main(String[] args) throws Exception {
+	String[] newargs = new String[args.length+1];
+	newargs[0] = "-gui";
+	System.arraycopy(args, 0, newargs, 1, args.length);
+	DMGExtractor.main(newargs);
     }
 }

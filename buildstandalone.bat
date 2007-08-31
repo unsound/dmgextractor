@@ -9,7 +9,7 @@ set DIST_LIB_PATH=%~dp0dist\lib
 set JARFILE=%BUILD_LIB_PATH%\dmgextractor-standalone.jar
 set MANIFEST=%~dp0doc\standalone-manifest\manifest.txt
 set BUILD_CP=%CLASSFILES_DIR%
-set BUILDTOOLS_CP=%BUILD_LIB_PATH%\buildenumerator.jar
+REM set BUILDTOOLS_CP=%BUILD_LIB_PATH%\buildenumerator.jar
 
 pushd %~dp0
 
@@ -27,8 +27,8 @@ pushd %CLASSFILES_DIR%
 jar xf "%DIST_LIB_PATH%\iharder-base64.jar"
 popd
 
-echo Compiling org.catacombae.dmgx.DMGExtractorGraphical and dependencies...
-javac -sourcepath "%SOURCES_DIR%" -classpath "%BUILD_CP%" -d "%CLASSFILES_DIR%" -Xlint:unchecked \\.\\"%SOURCES_DIR%\org\catacombae\dmgx\DMGExtractorGraphical.java"
+echo Compiling org.catacombae.dmgextractor.DMGExtractorGraphical and dependencies...
+javac -sourcepath "%SOURCES_DIR%" -classpath "%BUILD_CP%" -d "%CLASSFILES_DIR%" -Xlint:unchecked \\.\\"%SOURCES_DIR%\org\catacombae\dmgextractor\DMGExtractorGraphical.java"
 set JAVAC_EXIT_CODE=%ERRORLEVEL%
 if not "%JAVAC_EXIT_CODE%"=="0" goto error
 
