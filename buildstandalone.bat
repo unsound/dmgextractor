@@ -14,8 +14,13 @@ REM set BUILDTOOLS_CP=%BUILD_LIB_PATH%\buildenumerator.jar
 pushd %~dp0
 
 echo Removing all class files...
-if exist %CLASSFILES_DIR% rmdir /s /q %CLASSFILES_DIR%
-mkdir %CLASSFILES_DIR%
+if exist "%CLASSFILES_DIR%" rmdir /s /q "%CLASSFILES_DIR%"
+mkdir "%CLASSFILES_DIR%"
+
+echo Copying JNLP-data to classfiles directory...
+mkdir "%CLASSFILES_DIR%\JNLP-INF"
+if not exist "%CLASSFILES_DIR%\JNLP-INF" goto error
+copy "%~dp0doc\jnlp\dmgextractor.jnlp" "%CLASSFILES_DIR%\JNLP-INF\APPLICATION.JNLP"
 
 echo Extracting Apache bzip2 libraries to classfiles directory...
 pushd %CLASSFILES_DIR%
