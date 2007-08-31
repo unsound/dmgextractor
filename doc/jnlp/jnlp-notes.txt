@@ -1,0 +1,4 @@
+För att få en jnlp-fil att köra med alla privilegier som ett vanligt Java-program har
+behöver man dels se till att en exakt kopia av filen ligger lagrad i huvud-JARen under
+JNLP-INF\APPLICATION.JNLP (uppercase är viktigt), och dels måste man signera JAR-filen.
+Har gjort ett litet script signjar.bat för det ändamålet.
