@@ -18,6 +18,8 @@
 package org.catacombae.dmgx;
 
 import org.catacombae.io.*;
+import org.catacombae.udif.UDIFBlockInputStream;
+import org.catacombae.udif.UDIFBlock;
 import java.io.*;
 import java.util.zip.*;
 
@@ -31,16 +33,16 @@ public class DMGBlockHandlers {
     /** Extracts a DMGBlock describing a region of the file dmgRaf to the file isoRaf. If the testOnly flag
 	is set, nothing is written to isoRaf (in fact, it can be null in this case). ui may not be null. in
 	that case, use UserInterface.NullUI. */
-    public static long processBlock(DMGBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
+    public static long processBlock(UDIFBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
 				    boolean testOnly, UserInterface ui) throws IOException {
-	DMGBlockInputStream is = DMGBlockInputStream.getStream(new RandomAccessFileStream(dmgRaf), block);
+	UDIFBlockInputStream is = UDIFBlockInputStream.getStream(new RandomAccessFileStream(dmgRaf), block);
 	long res = processStream(is, dmgRaf, isoRaf, testOnly, ui);
 	is.close();
 	if(res != block.getOutSize())
 	    System.err.println("WARNING: Could not extract entire block! Extracted " + res + " of " + block.getOutSize() + " bytes");
 	return res;
     }
-    private static long processStream(DMGBlockInputStream is, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
+    private static long processStream(UDIFBlockInputStream is, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
 				      boolean testOnly, UserInterface ui) throws IOException {
 	long totalBytesRead = 0;
 	int bytesRead = is.read(inBuffer);

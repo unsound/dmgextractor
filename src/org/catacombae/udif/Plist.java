@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.udif;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -26,6 +26,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import org.xml.sax.SAXException;
 //import org.xml.sax.helpers.DefaultHandler;
+import org.catacombae.dmgx.Util;
 import org.catacombae.io.*;
 import org.catacombae.xml.*;
 import org.catacombae.xml.apx.*;
@@ -52,8 +53,8 @@ public class Plist {
     
     //public byte[] getData() { return Util.createCopy(plistData); }
     
-    public DmgPlistPartition[] getPartitions() throws IOException {
-	LinkedList<DmgPlistPartition> partitionList = new LinkedList<DmgPlistPartition>();
+    public PlistPartition[] getPartitions() throws IOException {
+	LinkedList<PlistPartition> partitionList = new LinkedList<PlistPartition>();
 	XMLNode current = rootNode;
 	current = current.cd("dict");
 	current = current.cdkey("resource-fork");
@@ -95,7 +96,7 @@ public class Plist {
 // 			if(curBytesRead > 0)
 // 			    fos.write(buffer, 0, curBytesRead);
 // 		    }
-// 		    else { // Simulating DmgPlistPartition constructor
+// 		    else { // Simulating PlistPartition constructor
 // 			byte[] buf1 = new byte[0xCC];
 // 			byte[] buf2 = new byte[0x28];
 // 			int curBytesRead = (int)yo.skip(0xCC); // SKIP OPERATION FUCKS UP!one
@@ -114,9 +115,9 @@ public class Plist {
 		
 		InputStream base64DataInputStream = new Base64.InputStream(new ReaderInputStream(base64Data, Charset.forName("US-ASCII")));
 		
-		//System.err.println("Creating DmgPlistPartition.");
+		//System.err.println("Creating PlistPartition.");
 		//System.out.println("Block list for partition " + i++ + ":");
-		DmgPlistPartition dpp = new DmgPlistPartition(partitionName, partitionID, partitionAttributes, 
+		PlistPartition dpp = new PlistPartition(partitionName, partitionID, partitionAttributes, 
 							      base64DataInputStream, previousOutOffset, previousInOffset);
 		previousOutOffset = dpp.getFinalOutOffset();
 		previousInOffset = dpp.getFinalInOffset();
@@ -124,7 +125,7 @@ public class Plist {
 	    }
 	}
 	
-	return partitionList.toArray(new DmgPlistPartition[partitionList.size()]);
+	return partitionList.toArray(new PlistPartition[partitionList.size()]);
     }
     
     private XMLNode parseXMLData(byte[] plistData, boolean defaultToSAX) {

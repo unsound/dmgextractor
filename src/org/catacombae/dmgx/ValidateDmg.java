@@ -18,6 +18,9 @@
 package org.catacombae.dmgx;
 
 import org.catacombae.io.*;
+import org.catacombae.udif.Koly;
+import org.catacombae.udif.UDIFFileView;
+//import org.catacombae.udif.;
 import java.io.*;
 
 /**
@@ -33,7 +36,7 @@ public class ValidateDmg {
 	    System.out.println("Processing \"" + fn + "\"...");
 	    try {
 		RandomAccessFile raf = new RandomAccessFile(fn, "r");
-		DmgFileView dfw = new DmgFileView(new RandomAccessFileStream(raf));
+		UDIFFileView dfw = new UDIFFileView(new RandomAccessFileStream(raf));
 		Koly koly = dfw.getKoly();
 		ValidateResult vr = validateKoly(raf, koly);
 		String[] errors = vr.getErrors();

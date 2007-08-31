@@ -55,6 +55,11 @@ build_io() {
     javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/io/*.java
     return $?
 }
+build_udif() {
+    echo "Building org.catacombae.udif..."
+    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/udif/*.java
+    return $?
+}
 build_dmgx() {
     echo "Building org.catacombae.dmgx..."
     javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/*.java
@@ -85,13 +90,18 @@ main() {
 	    if [ "$?" == 0 ]; then
 		build_io
 		if [ "$?" == 0 ]; then
-		    build_dmgx
+		    build_udif
 		    if [ "$?" == 0 ]; then
-			build_dmgx_gui
+			build_dmgx
 			if [ "$?" == 0 ]; then
-			    buildjar
+			    build_dmgx_gui
 			    if [ "$?" == 0 ]; then
-				jobCompleted
+				buildjar
+				if [ "$?" == 0 ]; then
+				    jobCompleted
+				else
+				    error
+				fi
 			    else
 				error
 			    fi

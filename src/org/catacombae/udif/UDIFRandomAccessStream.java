@@ -15,21 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.udif;
 
 import org.catacombae.io.*;
 import java.io.*;
 
-public class DmgRandomAccessStream implements RandomAccessStream {
+public class UDIFRandomAccessStream implements RandomAccessStream {
     /*
       We have a string of data divided into blocks. Different algorithms must be applied to
       different types of blocks in order to extract the data.
      */
-    private DmgFile dmgFile;
-    private DMGBlock[] allBlocks;
-    private DMGBlock currentBlock;
+    private UDIFFile dmgFile;
+    private UDIFBlock[] allBlocks;
+    private UDIFBlock currentBlock;
     private int currentBlockIndex;
-    private DMGBlockInputStream currentBlockStream;
+    private UDIFBlockInputStream currentBlockStream;
     
     private long length;
     /** This is the pointer to the current position in the virtual file provided by this stream. */
@@ -38,28 +38,28 @@ public class DmgRandomAccessStream implements RandomAccessStream {
     
     private static void dbg(String s) { System.err.println(s); }
     
-    public DmgRandomAccessStream(RandomAccessFile raf) throws IOException {
-	this(new DmgFile(new RandomAccessFileStream(raf)));
+    public UDIFRandomAccessStream(RandomAccessFile raf) throws IOException {
+	this(new UDIFFile(new RandomAccessFileStream(raf)));
     }
-    public DmgRandomAccessStream(DmgFile dmgFile) throws IOException {
+    public UDIFRandomAccessStream(UDIFFile dmgFile) throws IOException {
 	this.dmgFile = dmgFile;
 	//dbg("dmgFile.getView().getPlist(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
 	Plist plist = dmgFile.getView().getPlist();
 	//dbg("before gc(): free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
 	//Runtime.getRuntime().gc();
 	//dbg("plist.getPartitions(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
-	DmgPlistPartition[] partitions = plist.getPartitions();
+	PlistPartition[] partitions = plist.getPartitions();
 
 	int totalBlockCount = 0;
-	for(DmgPlistPartition pp : partitions)
+	for(PlistPartition pp : partitions)
 	    totalBlockCount += pp.getBlockCount();
 	//dbg("totalBlockCount = " + totalBlockCount);
 	
-	allBlocks = new DMGBlock[totalBlockCount];
+	allBlocks = new UDIFBlock[totalBlockCount];
 	int pos = 0;
 	//dbg("looping for each of " + partitions.length + " partitions...");
-	for(DmgPlistPartition pp : partitions) {
-	    DMGBlock[] blocks = pp.getBlocks();
+	for(PlistPartition pp : partitions) {
+	    UDIFBlock[] blocks = pp.getBlocks();
 	    //dbg("Blocks in partition: " + blocks.length);
 	    System.arraycopy(blocks, 0, allBlocks, pos, blocks.length);
 	    pos += blocks.length;
@@ -99,7 +99,7 @@ public class DmgRandomAccessStream implements RandomAccessStream {
 
     /** @see java.io.RandomAccessFile */
     public int read(byte[] b, int off, int len) throws IOException {
- 	//System.out.println("DmgRandomAccessStream.read(b.length=" + b.length + ", " + off + ", " + len + ") {");
+ 	//System.out.println("UDIFRandomAccessStream.read(b.length=" + b.length + ", " + off + ", " + len + ") {");
 	if(seekCalled) {
 	    seekCalled = false;
 	    //System.out.print("  Repositioning stream after seek (logical file pointer: " + logicalFilePointer + ")...");
@@ -152,12 +152,12 @@ public class DmgRandomAccessStream implements RandomAccessStream {
     }
     
     private void repositionStream() throws IOException {
-// 	System.out.println("<DmgRandomAccessStream.repositionStream()>");
+// 	System.out.println("<UDIFRandomAccessStream.repositionStream()>");
 	// if the global file pointer is not within the bounds of the current block, then find the accurate block
 	if(!(currentBlock.getTrueOutOffset() <= logicalFilePointer &&
 	     (currentBlock.getTrueOutOffset()+currentBlock.getOutSize()) > logicalFilePointer)) {
-	    DMGBlock soughtBlock = null;
-	    for(DMGBlock dblk : allBlocks) {
+	    UDIFBlock soughtBlock = null;
+	    for(UDIFBlock dblk : allBlocks) {
 		long startPos = dblk.getTrueOutOffset();
 		long endPos = startPos + dblk.getOutSize();
 		if(startPos <= logicalFilePointer && endPos > logicalFilePointer) {
@@ -177,23 +177,23 @@ public class DmgRandomAccessStream implements RandomAccessStream {
 		throw new RuntimeException("Trying to seek outside bounds.");
 	}
 	
-	currentBlockStream = DMGBlockInputStream.getStream(dmgFile.getStream(), currentBlock);
+	currentBlockStream = UDIFBlockInputStream.getStream(dmgFile.getStream(), currentBlock);
 	long bytesToSkip = logicalFilePointer - currentBlock.getTrueOutOffset();
 // 	System.out.print("  skipping " + bytesToSkip + " bytes...");
 	currentBlockStream.skip(bytesToSkip);
 // 	System.out.println("done.");
-// 	System.out.println("</DmgRandomAccessStream.repositionStream()>");
+// 	System.out.println("</UDIFRandomAccessStream.repositionStream()>");
     }
     
     public static void main(String[] args) throws IOException {
-	System.out.println("DMGRandomAccessStream simple test program");
+	System.out.println("UDIFRandomAccessStream simple test program");
 	System.out.println("(Simply extracts the contents of a DMG file to a designated output file)");
 	if(args.length != 2)
 	    System.out.println("  ERROR: You must supply exactly two arguments: 1. the DMG, 2. the output file");
 	else {
 	    byte[] buffer = new byte[4096];
-	    DmgRandomAccessStream dras = 
-		new DmgRandomAccessStream(new DmgFile(new RandomAccessFileStream(new RandomAccessFile(args[0], "r"))));
+	    UDIFRandomAccessStream dras = 
+		new UDIFRandomAccessStream(new UDIFFile(new RandomAccessFileStream(new RandomAccessFile(args[0], "r"))));
 	    FileOutputStream fos = new FileOutputStream(args[1]);
 	    
 	    long totalBytesRead = 0;

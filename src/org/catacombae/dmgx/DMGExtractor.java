@@ -22,6 +22,7 @@ package org.catacombae.dmgx;
 import org.catacombae.xml.*;
 import org.catacombae.xml.apx.*;
 import org.catacombae.io.*;
+import org.catacombae.udif.*;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.LinkedList;
@@ -143,11 +144,11 @@ public class DMGExtractor {
 	dmgRaf.read(buffer);
 	
 	Plist plist = new Plist(buffer, useSaxParser);
-	DmgPlistPartition[] partitions = plist.getPartitions();
+	PlistPartition[] partitions = plist.getPartitions();
 	
 	long totalOutSize = 0;
-	for(DmgPlistPartition p : partitions) {
-	    Iterator<DMGBlock> blockIt = p.getBlockIterator();
+	for(PlistPartition p : partitions) {
+	    Iterator<UDIFBlock> blockIt = p.getBlockIterator();
 	    while(blockIt.hasNext())
 		totalOutSize += blockIt.next().getOutSize();
 	}
@@ -168,7 +169,7 @@ public class DMGExtractor {
 	int warningsReported = 0;
 	long totalSize = 0;
 	reportProgress(0);
-	for(DmgPlistPartition dpp : partitions) {
+	for(PlistPartition dpp : partitions) {
 	    long partitionSize = dpp.getPartitionSize();
 	    totalSize += partitionSize;
 	    
@@ -179,10 +180,10 @@ public class DMGExtractor {
 			   "    Partition size: " + partitionSize + " bytes");
 	    	    
 	    int blockCount = 0;
-	    Iterator<DMGBlock> blockIterator = dpp.getBlockIterator();
+	    Iterator<UDIFBlock> blockIterator = dpp.getBlockIterator();
 	    while(blockIterator.hasNext()) {
 		if(progmon != null && progmon.isCanceled()) System.exit(0);
-		DMGBlock currentBlock = blockIterator.next();
+		UDIFBlock currentBlock = blockIterator.next();
 		
 		/* Offset of the input data for the current block in the input file */
 		final int blockType = currentBlock.getBlockType();
@@ -356,13 +357,13 @@ public class DMGExtractor {
 	else {
 	    if(isoRaf != null)
 		isoRaf.close();
-	    ConcatenatedIterator<DMGBlock> cit = new ConcatenatedIterator<DMGBlock>();
-	    for(DmgPlistPartition dpp : partitions)
+	    ConcatenatedIterator<UDIFBlock> cit = new ConcatenatedIterator<UDIFBlock>();
+	    for(PlistPartition dpp : partitions)
 		cit.add(dpp.getBlockIterator());
 	    
-	    LinkedList<DMGBlock> blocks = new LinkedList<DMGBlock>();
+	    LinkedList<UDIFBlock> blocks = new LinkedList<UDIFBlock>();
 	    while(cit.hasNext()) {
-		DMGBlock b = cit.next();
+		UDIFBlock b = cit.next();
 		if(b.getInSize() == 0)
 		    continue; // Not relevant to the calculation
 		else if(b.getInSize() > 0)
@@ -372,20 +373,20 @@ public class DMGExtractor {
 	    }
 	    Collections.sort(blocks);
 	    
-	    LinkedList<DMGBlock> merged = mergeBlocks(blocks.iterator());
+	    LinkedList<UDIFBlock> merged = mergeBlocks(blocks.iterator());
 	    
  	    System.out.println("Merged regions (size: " + merged.size() + "):");
- 	    for(DMGBlock b : merged)
+ 	    for(UDIFBlock b : merged)
  	        System.out.println("  " + b.getTrueInOffset() + " - " + (b.getTrueInOffset()+b.getInSize()));
 	    println("Extracting the regions not containing block data from source file:");
 	    int i = 1;
-	    Iterator<DMGBlock> mergedIt = merged.iterator();
-	    DMGBlock previous = null;
+	    Iterator<UDIFBlock> mergedIt = merged.iterator();
+	    UDIFBlock previous = null;
 	    if(merged.size() > 0 && merged.getFirst().getTrueInOffset() == 0)
 		previous = mergedIt.next();
 		
 	    while(mergedIt.hasNext() || previous != null) {
-		DMGBlock b = null;
+		UDIFBlock b = null;
 		if(mergedIt.hasNext())
 		    b = mergedIt.next();
 		//else
@@ -747,28 +748,28 @@ public class DMGExtractor {
 	}
     }
     
-    public static LinkedList<DMGBlock> mergeBlocks(LinkedList<DMGBlock> blockList) {
-	Iterator<DMGBlock> it = blockList.iterator();
+    public static LinkedList<UDIFBlock> mergeBlocks(LinkedList<UDIFBlock> blockList) {
+	Iterator<UDIFBlock> it = blockList.iterator();
 	return mergeBlocks(it);
     }
-    public static LinkedList<DMGBlock> mergeBlocks(Iterator<DMGBlock> it) {
-	LinkedList<DMGBlock> result = new LinkedList<DMGBlock>();
-	DMGBlock previous = it.next();
+    public static LinkedList<UDIFBlock> mergeBlocks(Iterator<UDIFBlock> it) {
+	LinkedList<UDIFBlock> result = new LinkedList<UDIFBlock>();
+	UDIFBlock previous = it.next();
 	while(previous.getInSize() == 0 && it.hasNext()) {
 	    //System.err.println("Skipping: " + previous.toString());
 	    previous = it.next();
 	}
 	//System.err.println("First block in merge sequence: " + previous.toString());
 	
-	DMGBlock current;
+	UDIFBlock current;
 	while(it.hasNext()) {
 	    current = it.next();
 	    if(current.getInSize() != 0) {
 		if(current.getTrueInOffset() == previous.getTrueInOffset()+previous.getInSize()) {
-		    DMGBlock mergedBlock = new DMGBlock(previous.getBlockType(), previous.getSkipped(), previous.getOutOffset(),
-							previous.getOutSize()+current.getOutSize(), previous.getInOffset(),
-							previous.getInSize()+current.getInSize(),
-							previous.getOutOffsetCompensation(), previous.getInOffsetCompensation());
+		    UDIFBlock mergedBlock = new UDIFBlock(previous.getBlockType(), previous.getSkipped(), previous.getOutOffset(),
+							  previous.getOutSize()+current.getOutSize(), previous.getInOffset(),
+							  previous.getInSize()+current.getInSize(),
+							  previous.getOutOffsetCompensation(), previous.getInOffsetCompensation());
 		    previous = mergedBlock;
 		}
 		else {
