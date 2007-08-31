@@ -15,13 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.xml;
 
 import org.catacombae.io.*;
 import java.io.*;
 import java.nio.charset.Charset;
 
-class XMLText extends XMLElement {
+public class XMLText extends XMLElement {
     private static final char CR = '\r';
     private static final char LF = '\n';
     private static final char TAB = '\t';

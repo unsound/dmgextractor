@@ -15,27 +15,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.udif;
 
 import org.catacombae.io.*;
 import java.io.*;
 
 /**
- * An InputStream for reading the "block device" contents of a DMG UDIF file. Make sure that
- * no other stream concurrently uses the input file. This class isn't thread safe either, so
- * use external synchronization if needed.
+ * An InputStream for reading the "block device" contents of a UDIF disk image file, usually
+ * using the extension .dmg. Note that all files with the extension .dmg are not UDIF
+ * encoded. Some are raw disk images, with no wrapper, and can be burnt or restored directly
+ * to disk/optical disc.<br>
+ * Make sure that no other stream concurrently uses the input file. This class isn't thread
+ * safe, so use external synchronization if needed.
  */
-public class DmgInputStream extends InputStream {
-    private DmgRandomAccessStream wrapped;
+public class UDIFInputStream extends InputStream {
+    private UDIFRandomAccessStream wrapped;
     private long filePointer;
     
-    public DmgInputStream(RandomAccessFile raf) throws IOException {
-	this(new DmgRandomAccessStream(raf));
+    /** Constructs a new UDIF input stream from a RandomAccessFile. This is a convenience method, and
+	equal to <code>new UDI*/
+    public UDIFInputStream(RandomAccessFile raf) throws IOException {
+	this(new UDIFRandomAccessStream(raf));
     }
-    public DmgInputStream(DmgRandomAccessStream dras) throws IOException {
+    public UDIFInputStream(UDIFRandomAccessStream dras) throws IOException {
 	this.wrapped = dras;
     }
     
+    /** Returns the number of available bytes, or Integer.MAX_VALUE if the value is too large for int. */
     public int available() throws IOException {
 	long len = wrapped.length()-filePointer;
 	if(len > Integer.MAX_VALUE)
@@ -96,7 +102,7 @@ public class DmgInputStream extends InputStream {
     /** Test code. */
     public static void main(String[] args) throws IOException {
 	if(args.length != 2)
-	    System.out.println("usage: java org.catacombae.dmg.DmgInputStream <infile> <outfile>");
+	    System.out.println("usage: java org.catacombae.udif.UDIFInputStream <infile> <outfile>");
 	File inFile = new File(args[0]);
 	File outFile = new File(args[1]);
 	
@@ -117,7 +123,7 @@ public class DmgInputStream extends InputStream {
 	    System.exit(0);
 	}
 	
-	DmgInputStream dis = new DmgInputStream(inRaf);
+	UDIFInputStream dis = new UDIFInputStream(inRaf);
 	byte[] buffer = new byte[8192];
 	long bytesExtracted = 0;
 	int bytesRead = dis.read(buffer);

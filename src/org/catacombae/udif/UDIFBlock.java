@@ -15,9 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.udif;
 
-public class DMGBlock implements Comparable<DMGBlock>{
+import org.catacombae.dmgx.Util;
+
+public class UDIFBlock implements Comparable<UDIFBlock>{
     /** This blocktype means the data is compressed using some "ADC" algorithm that I have no idea how to decompress... */
     public static final int BT_ADC = 0x80000004;
     
@@ -78,7 +80,7 @@ public class DMGBlock implements Comparable<DMGBlock>{
     
     //private boolean immutable = false;
     
-    public DMGBlock(byte[] data, int offset, long outOffsetComp, long inOffsetComp) {
+    public UDIFBlock(byte[] data, int offset, long outOffsetComp, long inOffsetComp) {
 	this(Util.readIntBE(data, offset+0),
 	     Util.readIntBE(data, offset+4),
 	     Util.readLongBE(data, offset+8)*0x200,
@@ -96,7 +98,7 @@ public class DMGBlock implements Comparable<DMGBlock>{
 // 	this.inSize = Util.readLongBE(data, offset+32);
     }
     
-    public DMGBlock(int blockType, int skipped, long outOffset, long outSize, long inOffset, long inSize,
+    public UDIFBlock(int blockType, int skipped, long outOffset, long outSize, long inOffset, long inSize,
 		    long outOffsetComp, long inOffsetComp) {
 	this.blockType = blockType;
 	this.skipped = skipped;
@@ -177,18 +179,18 @@ public class DMGBlock implements Comparable<DMGBlock>{
     }
     
     /** Reads the inOffset field from <code>data</code> at <code>offset</code> which
-	is supposed to be a valid raw DMG block structure at 40 bytes. */
+	is supposed to be a valid raw UDIF block structure at 40 bytes. */
     public static long peekInOffset(byte[] data, int offset) {
 	return Util.readLongBE(data, offset+24);
     }
     /** Reads the inSize field from <code>data</code> at <code>offset</code> which
-	is supposed to be a valid raw DMG block structure at 40 bytes. */
+	is supposed to be a valid raw UDIF block structure at 40 bytes. */
     public static long peekInSize(byte[] data, int offset) {
 	return Util.readLongBE(data, offset+32);
     }
     
     /** Orders blocks according to the "true" InOffset. */
-    public int compareTo(DMGBlock db) {
+    public int compareTo(UDIFBlock db) {
 	long res = getTrueInOffset()-db.getTrueInOffset();
 	if(res > Integer.MAX_VALUE)
 	    return Integer.MAX_VALUE;

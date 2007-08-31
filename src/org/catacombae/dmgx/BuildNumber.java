@@ -19,7 +19,7 @@ package org.catacombae.dmgx;
 
 public class BuildNumber {
     //[BuildEnumerator:Opening] WARNING: The following lines are managed by an external program. Do NOT change.
-    public static final long BUILD_NUMBER = 382L;
+    public static final long BUILD_NUMBER = 384L;
     //[BuildEnumerator:Closing] The lines managed by an external program end here.
 }
 

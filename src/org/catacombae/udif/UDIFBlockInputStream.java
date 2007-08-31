@@ -15,16 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.udif;
 
 import org.catacombae.io.*;
+import org.catacombae.dmgx.Util;
+import org.catacombae.dmgx.DmgException;
 import java.io.*;
 import java.util.zip.*;
 import org.apache.tools.bzip2.*;
 
-public abstract class DMGBlockInputStream extends InputStream {
+public abstract class UDIFBlockInputStream extends InputStream {
     protected RandomAccessStream raf;
-    protected DMGBlock block;
+    protected UDIFBlock block;
     protected final int addInOffset;
     private long globalBytesRead;
     protected final byte[] buffer = new byte[16384]; // 16 KiB buffer... is it reasonable?
@@ -36,12 +38,12 @@ public abstract class DMGBlockInputStream extends InputStream {
     protected int fillSize; // Subclasses use this variable to report how many bytes were read into the buffer
     
     /**
-     * Creates a new DMGBlockInputStream.
-     * @param raf the RandomAccessFile representing the DMG file
-     * @param block the block that we should read (usually obtained via DmgPlistPartition.getBlocks())
+     * Creates a new UDIFBlockInputStream.
+     * @param raf the RandomAccessFile representing the UDIF file
+     * @param block the block that we should read (usually obtained via PlistPartition.getBlocks())
      * @param addInOffset the number to add to the block's inOffset to find the data
      */
-    protected DMGBlockInputStream(RandomAccessStream raf, DMGBlock block, int addInOffset) throws IOException {
+    protected UDIFBlockInputStream(RandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException {
 	this.raf = raf;
 	this.block = block;
 	this.addInOffset = addInOffset;
@@ -50,21 +52,21 @@ public abstract class DMGBlockInputStream extends InputStream {
     }
     
     /** This method WILL throw a RuntimeException if <code>block</code> has a type that there is no handler for. */
-    public static DMGBlockInputStream getStream(RandomAccessStream raf, DMGBlock block) throws IOException {
+    public static UDIFBlockInputStream getStream(RandomAccessStream raf, UDIFBlock block) throws IOException {
 	switch(block.getBlockType()) {
-	case DMGBlock.BT_ZLIB:
+	case UDIFBlock.BT_ZLIB:
 	    return new ZlibBlockInputStream(raf, block, 0);
-	case DMGBlock.BT_BZIP2:
+	case UDIFBlock.BT_BZIP2:
 	    return new Bzip2BlockInputStream(raf, block, 0);
-	case DMGBlock.BT_COPY:
+	case UDIFBlock.BT_COPY:
 	    return new CopyBlockInputStream(raf, block, 0);
-	case DMGBlock.BT_ZERO:
- 	case DMGBlock.BT_ZERO2:
+	case UDIFBlock.BT_ZERO:
+ 	case UDIFBlock.BT_ZERO2:
 	    return new ZeroBlockInputStream(raf, block, 0);
-	case DMGBlock.BT_END:
- 	case DMGBlock.BT_UNKNOWN:
+	case UDIFBlock.BT_END:
+ 	case UDIFBlock.BT_UNKNOWN:
 	    throw new RuntimeException("Block type is a marker and contains no data.");
-	case DMGBlock.BT_ADC:
+	case UDIFBlock.BT_ADC:
 	default:
 	    throw new RuntimeException("No handler for block type " + block.getBlockTypeAsString());
   	}
@@ -96,7 +98,7 @@ public abstract class DMGBlockInputStream extends InputStream {
     
     /** @see java.io.InputStream */
     public int read(byte[] b, int off, int len) throws IOException {
-// 	System.out.println("DMGBlockInputStream.read(b, " + off + ", " + len + ") {");
+// 	System.out.println("UDIFBlockInputStream.read(b, " + off + ", " + len + ") {");
 
 	final int bytesToRead = len;
 	
@@ -152,14 +154,14 @@ public abstract class DMGBlockInputStream extends InputStream {
     
     protected abstract void fillBuffer() throws IOException;
     
-    public static class ZlibBlockInputStream extends DMGBlockInputStream {
+    public static class ZlibBlockInputStream extends UDIFBlockInputStream {
 	//private static byte[] inBuffer = new byte[0x40000];
 	//private static byte[] outBuffer = new byte[0x40000];
 	private final Inflater inflater;
 	private final byte[] inBuffer;
 	private long inPos;
 	
-	public ZlibBlockInputStream(RandomAccessStream raf, DMGBlock block, int addInOffset) throws IOException {
+	public ZlibBlockInputStream(RandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException {
 	    super(raf, block, addInOffset);
 	    inflater = new Inflater();
 	    inBuffer = new byte[4096];
@@ -222,9 +224,9 @@ public abstract class DMGBlockInputStream extends InputStream {
 	    //System.out.println("}");
 	}
     }
-    public static class CopyBlockInputStream extends DMGBlockInputStream {
+    public static class CopyBlockInputStream extends UDIFBlockInputStream {
 	private long inPos = 0;
-	public CopyBlockInputStream(RandomAccessStream raf, DMGBlock block, int addInOffset) throws IOException {
+	public CopyBlockInputStream(RandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException {
 	    super(raf, block, addInOffset);
 	}
 	
@@ -259,9 +261,9 @@ public abstract class DMGBlockInputStream extends InputStream {
 	    return bytesToSkip;
 	}
     }
-    public static class ZeroBlockInputStream extends DMGBlockInputStream {
+    public static class ZeroBlockInputStream extends UDIFBlockInputStream {
 	private long outPos = 0;
-	public ZeroBlockInputStream(RandomAccessStream raf, DMGBlock block, int addInOffset) throws IOException {
+	public ZeroBlockInputStream(RandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException {
 	    super(raf, block, addInOffset);
 	}
 	
@@ -286,14 +288,14 @@ public abstract class DMGBlockInputStream extends InputStream {
 	    return bytesToSkip;
 	}
     }
-    public static class Bzip2BlockInputStream extends DMGBlockInputStream {
+    public static class Bzip2BlockInputStream extends UDIFBlockInputStream {
 	private final byte[] BZIP2_SIGNATURE = { 0x42, 0x5A }; // 'BZ'
 	
 	private InputStream bzip2DataStream;
 	private CBZip2InputStream uncompressedOutStream;
 	private long outPos = 0;
 	
-	public Bzip2BlockInputStream(RandomAccessStream raf, DMGBlock block, int addInOffset) throws IOException {
+	public Bzip2BlockInputStream(RandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException {
 	    super(raf, block, addInOffset);
 	    
 	    if(false) {

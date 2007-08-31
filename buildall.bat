@@ -34,6 +34,11 @@ javac -sourcepath "%SOURCES_DIR%" -classpath %BUILD_CP% -d "%CLASSFILES_DIR%" -X
 set JAVAC_EXIT_CODE=%ERRORLEVEL%
 if not "%JAVAC_EXIT_CODE%"=="0" goto error
 
+echo Compiling org.catacombae.udif...
+javac -sourcepath "%SOURCES_DIR%" -classpath %BUILD_CP% -d "%CLASSFILES_DIR%" -Xlint:unchecked \\.\\"%SOURCES_DIR%\org\catacombae\udif\*.java"
+set JAVAC_EXIT_CODE=%ERRORLEVEL%
+if not "%JAVAC_EXIT_CODE%"=="0" goto error
+
 echo Compiling org.catacombae.dmgx...
 javac -sourcepath "%SOURCES_DIR%" -classpath %BUILD_CP% -d "%CLASSFILES_DIR%" -Xlint:unchecked \\.\\"%SOURCES_DIR%\org\catacombae\dmgx\*.java"
 set JAVAC_EXIT_CODE=%ERRORLEVEL%

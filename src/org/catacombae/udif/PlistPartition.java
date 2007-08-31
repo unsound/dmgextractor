@@ -15,16 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.udif;
 
+import org.catacombae.dmgx.Debug; // Should not depend on this one
 import java.util.*;
 import java.io.*;
 
-public class DmgPlistPartition {
+public class PlistPartition {
     private String name;
     private String id;
     private String attributes;
-    private DMGBlock[] blockList;
+    private UDIFBlock[] blockList;
     private long partitionSize;
     
     // Incoming variables
@@ -35,25 +36,25 @@ public class DmgPlistPartition {
     private long finalOutOffset = -1;
     private long finalInOffset = -1;
     
-    private class BlockIterator implements Iterator<DMGBlock> {
-	private DMGBlock[] blocks;
+    private class BlockIterator implements Iterator<UDIFBlock> {
+	private UDIFBlock[] blocks;
 	private int pointer, endOffset;
-	public BlockIterator(DMGBlock[] blocks) { this(blocks, 0, blocks.length); }
-	public BlockIterator(DMGBlock[] blocks, int offset, int length) {
+	public BlockIterator(UDIFBlock[] blocks) { this(blocks, 0, blocks.length); }
+	public BlockIterator(UDIFBlock[] blocks, int offset, int length) {
 	    this.blocks = blocks;
 	    this.pointer = offset;
 	    this.endOffset = offset+length;
 	}
 	public boolean hasNext() { return pointer < endOffset; }
-	public DMGBlock next() { return blocks[pointer++]; }
+	public UDIFBlock next() { return blocks[pointer++]; }
 	public void remove() { throw new UnsupportedOperationException(); }
     }
     
-    public DmgPlistPartition(String name, String id, String attributes, byte[] data, 
+    public PlistPartition(String name, String id, String attributes, byte[] data, 
 			     long previousOutOffset, long previousInOffset) throws IOException {
 	this(name, id, attributes, new ByteArrayInputStream(data), previousOutOffset, previousInOffset);
     }
-    public DmgPlistPartition(String name, String id, String attributes, InputStream data, 
+    public PlistPartition(String name, String id, String attributes, InputStream data, 
 			     long previousOutOffset, long previousInOffset) throws IOException {
 	this.name = name;
 	this.id = id;
@@ -82,14 +83,14 @@ public class DmgPlistPartition {
     }
     
     /** Copies all blocks to a newly allocated array. Might waste some memory. */
-    public DMGBlock[] getBlocks() {
-	DMGBlock[] res = new DMGBlock[blockList.length];
+    public UDIFBlock[] getBlocks() {
+	UDIFBlock[] res = new UDIFBlock[blockList.length];
 	for(int i = 0; i < res.length; ++i)
 	    res[i] = blockList[i];
 	return res;
     }
-    /** Returns an iterator over all the DMGBlocks that describe the contents of this partition. */
-    public Iterator<DMGBlock> getBlockIterator() {
+    /** Returns an iterator over all the UDIFBlocks that describe the contents of this partition. */
+    public Iterator<UDIFBlock> getBlockIterator() {
 	return new BlockIterator(blockList);
     }
     
@@ -108,8 +109,8 @@ public class DmgPlistPartition {
 	return finalInOffset;
     }
     
-    private DMGBlock[] parseBlocks(InputStream is) throws IOException {
-	//System.err.println("<DmgPlistPartition.parseBlocks>");
+    private UDIFBlock[] parseBlocks(InputStream is) throws IOException {
+	//System.err.println("<PlistPartition.parseBlocks>");
 	//byte[] ccTemp = new byte[0xCC];
 	long bytesSkipped = is.read(new byte[0xCC]);//is.read(ccTemp);//is.skip(0xCC);//int offset = 0xCC;
 	//ccTemp = null; // not needed
@@ -123,19 +124,19 @@ public class DmgPlistPartition {
 	long lastByteReadInBlock = -1;
 	boolean addInOffset = false;
 	
-	byte[] blockData = new byte[DMGBlock.structSize()];
+	byte[] blockData = new byte[UDIFBlock.structSize()];
 	
-	LinkedList<DMGBlock> blocks = new LinkedList<DMGBlock>();
-	while(true) { //offset <= data.length-DMGBlock) {
+	LinkedList<UDIFBlock> blocks = new LinkedList<UDIFBlock>();
+	while(true) { //offset <= data.length-UDIFBlock) {
 	    int bytesRead = is.read(blockData);
 	    //System.err.println("Looping (read " + bytesRead + " bytes)");
 	    if(bytesRead == -1)
 		break;
 	    else if(bytesRead != blockData.length)
 		throw new RuntimeException("Could not read the desired amount of bytes... (desired: " + blockData.length + " read: " + bytesRead + ")");
-	    //DMGBlock currentBlock = new DMGBlock(blockData, 0, previousOutOffset);
-	    long inOffset = DMGBlock.peekInOffset(blockData, 0);
-	    long inSize = DMGBlock.peekInSize(blockData, 0);
+	    //UDIFBlock currentBlock = new UDIFBlock(blockData, 0, previousOutOffset);
+	    long inOffset = UDIFBlock.peekInOffset(blockData, 0);
+	    long inSize = UDIFBlock.peekInSize(blockData, 0);
 	    //System.err.println("  blockType=" + currentBlock.getBlockTypeAsString());
 	    //(new BufferedReader(new InputStreamReader(System.in))).readLine();
 
@@ -164,30 +165,30 @@ public class DmgPlistPartition {
 		inOffsetCompensation = previousInOffset;
 	    }
 	    
-	    DMGBlock currentBlock = new DMGBlock(blockData, 0, outOffsetCompensation, inOffsetCompensation);
+	    UDIFBlock currentBlock = new UDIFBlock(blockData, 0, outOffsetCompensation, inOffsetCompensation);
 	    blocks.add(currentBlock);
 	    ++blockNumber;
 	    
 	    //System.out.println("  " + currentBlock.toString());
 	    
 	    // Return if we have reached the end, and update
-	    if(currentBlock.getBlockType() == DMGBlock.BT_END) {
+	    if(currentBlock.getBlockType() == UDIFBlock.BT_END) {
 		finalOutOffset = currentBlock.getTrueOutOffset();
 		finalInOffset = previousInOffset + lastByteReadInBlock;
 		
 		if(is.read() != -1)
 		    Debug.warning("Encountered additional data in blkx blob.");
-		return blocks.toArray(new DMGBlock[blocks.size()]);
+		return blocks.toArray(new UDIFBlock[blocks.size()]);
 	    }
 	}
 	
 	throw new RuntimeException("No BT_END block found!");
     }
         
-    public static long calculatePartitionSize(DMGBlock[] data) throws IOException {
+    public static long calculatePartitionSize(UDIFBlock[] data) throws IOException {
 	long partitionSize = 0;
 
-	for(DMGBlock db : data)
+	for(UDIFBlock db : data)
 	    partitionSize += db.getOutSize();
 	
 	return partitionSize;

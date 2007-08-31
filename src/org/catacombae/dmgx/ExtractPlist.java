@@ -18,6 +18,7 @@
 package org.catacombae.dmgx;
 
 import org.catacombae.io.*;
+import org.catacombae.udif.UDIFFileView;
 import java.io.*;
 
 public class ExtractPlist {
@@ -32,7 +33,7 @@ public class ExtractPlist {
 	    return;//System.exit(0);
 	}
 	
-	DmgFileView dfw = new DmgFileView(new RandomAccessFileStream(inFile));
+	UDIFFileView dfw = new UDIFFileView(new RandomAccessFileStream(inFile));
 	byte[] plistData = dfw.getPlistData();
 	/*int bytesWritten = */outStream.write(plistData);
 // 	if(bytesWritten != plistData.length)

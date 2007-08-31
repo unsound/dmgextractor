@@ -15,22 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.xml;
 
 import org.catacombae.io.*;
+import org.catacombae.dmgx.Util;
 import java.util.LinkedList;
 import java.io.*;
 
-class XMLNode extends XMLElement {
+public class XMLNode extends XMLElement {
     public final String namespaceURI;
     public final String sName;
     public final String qName;
-    public final Attribute[] attrs;
+    public final Attribute2[] attrs;
     public final XMLNode parent;
     private final LinkedList<XMLElement> children;
     
     public XMLNode(String namespaceURI, String sName, 
-		   String qName, Attribute[] attrs, XMLNode parent) {
+		   String qName, Attribute2[] attrs, XMLNode parent) {
 	this.namespaceURI = namespaceURI;
 	this.sName = sName;
 	this.qName = qName;
@@ -52,7 +53,7 @@ class XMLNode extends XMLElement {
 	    pw.print(" ");
 	pw.print("<");
 	pw.print(qName);
-	for(Attribute a : attrs)
+	for(Attribute2 a : attrs)
 	    pw.print(" " + a.qName + "=" + a.value);
 	pw.println(">");
 	for(XMLElement xe : children)

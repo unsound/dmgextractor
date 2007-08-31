@@ -15,9 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.xml;
 
-import org.catacombae.xml.*;
+//import org.catacombae.xml.*;
 import org.catacombae.io.*;
 import java.util.List;
 import java.nio.charset.Charset;
@@ -50,11 +50,11 @@ public class NodeBuilderContentHandler extends XMLContentHandler {
     }
     public void startElement(String name, List<org.catacombae.xml.Attribute> attributes) {
 	try {
-	    Attribute[] attrs = new Attribute[attributes.size()];
+	    Attribute2[] attrs = new Attribute2[attributes.size()];
 	    //for(int i = 0; i < attributes.length; ++i) {
 	    int i = 0;
 	    for(org.catacombae.xml.Attribute a : attributes) {
-		attrs[i++] = new Attribute("", a.identifier, 
+		attrs[i++] = new Attribute2("", a.identifier, 
 					      "CDATA", "", a.value.toString());
 	    }
 // 	    org.xml.sax.ext.Attributes2Impl a2i = new org.xml.sax.ext.Attributes2Impl();

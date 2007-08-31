@@ -15,10 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.xml;
 
 import java.io.PrintStream;
 
-abstract class XMLElement {
+public abstract class XMLElement {
     protected abstract void _printTree(PrintStream pw, int level);
 }

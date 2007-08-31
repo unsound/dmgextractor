@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.xml;
 
 import org.catacombae.io.*;
 import org.xml.sax.helpers.DefaultHandler;
@@ -26,7 +26,7 @@ import java.nio.charset.Charset;
 /**
  * Plugs into a SAXParser to build a tree of XMLElements representing the document.
  */
-class NodeBuilder extends DefaultHandler {
+public class NodeBuilder extends DefaultHandler {
     /** NEVER try to obtain anything from this except its children. */
     private XMLNode artificialRoot;
 
@@ -39,16 +39,16 @@ class NodeBuilder extends DefaultHandler {
     public void startElement(String namespaceURI, String sName, String qName,
 			     Attributes attrs) throws SAXException {
 	//System.out.println("SE");
-	Attribute[] attributes = new Attribute[attrs.getLength()];
+	Attribute2[] attributes = new Attribute2[attrs.getLength()];
 	for(int i = 0; i < attributes.length; ++i) {
-	    attributes[i] = new Attribute(attrs.getLocalName(i), attrs.getQName(i), 
-					  attrs.getType(i), attrs.getURI(i), attrs.getValue(i));
+	    attributes[i] = new Attribute2(attrs.getLocalName(i), attrs.getQName(i), 
+					   attrs.getType(i), attrs.getURI(i), attrs.getValue(i));
 	}
 	startElementInternal(namespaceURI, sName, qName, attributes);
     }
     
     void startElementInternal(String namespaceURI, String sName, String qName,
-			      Attribute[] attributes) throws SAXException {
+			      Attribute2[] attributes) throws SAXException {
 	XMLNode newNode = new XMLNode(namespaceURI, sName, qName,
 				      attributes, currentNode);
 	currentNode.addChild(newNode);

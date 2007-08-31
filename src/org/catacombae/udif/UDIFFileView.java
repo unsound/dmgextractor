@@ -15,16 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.udif;
 
 import org.catacombae.io.*;
 import java.io.*;
 
-public class DmgFileView {
+public class UDIFFileView {
     //private File file;
     private RandomAccessStream dmgRaf;
     
-    public DmgFileView(File file) {
+    public UDIFFileView(File file) {
 	try {
 	    //this.file = file;
 	    this.dmgRaf = new RandomAccessFileStream(new RandomAccessFile(file, "r"));
@@ -32,7 +32,7 @@ public class DmgFileView {
 	    throw new RuntimeException(ioe);
 	}
     }
-    public DmgFileView(RandomAccessStream dmgRaf) {
+    public UDIFFileView(RandomAccessStream dmgRaf) {
 	this.dmgRaf = dmgRaf;
     }
     
