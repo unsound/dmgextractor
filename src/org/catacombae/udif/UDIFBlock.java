@@ -17,7 +17,7 @@
 
 package org.catacombae.udif;
 
-import org.catacombae.dmgx.Util;
+import org.catacombae.dmgextractor.Util;
 
 public class UDIFBlock implements Comparable<UDIFBlock>{
     /** This blocktype means the data is compressed using some "ADC" algorithm that I have no idea how to decompress... */

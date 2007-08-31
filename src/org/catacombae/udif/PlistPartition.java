@@ -17,7 +17,7 @@
 
 package org.catacombae.udif;
 
-import org.catacombae.dmgx.Debug; // Should not depend on this one
+import org.catacombae.dmgextractor.Debug; // Should not depend on this one
 import java.util.*;
 import java.io.*;
 

@@ -15,13 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.dmgextractor;
 
-public class DMGExtractorGraphical {
-    public static void main(String[] args) throws Exception {
-	String[] newargs = new String[args.length+1];
-	newargs[0] = "-gui";
-	System.arraycopy(args, 0, newargs, 1, args.length);
-	DMGExtractor.main(newargs);
-    }
+public class BuildNumber {
+    //[BuildEnumerator:Opening] WARNING: The following lines are managed by an external program. Do NOT change.
+    public static final long BUILD_NUMBER = 385L;
+    //[BuildEnumerator:Closing] The lines managed by an external program end here.
 }
+

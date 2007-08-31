@@ -17,7 +17,7 @@
 
 //package org.catacombae.rarx;
 // Ripped from junrarlib
-package org.catacombae.dmgx;
+package org.catacombae.dmgextractor;
 import java.io.Reader;
 import java.io.IOException;
 

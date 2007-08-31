@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2006 Erik Larsson
+ * Copyright (C) 2007 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,16 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgx;
+package org.catacombae.dmgextractor;
 
-interface UserInterface {
-    public void reportProgressPercentage(int percentage);
-    public void setTotalProgressLength(long len);
-    public void addProgressRaw(long value);
+public class Debug {
+    public static boolean debug = false;
     
-    public static class NullUI implements UserInterface {
-	public void reportProgressPercentage(int percentage) {}
-	public void setTotalProgressLength(long len) {}
-	public void addProgressRaw(long value) {}
+    public static void warning(String message) {
+	if(debug)
+	    System.err.println(message);
+    }
+    
+    public static void notification(String message) {
+	if(debug)
+	    System.out.println("------->NOTE: " + message);
     }
 }

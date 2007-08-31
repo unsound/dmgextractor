@@ -17,8 +17,8 @@ if [ -d "$CLASSFILES_DIR" ]; then # if exists $CLASSFILES_DIR...
 fi
 mkdir $CLASSFILES_DIR
 
-echo "Compiling org.catacombae.dmgx.DmgRandomAccessStream (and dependencies)..."
-javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation $SOURCES_DIR/org/catacombae/dmgx/DmgRandomAccessStream.java
+echo "Compiling org.catacombae.udif.UDIFRandomAccessStream (and dependencies)..."
+javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $CLASSFILES_DIR -Xlint:deprecation $SOURCES_DIR/org/catacombae/udif/UDIFRandomAccessStream.java
 JAVAC_EXIT_CODE=$?
 if [ "$JAVAC_EXIT_CODE" != 0 ]; then
     error

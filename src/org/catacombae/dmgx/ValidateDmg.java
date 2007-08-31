@@ -18,6 +18,7 @@
 package org.catacombae.dmgx;
 
 import org.catacombae.io.*;
+import org.catacombae.dmgextractor.Util;
 import org.catacombae.udif.Koly;
 import org.catacombae.udif.UDIFFileView;
 //import org.catacombae.udif.;

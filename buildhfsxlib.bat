@@ -15,8 +15,8 @@ echo Removing all class files...
 if exist %CLASSFILES_DIR% rmdir /s /q %CLASSFILES_DIR%
 mkdir %CLASSFILES_DIR%
 
-echo Compiling org.catacombae.dmgx.DmgRandomAccessStream (and dependencies)...
-javac -cp %BUILD_CP% -sourcepath %SOURCES_DIR% -d %CLASSFILES_DIR% -Xlint:unchecked %SOURCES_DIR%\org\catacombae\dmgx\DmgRandomAccessStream.java
+echo Compiling org.catacombae.udif.UDIFRandomAccessStream (and dependencies)...
+javac -cp %BUILD_CP% -sourcepath %SOURCES_DIR% -d %CLASSFILES_DIR% -Xlint:unchecked %SOURCES_DIR%\org\catacombae\udif\UDIFRandomAccessStream.java
 set JAVAC_EXIT_CODE=%ERRORLEVEL%
 if not "%JAVAC_EXIT_CODE%"=="0" goto error
 

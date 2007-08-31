@@ -26,7 +26,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import org.xml.sax.SAXException;
 //import org.xml.sax.helpers.DefaultHandler;
-import org.catacombae.dmgx.Util;
+import org.catacombae.dmgextractor.Util;
 import org.catacombae.io.*;
 import org.catacombae.xml.*;
 import org.catacombae.xml.apx.*;
