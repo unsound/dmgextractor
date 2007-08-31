@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<jnlp spec="1.0+" codebase="http://hem.bredband.net/unsound/dmgx/" href="dmgextractor.jnlp">
+	<information>
+      		<title>DMGExtractor</title>
+      		<vendor>Catacombae Software</vendor>
+		<description>An application that extracts the contents of UDIF disk images, usually with file extension .dmg, to raw data (like .iso files).</description>
+		<homepage href="http://hem.bredband.net/catacombae/"/>
+		<description kind="short">Extracts the contents of .dmg files.</description>
+		<offline-allowed/>
+		<shortcut online="false">
+			<desktop/>
+			<menu submenu="Catacombae Software"/>
+		</shortcut>
+	</information>
+	<resources>     
+		<jar href="dmgextractor-standalone.jar"/>
+		<j2se version="1.5+" href="http://java.sun.com/products/autodl/j2se"/>
+	</resources>
+	<security>
+		<all-permissions/>
+	</security>
+	<application-desc main-class="org.catacombae.dmgextractor.DMGExtractorGraphical"/>
+</jnlp>
