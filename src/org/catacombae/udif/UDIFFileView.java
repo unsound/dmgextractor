@@ -17,26 +17,29 @@
 
 package org.catacombae.udif;
 
-import org.catacombae.io.*;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import org.catacombae.io.ReadableFileStream;
+import org.catacombae.io.ReadableRandomAccessStream;
+import org.catacombae.io.RuntimeIOException;
 
 public class UDIFFileView {
-    //private File file;
-    private RandomAccessStream dmgRaf;
+    private ReadableRandomAccessStream dmgRaf;
     
     public UDIFFileView(File file) {
 	try {
 	    //this.file = file;
-	    this.dmgRaf = new RandomAccessFileStream(new RandomAccessFile(file, "r"));
+	    this.dmgRaf = new ReadableFileStream(new RandomAccessFile(file, "r"));
 	} catch(IOException ioe) {
-	    throw new RuntimeException(ioe);
+	    throw new RuntimeIOException(ioe);
 	}
     }
-    public UDIFFileView(RandomAccessStream dmgRaf) {
+    public UDIFFileView(ReadableRandomAccessStream dmgRaf) {
 	this.dmgRaf = dmgRaf;
     }
     
-    public byte[] getPlistData() throws IOException {
+    public byte[] getPlistData() throws RuntimeIOException {
 	Koly koly = getKoly();
 	byte[] plistData = new byte[(int)koly.getPlistSize()]; // Let's hope the plistsize is within int range... (though memory will run out long before that)
 	
@@ -47,18 +50,18 @@ public class UDIFFileView {
 	    throw new RuntimeException("Could not read the entire region of data containing the Plist");
     }
     
-    public Plist getPlist() throws IOException {
+    public Plist getPlist() throws RuntimeIOException {
 	return new Plist(getPlistData());
     }
     
-    public Koly getKoly() throws IOException {
+    public Koly getKoly() throws RuntimeIOException {
 	dmgRaf.seek(dmgRaf.length()-512);
 	byte[] kolyData = new byte[512];
 	dmgRaf.read(kolyData);
 	return new Koly(kolyData, 0);
     }
     
-    public void close() throws IOException {
+    public void close() throws RuntimeIOException {
 	dmgRaf.close();
     }
 }

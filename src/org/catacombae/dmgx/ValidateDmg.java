@@ -17,12 +17,13 @@
 
 package org.catacombae.dmgx;
 
-import org.catacombae.io.*;
+import org.catacombae.dmgextractor.io.*;
 import org.catacombae.dmgextractor.Util;
 import org.catacombae.udif.Koly;
 import org.catacombae.udif.UDIFFileView;
 //import org.catacombae.udif.;
 import java.io.*;
+import org.catacombae.io.ReadableFileStream;
 
 /**
  * This is a console application that validates a set of dmg files
@@ -37,7 +38,7 @@ public class ValidateDmg {
 	    System.out.println("Processing \"" + fn + "\"...");
 	    try {
 		RandomAccessFile raf = new RandomAccessFile(fn, "r");
-		UDIFFileView dfw = new UDIFFileView(new RandomAccessFileStream(raf));
+		UDIFFileView dfw = new UDIFFileView(new ReadableFileStream(raf));
 		Koly koly = dfw.getKoly();
 		ValidateResult vr = validateKoly(raf, koly);
 		String[] errors = vr.getErrors();

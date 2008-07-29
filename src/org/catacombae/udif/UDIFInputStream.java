@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2007 Erik Larsson
+ * Copyright (C) 2007-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
 
 package org.catacombae.udif;
 
-import org.catacombae.io.*;
 import java.io.*;
 
 /**
@@ -42,6 +41,7 @@ public class UDIFInputStream extends InputStream {
     }
     
     /** Returns the number of available bytes, or Integer.MAX_VALUE if the value is too large for int. */
+    @Override
     public int available() throws IOException {
 	long len = wrapped.length()-filePointer;
 	if(len > Integer.MAX_VALUE)
@@ -52,15 +52,19 @@ public class UDIFInputStream extends InputStream {
 	    return (int)len;
     }
     /** Does nothing. You will have to close the underlying RandomAccessFile or RandomAccessStream manually. */
+    @Override
     public void close() throws IOException {}
     
     /** Not supported. */
+    @Override
     public void mark(int readlimit) {}
     
     /** Mark is not supported. This method always returns false. */
+    @Override
     public boolean markSupported() { return false; }
     
     /** See the general contract of the read method for java.io.InputStream. */
+    @Override
     public int read() throws IOException {
 	byte[] b = new byte[1];
 	if(read(b, 0, 1) != 1)
@@ -70,11 +74,13 @@ public class UDIFInputStream extends InputStream {
     }
     
     /** See the general contract of the read method for java.io.InputStream. */
+    @Override
     public int read(byte[] b) throws IOException {
 	return read(b, 0, b.length);
     }
     
     /** See the general contract of the read method for java.io.InputStream. */
+    @Override
     public int read(byte[] b, int off, int len) throws IOException {
 	if(wrapped.getFilePointer() != filePointer)
 	    wrapped.seek(filePointer);
@@ -85,9 +91,11 @@ public class UDIFInputStream extends InputStream {
     }
     
     /** Not supported. */
+    @Override
     public void reset() throws IOException {}
     
     /** See the general contract of the skip method for java.io.InputStream. */
+    @Override
     public long skip(long n) throws IOException {
 	if(n < 0) throw new IllegalArgumentException("n must be positive");
 	long newPos = filePointer+n;

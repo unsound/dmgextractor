@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.io;
+package org.catacombae.dmgextractor.io;
 // /* unused... remnants of old ideas */
 public class CharArrayBuilder {
     /*

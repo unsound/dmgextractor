@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2006-2007 Erik Larsson
+ * Copyright (C) 2006-2008 Erik Larsson
  *           (C) 2004 vu1tur (not the actual java code, but the C-code which
  *                            has been used for reference)
  * 
@@ -19,26 +19,15 @@
 
 package org.catacombae.dmgextractor;
 
-import org.catacombae.xml.*;
-import org.catacombae.xml.apx.*;
-import org.catacombae.io.*;
 import org.catacombae.udif.*;
 import java.io.*;
-import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.Iterator;
 import java.util.Collections;
-import java.util.zip.Inflater;
-import java.util.zip.DataFormatException;
-import javax.xml.parsers.SAXParserFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
 import javax.swing.JOptionPane;
 import javax.swing.JFileChooser;
 import javax.swing.ProgressMonitor;
 import org.xml.sax.XMLReader;
-import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
 
 public class DMGExtractor {
     public static final String APPNAME = "DMGExtractor 0.60";

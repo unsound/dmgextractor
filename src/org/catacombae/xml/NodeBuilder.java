@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2006 Erik Larsson
+ * Copyright (C) 2006-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 
 package org.catacombae.xml;
 
-import org.catacombae.io.*;
+import org.catacombae.dmgextractor.io.*;
 import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.Attributes;
@@ -36,6 +36,8 @@ public class NodeBuilder extends DefaultHandler {
 	artificialRoot = new XMLNode(null, null, null, null, null);
 	currentNode = artificialRoot;
     }
+    
+    @Override
     public void startElement(String namespaceURI, String sName, String qName,
 			     Attributes attrs) throws SAXException {
 	//System.out.println("SE");
@@ -54,15 +56,20 @@ public class NodeBuilder extends DefaultHandler {
 	currentNode.addChild(newNode);
 	currentNode = newNode;
     }
+    
+    @Override
     public void endElement(String namespaceURI, String sName,
 			   String qName) throws SAXException {
 	//System.out.println("EE");
 	currentNode = currentNode.parent;
     }
+    
     public void characters(SynchronizedRandomAccessStream file, Charset encoding,
 			   int startLine, int startColumn, int endLine, int endColumn) {
 	currentNode.addChild(new XMLText(file, encoding, startLine, startColumn, endLine, endColumn));
     }
+    
+    @Override
     public void characters(char[] buf, int offset, int len)
         throws SAXException {
 	//System.out.println("CH");
@@ -70,10 +77,13 @@ public class NodeBuilder extends DefaultHandler {
 	if(s.length() != 0)
 	    currentNode.addChild(new XMLText(s));
     }
+    
+    @Override
     public void notationDecl(String name, String publicId,
 			     String systemId) throws SAXException {
 	//System.out.println("notationDecl(" + name + ", " + publicId + ", " + systemId + ");");
     }
+    
     public XMLNode[] getRoots() throws RuntimeException {
 	if(artificialRoot != currentNode)
 	    throw new RuntimeException("Tree was not closed!");

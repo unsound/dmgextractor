@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2007 Erik Larsson
+ * Copyright (C) 2007-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,7 +56,11 @@ public class UTF16BEInputStream extends InputStream {
 	    return result;
 	}
     }
+    
+    @Override
     public int read(byte[] ba) throws IOException { return read(ba, 0, ba.length); }
+    
+    @Override
     public int read(byte[] ba, int offset, int length) throws IOException {
 	if(length == 0) return 0;
 	
@@ -105,6 +109,8 @@ public class UTF16BEInputStream extends InputStream {
 	else
 	    return charsRead*2;
     }
+    
+    @Override
     public long skip(long bytesToSkip) throws IOException {
 	byte[] garbage = new byte[4096];
 	long bytesRead = 0;
@@ -117,9 +123,19 @@ public class UTF16BEInputStream extends InputStream {
 	}
 	return bytesRead;
     }
+    
+    @Override
     public int available() throws IOException { return 0; }
+    
+    @Override
     public void close() throws IOException { underlyingStream.close(); }
+    
+    @Override
     public void mark(int readLimit) {}
+    
+    @Override
     public void reset() throws IOException { throw new IOException("Not supported"); }
+    
+    @Override
     public boolean markSupported() { return false; }
 }

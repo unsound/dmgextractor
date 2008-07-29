@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2006 Erik Larsson
+ * Copyright (C) 2006-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,19 +22,17 @@ import java.nio.charset.Charset;
 import java.util.LinkedList;
 import net.iharder.base64.Base64;
 import javax.xml.parsers.SAXParserFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import org.xml.sax.SAXException;
-//import org.xml.sax.helpers.DefaultHandler;
 import org.catacombae.dmgextractor.Util;
-import org.catacombae.io.*;
+import org.catacombae.dmgextractor.io.*;
+import org.catacombae.io.ReadableByteArrayStream;
 import org.catacombae.xml.*;
 import org.catacombae.xml.apx.*;
 
 public class Plist {
     //private final byte[] plistData;
     private XMLNode rootNode;
-    private boolean useSaxParser = false;
     
     public Plist(byte[] data) {
 	this(data, 0, data.length);
@@ -159,9 +157,9 @@ public class Plist {
 
     private void parseXMLDataAPX(byte[] buffer, NodeBuilder handler) {
 	try {
-	    ByteArrayStream ya = new ByteArrayStream(buffer);
+	    ReadableByteArrayStream ya = new ReadableByteArrayStream(buffer);
 	    SynchronizedRandomAccessStream bufferStream =
-		new SynchronizedRandomAccessStream(ya);//new ByteArrayStream(buffer));
+		new SynchronizedRandomAccessStream(ya);//new ReadableByteArrayStream(buffer));
 	    
 	    // First we parse the xml declaration using a US-ASCII charset just to extract the charset description
 	    //System.err.println("parsing encoding");

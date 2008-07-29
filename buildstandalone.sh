@@ -5,10 +5,11 @@ BUILD_DIR=build.~
 DIST_LIB_PATH=dist/lib
 BUILD_LIB_PATH=lib
 MANIFEST=doc/standalone-manifest/manifest.txt
-BUILD_CP=$BUILD_DIR:dist/lib/apache-ant-1.7.0-bzip2.jar:dist/lib/filedrop.jar:dist/lib/iharder-base64.jar:dist/lib/swing-layout-1.0.1-stripped.jar
+BUILD_CP=$BUILD_DIR:dist/lib/catacombae_io.jar:dist/lib/apache-ant-1.7.0-bzip2.jar:dist/lib/filedrop.jar:dist/lib/iharder-base64.jar:dist/lib/swing-layout-1.0.1-stripped.jar
 #BUILDTOOLS_CP=$BUILD_LIB_PATH/buildenumerator.jar
 JARFILE_DIR=$BUILD_LIB_PATH
 JARFILE=dmgextractor-standalone.jar
+COMPILE_OPTIONS=-target 1.5 -source 1.5
 
 error() {
     echo "There were errors..."
@@ -40,7 +41,7 @@ extractdependencies() {
 }
 build() {
     echo "Building org.catacombae.dmgextractor.DMGExtractorGraphical and dependencies..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgextractor/DMGExtractorGraphical.java
+    javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgextractor/DMGExtractorGraphical.java
     return $?
 }
 buildjar() {

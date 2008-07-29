@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2007 Erik Larsson
+ * Copyright (C) 2007-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,9 +53,9 @@ public class DebugXMLContentHandler extends XMLContentHandler {
     public void doctype(String name, ExternalID eid) {
 	print("doctype: <!DOCTYPE " + name);
 	if(eid != null) {
-	    if(eid.type == eid.SYSTEM)
+	    if(eid.type == ExternalID.SYSTEM)
 		print("SYSTEM \"" + eid.systemLiteral + "\"");
-	    else if(eid.type == eid.PUBLIC)
+	    else if(eid.type == ExternalID.PUBLIC)
 		print("PUBLIC \"" + eid.pubidLiteral + "\" \"" + eid.systemLiteral + "\"");
 	}
 	println(">");

@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2006 Erik Larsson
+ * Copyright (C) 2006-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ package org.catacombae.dmgx;
 
 import java.util.LinkedList;
 
-class ValidateResult {
+public class ValidateResult {
     private final LinkedList<String> errors = new LinkedList<String>();
     private final LinkedList<String> warnings = new LinkedList<String>();
     
