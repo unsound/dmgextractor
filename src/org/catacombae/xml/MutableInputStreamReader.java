@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2007 Erik Larsson
+ * Copyright (C) 2007-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,8 @@ public class MutableInputStreamReader extends Reader {
 	catch(IOException ioe) { if(DEBUG) ioe.printStackTrace(); throw ioe; }
 	catch(RuntimeException e) { if(DEBUG) e.printStackTrace(); throw e; }
     }
+    
+    @Override
     public void mark(int readAheadLimit) throws IOException {
 	try {
 	if(DEBUG) os.println(PREFIX + "isReader.mark(" + readAheadLimit + ")");
@@ -47,6 +49,8 @@ public class MutableInputStreamReader extends Reader {
 	catch(IOException ioe) { if(DEBUG) ioe.printStackTrace(); throw ioe; }
 	catch(RuntimeException e) { if(DEBUG) e.printStackTrace(); throw e; }
     }
+    
+    @Override
     public boolean markSupported() {
 	try {
 	boolean result = isReader.markSupported();
@@ -55,6 +59,8 @@ public class MutableInputStreamReader extends Reader {
 	}
 	catch(RuntimeException e) { if(DEBUG) e.printStackTrace(); throw e; }
     }
+    
+    @Override
     public int read() throws IOException {
 	try {
 	int result = isReader.read();
@@ -64,6 +70,8 @@ public class MutableInputStreamReader extends Reader {
 	catch(IOException ioe) { if(DEBUG) ioe.printStackTrace(); throw ioe; }
 	catch(RuntimeException e) { if(DEBUG) e.printStackTrace(); throw e; }
     }
+    
+    @Override
     public int read(char[] cbuf) throws IOException {
 	try {
 	int result = isReader.read(cbuf);
@@ -73,6 +81,8 @@ public class MutableInputStreamReader extends Reader {
 	catch(IOException ioe) { if(DEBUG) ioe.printStackTrace(); throw ioe; }
 	catch(RuntimeException e) { if(DEBUG) e.printStackTrace(); throw e; }
     }
+    
+    @Override
     public int read(char[] cbuf, int off, int len) throws IOException {
 	try {
 	int result = isReader.read(cbuf, off, len);
@@ -82,6 +92,8 @@ public class MutableInputStreamReader extends Reader {
 	catch(IOException ioe) { if(DEBUG) ioe.printStackTrace(); throw ioe; }
 	catch(RuntimeException e) { if(DEBUG) e.printStackTrace(); throw e; }
     }
+    
+    @Override
     public int read(CharBuffer target) throws IOException {
 	try {
 	int result = isReader.read(target);
@@ -91,6 +103,8 @@ public class MutableInputStreamReader extends Reader {
 	catch(IOException ioe) { if(DEBUG) ioe.printStackTrace(); throw ioe; }
 	catch(RuntimeException e) { if(DEBUG) e.printStackTrace(); throw e; }
     }
+    
+    @Override
     public boolean ready() throws IOException {
 	try {
 	boolean result = isReader.ready();
@@ -100,6 +114,8 @@ public class MutableInputStreamReader extends Reader {
 	catch(IOException ioe) { if(DEBUG) ioe.printStackTrace(); throw ioe; }
 	catch(RuntimeException e) { if(DEBUG) e.printStackTrace(); throw e; }
     }
+    
+    @Override
     public void reset() throws IOException {
 	try {
 	if(DEBUG) os.println(PREFIX + "isReader.reset()");
@@ -108,6 +124,8 @@ public class MutableInputStreamReader extends Reader {
 	catch(IOException ioe) { if(DEBUG) ioe.printStackTrace(); throw ioe; }
 	catch(RuntimeException e) { if(DEBUG) e.printStackTrace(); throw e; }
     }
+    
+    @Override
     public long skip(long n) throws IOException {
 	try {
 	long result = isReader.skip(n);

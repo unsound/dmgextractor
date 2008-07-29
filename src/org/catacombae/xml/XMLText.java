@@ -17,7 +17,7 @@
 
 package org.catacombae.xml;
 
-import org.catacombae.io.*;
+import org.catacombae.dmgextractor.io.*;
 import java.io.*;
 import java.nio.charset.Charset;
 

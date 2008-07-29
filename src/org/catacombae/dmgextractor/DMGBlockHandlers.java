@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2006 Erik Larsson
+ * Copyright (C) 2006-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,32 +17,30 @@
 
 package org.catacombae.dmgextractor;
 
-import org.catacombae.io.*;
 import org.catacombae.udif.UDIFBlockInputStream;
 import org.catacombae.udif.UDIFBlock;
 import java.io.*;
-import java.util.zip.*;
+import org.catacombae.io.ReadableFileStream;
 
 /** Please don't try to use this code with concurrent threads... :) Use external synchronization to protect
-    the shared data in this class.*/
-public class DMGBlockHandlers {
+    the shared data in this class. */
+class DMGBlockHandlers {
     private static byte[] inBuffer = new byte[0x40000];
-    private static byte[] outBuffer = new byte[0x40000];
-    private static Inflater inflater = new Inflater();
     
     /** Extracts a DMGBlock describing a region of the file dmgRaf to the file isoRaf. If the testOnly flag
 	is set, nothing is written to isoRaf (in fact, it can be null in this case). ui may not be null. in
 	that case, use UserInterface.NullUI. */
-    public static long processBlock(UDIFBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
+    static long processBlock(UDIFBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
 				    boolean testOnly, UserInterface ui) throws IOException {
-	UDIFBlockInputStream is = UDIFBlockInputStream.getStream(new RandomAccessFileStream(dmgRaf), block);
-	long res = processStream(is, dmgRaf, isoRaf, testOnly, ui);
+	UDIFBlockInputStream is = UDIFBlockInputStream.getStream(new ReadableFileStream(dmgRaf), block);
+	long res = processStream(is, isoRaf, testOnly, ui);
 	is.close();
 	if(res != block.getOutSize())
 	    System.err.println("WARNING: Could not extract entire block! Extracted " + res + " of " + block.getOutSize() + " bytes");
 	return res;
     }
-    private static long processStream(UDIFBlockInputStream is, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
+    
+    private static long processStream(UDIFBlockInputStream is, RandomAccessFile isoRaf, 
 				      boolean testOnly, UserInterface ui) throws IOException {
 	long totalBytesRead = 0;
 	int bytesRead = is.read(inBuffer);
@@ -55,57 +53,4 @@ public class DMGBlockHandlers {
 	}
 	return totalBytesRead;
     }
-    
-//     public static void oldprocessZlibBlock(DMGBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
-// 					   boolean testOnly, UserInterface ui) throws IOException, DataFormatException {
-// 	inflater.reset();
-	
-// 	dmgRaf.seek(/*block.lastOffs+*/block.getInOffset());
-	
-// 	/*
-// 	 * medan det finns komprimerat data att läsa:
-// 	 *   läs in komprimerat data i inbuffer
-// 	 *   medan det finns data kvar att läsa i inbuffer
-// 	 *     dekomprimera data från inbuffer till utbuffer
-// 	 *     skriv utbuffer till fil
-// 	 */
-	    
-// 	long totalBytesRead = 0;
-// 	while(totalBytesRead < block.getInSize()) {
-// 	    long bytesRemainingToRead = block.getInSize()-totalBytesRead;
-// 	    int curBytesRead = dmgRaf.read(inBuffer, 0, 
-// 					   (int)Math.min(bytesRemainingToRead, inBuffer.length));
-		
-// 	    ui.reportProgress((int)(dmgRaf.getFilePointer()*100/dmgRaf.length()));
-
-// 	    if(curBytesRead < 0)
-// 		throw new RuntimeException("Unexpectedly reached end of file. (bytesRemainingToRead=" + bytesRemainingToRead + ", curBytesRead=" + curBytesRead + ", totalBytesRead=" + totalBytesRead + ", block.getInSize()=" + block.getInSize() + ", inBuffer.length=" + inBuffer.length + ")");
-// 	    else {
-// 		totalBytesRead += curBytesRead;
-// 		inflater.setInput(inBuffer, 0, curBytesRead);
-// 		long totalBytesInflated = 0;
-// 		while(!inflater.needsInput() && !inflater.finished()) {
-// 		    long bytesRemainingToInflate = block.getOutSize()-totalBytesInflated;
-// 		    //System.out.println();
-// 		    //System.out.println("inflater.needsInput()" + inflater.needsInput());
-// 		    int curBytesInflated = inflater.inflate(outBuffer, 0, 
-// 							    (int)Math.min(bytesRemainingToInflate, outBuffer.length));
-// 		    if(curBytesInflated == 0 && !inflater.needsInput()) {
-// 			System.out.println("inflater.finished()" + inflater.finished());
-// 			System.out.println("inflater.needsDictionary()" + inflater.needsDictionary());
-// 			System.out.println("inflater.needsInput()" + inflater.needsInput());
-// 			//System.out.println("inflater.()" + inflater.());
-// 			throw new RuntimeException("Unexpectedly blocked inflate.");
-// 		    }
-// 		    else {
-// 			totalBytesInflated += curBytesInflated;
-// 			if(!testOnly)
-// 			    isoRaf.write(outBuffer, 0, curBytesInflated);
-// 		    }
-// 		}
-// 	    }
-// 	}
-// 	if(!inflater.finished())
-// 	    throw new RuntimeException("Unclosed ZLIB stream!");
-//     }
 }

@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2007 Erik Larsson
+ * Copyright (C) 2007-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ import java.util.List;
 
 public class Attribute {
     public static abstract class ValueComponent {
+        @Override
 	public abstract String toString();
     }
     public static class StringComponent extends ValueComponent {
@@ -38,6 +39,8 @@ public class Attribute {
 	public Value(List<ValueComponent> components) {
 	    this.components = components;
 	}
+        
+        @Override
 	public String toString() {
 	    StringBuilder result = new StringBuilder();
 	    for(ValueComponent vc : components)

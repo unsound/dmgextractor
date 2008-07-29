@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2007 Erik Larsson
+ * Copyright (C) 2007-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,15 @@
 
 package org.catacombae.udif;
 
-import org.catacombae.io.*;
-import java.io.*;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import org.catacombae.io.BasicReadableRandomAccessStream;
+import org.catacombae.io.ReadableFileStream;
+import org.catacombae.io.RuntimeIOException;
 
-public class UDIFRandomAccessStream implements RandomAccessStream {
+
+public class UDIFRandomAccessStream extends BasicReadableRandomAccessStream {
     /*
       We have a string of data divided into blocks. Different algorithms must be applied to
       different types of blocks in order to extract the data.
@@ -28,7 +33,6 @@ public class UDIFRandomAccessStream implements RandomAccessStream {
     private UDIFFile dmgFile;
     private UDIFBlock[] allBlocks;
     private UDIFBlock currentBlock;
-    private int currentBlockIndex;
     private UDIFBlockInputStream currentBlockStream;
     
     private long length;
@@ -38,55 +42,59 @@ public class UDIFRandomAccessStream implements RandomAccessStream {
     
     private static void dbg(String s) { System.err.println(s); }
     
-    public UDIFRandomAccessStream(RandomAccessFile raf) throws IOException {
-	this(new UDIFFile(new RandomAccessFileStream(raf)));
+    public UDIFRandomAccessStream(RandomAccessFile raf) throws RuntimeIOException {
+	this(new UDIFFile(new ReadableFileStream(raf)));
     }
-    public UDIFRandomAccessStream(UDIFFile dmgFile) throws IOException {
+    public UDIFRandomAccessStream(UDIFFile dmgFile) throws RuntimeIOException {
 	this.dmgFile = dmgFile;
 	//dbg("dmgFile.getView().getPlist(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
 	Plist plist = dmgFile.getView().getPlist();
 	//dbg("before gc(): free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
 	//Runtime.getRuntime().gc();
 	//dbg("plist.getPartitions(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
-	PlistPartition[] partitions = plist.getPartitions();
+        try {
+            PlistPartition[] partitions = plist.getPartitions();
 
-	int totalBlockCount = 0;
-	for(PlistPartition pp : partitions)
-	    totalBlockCount += pp.getBlockCount();
-	//dbg("totalBlockCount = " + totalBlockCount);
-	
-	allBlocks = new UDIFBlock[totalBlockCount];
-	int pos = 0;
-	//dbg("looping for each of " + partitions.length + " partitions...");
-	for(PlistPartition pp : partitions) {
-	    UDIFBlock[] blocks = pp.getBlocks();
-	    //dbg("Blocks in partition: " + blocks.length);
-	    System.arraycopy(blocks, 0, allBlocks, pos, blocks.length);
-	    pos += blocks.length;
-	    length += pp.getPartitionSize();
-	}
-	if(totalBlockCount > 0) {
-	    currentBlock = allBlocks[0];
-	    currentBlockIndex = 0;
-	    //dbg("Repositioning stream");
-	    repositionStream();
-	    //dbg("repositioning done.");
-	}
-	else
-	    throw new RuntimeException("Could not find any blocks in the DMG file...");
+            int totalBlockCount = 0;
+            for(PlistPartition pp : partitions) {
+                totalBlockCount += pp.getBlockCount();
+            //dbg("totalBlockCount = " + totalBlockCount);
+            }
+            allBlocks = new UDIFBlock[totalBlockCount];
+            int pos = 0;
+            //dbg("looping for each of " + partitions.length + " partitions...");
+            for(PlistPartition pp : partitions) {
+                UDIFBlock[] blocks = pp.getBlocks();
+                //dbg("Blocks in partition: " + blocks.length);
+                System.arraycopy(blocks, 0, allBlocks, pos, blocks.length);
+                pos += blocks.length;
+                length += pp.getPartitionSize();
+            }
+            if(totalBlockCount > 0) {
+                currentBlock = allBlocks[0];
+                //dbg("Repositioning stream");
+                repositionStream();
+            //dbg("repositioning done.");
+            }
+            else {
+                throw new RuntimeException("Could not find any blocks in the DMG file...");
+            }
+        } catch(IOException ex) {
+            throw new RuntimeIOException(ex);
+        }
     }
     
     /** @see java.io.RandomAccessFile */
-    public void close() throws IOException {}
+    public void close() throws RuntimeIOException {}
 
     /** @see java.io.RandomAccessFile */
-    public long getFilePointer() throws IOException { return logicalFilePointer; }
+    public long getFilePointer() throws RuntimeIOException { return logicalFilePointer; }
 
     /** @see java.io.RandomAccessFile */
-    public long length() throws IOException { return length; }
+    public long length() throws RuntimeIOException { return length; }
 
     /** @see java.io.RandomAccessFile */
-    public int read() throws IOException {
+    public int read() throws RuntimeIOException {
 	byte[] b = new byte[1];
 	if(read(b, 0, 1) != 1)
 	    return -1;
@@ -95,10 +103,11 @@ public class UDIFRandomAccessStream implements RandomAccessStream {
     }
 
     /** @see java.io.RandomAccessFile */
-    public int read(byte[] b) throws IOException { return read(b, 0, b.length); }
+    public int read(byte[] b) throws RuntimeIOException { return read(b, 0, b.length); }
 
     /** @see java.io.RandomAccessFile */
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(byte[] b, int off, int len) throws RuntimeIOException {
+        try {
  	//System.out.println("UDIFRandomAccessStream.read(b.length=" + b.length + ", " + off + ", " + len + ") {");
 	if(seekCalled) {
 	    seekCalled = false;
@@ -141,18 +150,22 @@ public class UDIFRandomAccessStream implements RandomAccessStream {
 	    
 // 	System.out.println("return: " + bytesRead + " }");
 	return bytesRead;
+        } catch(IOException ex) {
+            throw new RuntimeIOException(ex);
+        }
     }
 
     /** @see java.io.RandomAccessFile */
-    public void seek(long pos) throws IOException {
+    public void seek(long pos) throws RuntimeIOException {
 	if(logicalFilePointer != pos) {
 	    seekCalled = true;
 	    logicalFilePointer = pos;
 	}
     }
     
-    private void repositionStream() throws IOException {
+    private void repositionStream() throws RuntimeIOException {
 // 	System.out.println("<UDIFRandomAccessStream.repositionStream()>");
+        try {
 	// if the global file pointer is not within the bounds of the current block, then find the accurate block
 	if(!(currentBlock.getTrueOutOffset() <= logicalFilePointer &&
 	     (currentBlock.getTrueOutOffset()+currentBlock.getOutSize()) > logicalFilePointer)) {
@@ -182,6 +195,9 @@ public class UDIFRandomAccessStream implements RandomAccessStream {
 // 	System.out.print("  skipping " + bytesToSkip + " bytes...");
 	currentBlockStream.skip(bytesToSkip);
 // 	System.out.println("done.");
+        } catch(IOException ex) {
+            throw new RuntimeIOException(ex);
+        }
 // 	System.out.println("</UDIFRandomAccessStream.repositionStream()>");
     }
     
@@ -193,7 +209,7 @@ public class UDIFRandomAccessStream implements RandomAccessStream {
 	else {
 	    byte[] buffer = new byte[4096];
 	    UDIFRandomAccessStream dras = 
-		new UDIFRandomAccessStream(new UDIFFile(new RandomAccessFileStream(new RandomAccessFile(args[0], "r"))));
+		new UDIFRandomAccessStream(new UDIFFile(new ReadableFileStream(new RandomAccessFile(args[0], "r"))));
 	    FileOutputStream fos = new FileOutputStream(args[1]);
 	    
 	    long totalBytesRead = 0;

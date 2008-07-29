@@ -17,21 +17,23 @@
 
 package org.catacombae.udif;
 
-import org.catacombae.io.*;
 import java.io.RandomAccessFile;
 import java.io.IOException;
+import org.catacombae.io.ReadableFileStream;
+import org.catacombae.io.ReadableRandomAccessStream;
+import org.catacombae.io.RuntimeIOException;
 
 public class UDIFDetector {
-    /** Convenience method. Equivalent to <code>isUDIFEncoded(new RandomAccessFileStream(raf));</code>. */
-    public static boolean isUDIFEncoded(RandomAccessFile raf) throws IOException {
-	return isUDIFEncoded(new RandomAccessFileStream(raf));
+    /** Convenience method. Equivalent to <code>isUDIFEncoded(new ReadableFileStream(raf));</code>. */
+    public static boolean isUDIFEncoded(RandomAccessFile raf) throws RuntimeIOException {
+	return isUDIFEncoded(new ReadableFileStream(raf));
     }
     /**
      * Searches through the supplied RandomAccessStream for signature data that validates
      * the data as UDIF encoded.
      * @throws IOException on I/O error 
      */
-    public static boolean isUDIFEncoded(RandomAccessStream ras) throws IOException {
+    public static boolean isUDIFEncoded(ReadableRandomAccessStream ras) throws RuntimeIOException {
 	if(ras.length() < 512) return false;
 	
 	byte[] kolyData = new byte[Koly.length()];

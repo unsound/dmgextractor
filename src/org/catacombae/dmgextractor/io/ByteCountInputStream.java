@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2007 Erik Larsson
+ * Copyright (C) 2007-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.io;
+package org.catacombae.dmgextractor.io;
 import java.io.*;
 
 /** Records information about what has been read. */
@@ -29,18 +29,23 @@ public class ByteCountInputStream extends InputStream {
     public long getBytesRead() { return bytePos; }
     
     /** @see java.io.InputStream */
+    @Override
     public int available() throws IOException { return is.available(); }
 
     /** @see java.io.InputStream */
+    @Override
     public void close() throws IOException { is.close(); }
 
     /** @see java.io.InputStream */
+    @Override
     public void mark(int readLimit) { throw new RuntimeException("Mark/reset not supported"); }
     
     /** @see java.io.InputStream */
+    @Override
     public boolean markSupported() { return false; }
 
     /** @see java.io.InputStream */
+    @Override
     public int read() throws IOException {
 	//System.out.println("read();");
 	int res = is.read();
@@ -50,6 +55,7 @@ public class ByteCountInputStream extends InputStream {
     }
 
     /** @see java.io.InputStream */
+    @Override
     public int read(byte[] b) throws IOException {
 	//System.out.println("read(b.length=" + b.length + ");");
 	int res = is.read(b);
@@ -58,6 +64,7 @@ public class ByteCountInputStream extends InputStream {
     }
 
     /** @see java.io.InputStream */
+    @Override
     public int read(byte[] b, int off, int len) throws IOException {
 	//System.out.println("read(b.length=" + b.length + ", " + off + ", " + len + ");");
 	int res = is.read(b, off, len);
@@ -66,9 +73,11 @@ public class ByteCountInputStream extends InputStream {
     }
 
     /** @see java.io.InputStream */
+    @Override
     public void reset() throws IOException { throw new RuntimeException("Mark/reset not supported"); }
 
     /** @see java.io.InputStream */
+    @Override
     public long skip(long n) throws IOException {
 	System.out.println("skip(" + n + ");");
 	long res = is.skip(n);

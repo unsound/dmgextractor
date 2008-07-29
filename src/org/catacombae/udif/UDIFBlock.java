@@ -172,6 +172,7 @@ public class UDIFBlock implements Comparable<UDIFBlock>{
 // 	immutable = true;
 //     }
     
+    @Override
     public String toString() {
 	return getBlockTypeAsString() + 
 	    "(skipped=0x" + Integer.toHexString(skipped) + ",outOffset=" + outOffset + 

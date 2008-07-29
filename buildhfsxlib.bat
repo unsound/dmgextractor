@@ -9,14 +9,15 @@ set BUILD_LIB_PATH=%~dp0lib
 set DIST_LIB_PATH=%~dp0dist\lib
 set JARFILE=hfsx_dmglib.jar
 set MANIFEST=%~dp0meta\manifest.txt
-set BUILD_CP="%DIST_LIB_PATH%\apache-ant-1.7.0-bzip2.jar";"%DIST_LIB_PATH%\iharder-base64.jar"
+set BUILD_CP="%DIST_LIB_PATH%\catacombae_io.jar";"%DIST_LIB_PATH%\apache-ant-1.7.0-bzip2.jar";"%DIST_LIB_PATH%\iharder-base64.jar"
+set COMPILE_OPTIONS=-target 1.5 -source 1.5
 
 echo Removing all class files...
-if exist "%CLASSFILES_DIR%" rmdir /s /q %CLASSFILES_DIR%
+if exist "%CLASSFILES_DIR%" rmdir /s /q "%CLASSFILES_DIR%"
 mkdir "%CLASSFILES_DIR%"
 
 echo Compiling org.catacombae.udif.UDIFRandomAccessStream (and dependencies)...
-javac -cp %BUILD_CP% -sourcepath "%SOURCES_DIR%" -d "%CLASSFILES_DIR%" -Xlint:unchecked "%SOURCES_DIR%\org\catacombae\udif\UDIFRandomAccessStream.java"
+javac %COMPILE_OPTIONS% -cp %BUILD_CP% -sourcepath "%SOURCES_DIR%" -d "%CLASSFILES_DIR%" -Xlint:unchecked "%SOURCES_DIR%\org\catacombae\udif\UDIFRandomAccessStream.java"
 set JAVAC_EXIT_CODE=%ERRORLEVEL%
 if not "%JAVAC_EXIT_CODE%"=="0" goto error
 

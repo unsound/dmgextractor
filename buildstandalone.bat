@@ -9,7 +9,7 @@ set DIST_LIB_PATH=%~dp0dist\lib
 set JARFILE=%BUILD_LIB_PATH%\dmgextractor-standalone.jar
 set MANIFEST=%~dp0doc\standalone-manifest\manifest.txt
 set BUILD_CP=%CLASSFILES_DIR%
-REM set BUILDTOOLS_CP=%BUILD_LIB_PATH%\buildenumerator.jar
+set COMPILE_OPTIONS=-target 1.5 -source 1.5
 
 pushd %~dp0
 
@@ -22,6 +22,11 @@ mkdir "%CLASSFILES_DIR%\JNLP-INF"
 if not exist "%CLASSFILES_DIR%\JNLP-INF" goto error
 copy "%~dp0doc\jnlp\dmgextractor.jnlp" "%CLASSFILES_DIR%\JNLP-INF\APPLICATION.JNLP"
 
+echo Extracting catacombae_io to classfiles directory...
+pushd %CLASSFILES_DIR%
+jar xf "%DIST_LIB_PATH%\catacombae_io.jar"
+popd
+
 echo Extracting Apache bzip2 libraries to classfiles directory...
 pushd %CLASSFILES_DIR%
 jar xf "%DIST_LIB_PATH%\apache-ant-1.7.0-bzip2.jar"
@@ -33,7 +38,7 @@ jar xf "%DIST_LIB_PATH%\iharder-base64.jar"
 popd
 
 echo Compiling org.catacombae.dmgextractor.DMGExtractorGraphical and dependencies...
-javac -sourcepath "%SOURCES_DIR%" -classpath "%BUILD_CP%" -d "%CLASSFILES_DIR%" -Xlint:unchecked \\.\\"%SOURCES_DIR%\org\catacombae\dmgextractor\DMGExtractorGraphical.java"
+javac %COMPILE_OPTIONS% -sourcepath "%SOURCES_DIR%" -classpath "%BUILD_CP%" -d "%CLASSFILES_DIR%" -Xlint:unchecked \\.\\"%SOURCES_DIR%\org\catacombae\dmgextractor\DMGExtractorGraphical.java"
 set JAVAC_EXIT_CODE=%ERRORLEVEL%
 if not "%JAVAC_EXIT_CODE%"=="0" goto error
 

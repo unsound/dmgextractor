@@ -14,11 +14,12 @@ BUILD_DIR=build.~
 DIST_LIB_PATH=dist/lib
 BUILD_LIB_PATH=lib
 #MANIFEST=meta/manifest.txt
-BUILD_CP=$BUILD_DIR:dist/lib/apache-ant-1.7.0-bzip2.jar:dist/lib/filedrop.jar:dist/lib/iharder-base64.jar:dist/lib/swing-layout-1.0.1-stripped.jar
+BUILD_CP=$BUILD_DIR:dist/lib/catacombae_io.jar:dist/lib/apache-ant-1.7.0-bzip2.jar:dist/lib/filedrop.jar:dist/lib/iharder-base64.jar:dist/lib/swing-layout-1.0.1-stripped.jar
 #:$LIBRARY_PATH/filedrop.jar
 BUILDTOOLS_CP=$BUILD_LIB_PATH/buildenumerator.jar
 JARFILE_DIR=$DIST_LIB_PATH
 JARFILE=dmgextractor.jar
+COMPILE_OPTIONS=-target 1.5 -source 1.5
 #PACKAGES=org.catacombae.dmgx org.catacombae.dmgx.gui
 #COMPILEPATHS=org/catacombae/dmgx/*.java org/catacombae/dmgx/gui/*.java
 
@@ -42,37 +43,37 @@ decrement_buildnumber() {
 
 build_xml() {
     echo "Building org.catacombae.xml..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/xml/*.java
+    javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/xml/*.java
     return $?
 }
 build_xml_apx() {
     echo "Building org.catacombae.xml.apx..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/xml/apx/*.java
+    javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/xml/apx/*.java
     return $?
 }
 build_io() {
     echo "Building org.catacombae.io..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/io/*.java
+    javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/io/*.java
     return $?
 }
 build_udif() {
     echo "Building org.catacombae.udif..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/udif/*.java
+    javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/udif/*.java
     return $?
 }
 build_dmgextractor() {
     echo "Building org.catacombae.dmgextractor..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgextractor/*.java
+    javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgextractor/*.java
     return $?
 }
 build_dmgx() {
     echo "Building org.catacombae.dmgx..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/*.java
+    javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/*.java
     return $?
 }
 build_dmgx_gui() {
     echo "Building org.catacombae.dmgx.gui..."
-    javac -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/gui/*.java
+    javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/gui/*.java
     return $?
 }
 buildjar() {

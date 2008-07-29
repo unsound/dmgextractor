@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2007 Erik Larsson
+ * Copyright (C) 2007-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,9 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.io;
+package org.catacombae.dmgextractor.io;
 
-import org.catacombae.dmgextractor.Util;
 import java.io.*;
 import java.nio.charset.*;
 
@@ -66,6 +65,8 @@ public class ReaderInputStream extends InputStream {
 	else
 	    return -1;
     }
+    
+    @Override
     public int read(byte[] b) throws IOException { return read(b, 0, b.length); }
 
     /* Säg då att vi skippar 204 bytes. Vad händer? När vi går in i read(3) är remainingChardata = 0,
@@ -73,6 +74,7 @@ public class ReaderInputStream extends InputStream {
        giltiga...
        I vilken situation kan vi ha läst in mindre data i b än returvärdet?
     */
+    @Override
     public int read(byte[] b, int off, int len) throws IOException {
 // 	System.err.println("ReaderInputStream.read(b.length=" + b.length + ", " + off + ", " + len + ")");
 	if(len < 0) throw new IllegalArgumentException();
@@ -151,6 +153,8 @@ public class ReaderInputStream extends InputStream {
 	    return bytesRead;
 	}
     }
+    
+    @Override
     public long skip(long n) throws IOException {
 	System.err.println("ReaderInputStream.skip(" + n + ")");
 	byte[] skipBuffer = new byte[4096];

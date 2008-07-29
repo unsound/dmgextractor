@@ -17,14 +17,13 @@
 
 package org.catacombae.udif;
 
-import org.catacombae.io.*;
-import java.io.*;
+import org.catacombae.io.ReadableRandomAccessStream;
 
 public class UDIFFile {
-    private RandomAccessStream stream;
+    private ReadableRandomAccessStream stream;
     private UDIFFileView dmgView;
     
-    public UDIFFile(RandomAccessStream stream) {
+    public UDIFFile(ReadableRandomAccessStream stream) {
 	this.stream = stream;
 	this.dmgView = new UDIFFileView(stream);
     }
@@ -33,7 +32,7 @@ public class UDIFFile {
 	return dmgView;
     }
     
-    public RandomAccessStream getStream() {
+    public ReadableRandomAccessStream getStream() {
 	return stream;
     }
 }

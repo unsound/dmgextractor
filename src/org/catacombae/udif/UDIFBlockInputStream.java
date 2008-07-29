@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2006-2007 Erik Larsson
+ * Copyright (C) 2006-2008 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,15 +17,18 @@
 
 package org.catacombae.udif;
 
-import org.catacombae.io.*;
 import org.catacombae.dmgextractor.Util;
 import org.catacombae.dmgextractor.DmgException;
 import java.io.*;
 import java.util.zip.*;
 import org.apache.tools.bzip2.*;
+import org.catacombae.dmgextractor.io.RandomAccessInputStream;
+import org.catacombae.dmgextractor.io.SynchronizedRandomAccessStream;
+import org.catacombae.io.ReadableRandomAccessStream;
+import org.catacombae.io.RuntimeIOException;
 
 public abstract class UDIFBlockInputStream extends InputStream {
-    protected RandomAccessStream raf;
+    protected ReadableRandomAccessStream raf;
     protected UDIFBlock block;
     protected final int addInOffset;
     private long globalBytesRead;
@@ -43,7 +46,7 @@ public abstract class UDIFBlockInputStream extends InputStream {
      * @param block the block that we should read (usually obtained via PlistPartition.getBlocks())
      * @param addInOffset the number to add to the block's inOffset to find the data
      */
-    protected UDIFBlockInputStream(RandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException {
+    protected UDIFBlockInputStream(ReadableRandomAccessStream raf, UDIFBlock block, int addInOffset) {
 	this.raf = raf;
 	this.block = block;
 	this.addInOffset = addInOffset;
@@ -52,7 +55,7 @@ public abstract class UDIFBlockInputStream extends InputStream {
     }
     
     /** This method WILL throw a RuntimeException if <code>block</code> has a type that there is no handler for. */
-    public static UDIFBlockInputStream getStream(RandomAccessStream raf, UDIFBlock block) throws IOException {
+    public static UDIFBlockInputStream getStream(ReadableRandomAccessStream raf, UDIFBlock block) throws IOException, RuntimeIOException {
 	switch(block.getBlockType()) {
 	case UDIFBlock.BT_ZLIB:
 	    return new ZlibBlockInputStream(raf, block, 0);
@@ -73,6 +76,7 @@ public abstract class UDIFBlockInputStream extends InputStream {
     }
     
     /** In case the available amount of bytes is larger than Integer.MAX_INT, Integer.MAX_INT is returned. */
+    @Override
     public int available() throws IOException {
 	long available = block.getOutSize()-globalBytesRead;
 	if(available > Integer.MAX_VALUE)
@@ -80,23 +84,32 @@ public abstract class UDIFBlockInputStream extends InputStream {
 	else
 	    return (int)available;
     }
+
     /** This method does NOT close the underlying RandomAccessFile. It can be reused afterwards. */
+    @Override
     public void close() throws IOException {}
+
     /** Not supported. */
+    @Override
     public void mark(int readlimit) {}
+
     /** Returns false, beacuse it isn't supported. */
+    @Override
     public boolean markSupported() { return false; }
 
     /** @see java.io.InputStream */
+    @Override
     public int read() throws IOException {
 	byte[] b = new byte[1];
 	return read(b, 0, 1);
     }
     
     /** @see java.io.InputStream */
+    @Override
     public int read(byte[] b) throws IOException { return read(b, 0, b.length); }
     
     /** @see java.io.InputStream */
+    @Override
     public int read(byte[] b, int off, int len) throws IOException {
 // 	System.out.println("UDIFBlockInputStream.read(b, " + off + ", " + len + ") {");
 
@@ -136,9 +149,13 @@ public abstract class UDIFBlockInputStream extends InputStream {
 // 	System.out.println("return: " + bytesRead + " }");
 	return bytesRead;
     }
+
     /** Does nothing. Not supported. */
+    @Override
     public void reset() throws IOException {}
+
     /** Skips as many bytes as possible. If end of file is reached, the number of bytes skipped is returned. */
+    @Override
     public long skip(long n) throws IOException {
 	long bytesSkipped = 0;
 	while(bytesSkipped < n) {
@@ -155,25 +172,15 @@ public abstract class UDIFBlockInputStream extends InputStream {
     protected abstract void fillBuffer() throws IOException;
     
     public static class ZlibBlockInputStream extends UDIFBlockInputStream {
-	//private static byte[] inBuffer = new byte[0x40000];
-	//private static byte[] outBuffer = new byte[0x40000];
 	private final Inflater inflater;
 	private final byte[] inBuffer;
 	private long inPos;
 	
-	public ZlibBlockInputStream(RandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException {
+	public ZlibBlockInputStream(ReadableRandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException {
 	    super(raf, block, addInOffset);
 	    inflater = new Inflater();
 	    inBuffer = new byte[4096];
 	    inPos = 0;
-// 	    if(inflater == null)
-// 		System.err.println("INFLATER IS NULL");
-// 	    else
-// 		System.err.println("inflater is " + inflater);
-// 	    if(inBuffer == null)
-// 		System.err.println("INBUFFER IS NULL");
-// 	    else
-// 		System.err.println("inBuffer is " + inBuffer);
 	    feedInflater();
 	}
 	private void feedInflater() throws IOException {
@@ -190,7 +197,7 @@ public abstract class UDIFBlockInputStream extends InputStream {
 	    //System.out.println("}");
 	}
 	
-	protected void fillBuffer() throws IOException {
+	protected void fillBuffer() throws RuntimeIOException, IOException {
 	    //System.out.println("ZlibBlockInputStream.fillBuffer() {");
 // 	    if(inflater == null)
 // 		System.err.println("INFLATER IS NULL");
@@ -224,9 +231,10 @@ public abstract class UDIFBlockInputStream extends InputStream {
 	    //System.out.println("}");
 	}
     }
+    
     public static class CopyBlockInputStream extends UDIFBlockInputStream {
 	private long inPos = 0;
-	public CopyBlockInputStream(RandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException {
+	public CopyBlockInputStream(ReadableRandomAccessStream raf, UDIFBlock block, int addInOffset) throws RuntimeIOException {
 	    super(raf, block, addInOffset);
 	}
 	
@@ -249,7 +257,9 @@ public abstract class UDIFBlockInputStream extends InputStream {
 	    bufferPos = 0;
 	    bufferDataLength = totalBytesRead;
 	}
+        
 	/** Extremely more efficient skip method! */
+        @Override        
 	public long skip(long n) throws IOException {
 	    final int bytesToSkip = (int)Math.min(block.getInSize()-inPos, n);
 	    inPos += bytesToSkip;
@@ -261,9 +271,11 @@ public abstract class UDIFBlockInputStream extends InputStream {
 	    return bytesToSkip;
 	}
     }
+    
     public static class ZeroBlockInputStream extends UDIFBlockInputStream {
 	private long outPos = 0;
-	public ZeroBlockInputStream(RandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException {
+        
+	public ZeroBlockInputStream(ReadableRandomAccessStream raf, UDIFBlock block, int addInOffset) throws RuntimeIOException {
 	    super(raf, block, addInOffset);
 	}
 	
@@ -276,7 +288,9 @@ public abstract class UDIFBlockInputStream extends InputStream {
 	    bufferPos = 0;
 	    bufferDataLength = bytesToWrite;
 	}
-	/** Extremely more efficient skip method! */
+        
+        /** Extremely more efficient skip method! */
+        @Override
 	public long skip(long n) throws IOException {
 	    final int bytesToSkip = (int)Math.min(block.getOutSize()-outPos, n);
 	    outPos += bytesToSkip;
@@ -288,14 +302,15 @@ public abstract class UDIFBlockInputStream extends InputStream {
 	    return bytesToSkip;
 	}
     }
+    
     public static class Bzip2BlockInputStream extends UDIFBlockInputStream {
 	private final byte[] BZIP2_SIGNATURE = { 0x42, 0x5A }; // 'BZ'
 	
 	private InputStream bzip2DataStream;
-	private CBZip2InputStream uncompressedOutStream;
+	private CBZip2InputStream decompressingStream;
 	private long outPos = 0;
 	
-	public Bzip2BlockInputStream(RandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException {
+	public Bzip2BlockInputStream(ReadableRandomAccessStream raf, UDIFBlock block, int addInOffset) throws IOException, RuntimeIOException {
 	    super(raf, block, addInOffset);
 	    
 	    if(false) {
@@ -330,7 +345,7 @@ public abstract class UDIFBlockInputStream extends InputStream {
 		throw new RuntimeException("Invalid bzip2 block!");
 
 	    /* Buffering needed because of implementation issues in CBZip2InputStream. */
-	    uncompressedOutStream = new CBZip2InputStream(new BufferedInputStream(bzip2DataStream));
+	    decompressingStream = new CBZip2InputStream(new BufferedInputStream(bzip2DataStream));
 	}
 	
 	protected void fillBuffer() throws IOException {
@@ -338,7 +353,7 @@ public abstract class UDIFBlockInputStream extends InputStream {
 	    final int bytesToRead = (int)Math.min(block.getOutSize()-outPos, buffer.length);
 	    int totalBytesRead = 0;
 	    while(totalBytesRead < bytesToRead) {
-		int bytesRead = uncompressedOutStream.read(buffer, totalBytesRead, bytesToRead-totalBytesRead);
+		int bytesRead = decompressingStream.read(buffer, totalBytesRead, bytesToRead-totalBytesRead);
 		if(bytesRead < 0)
 		    break;
 		else {
@@ -352,8 +367,9 @@ public abstract class UDIFBlockInputStream extends InputStream {
 	    bufferDataLength = totalBytesRead;
 	}
 
+        @Override
 	public void close() throws IOException {
-	    uncompressedOutStream.close();
+	    decompressingStream.close();
 	    bzip2DataStream.close();
 	}
     }
