@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2006 Erik Larsson
+ * Copyright (C) 2006-2007 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,11 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//package org.catacombae.rarx;
-// Ripped from junrarlib
 package org.catacombae.dmgextractor;
-import java.io.Reader;
-import java.io.IOException;
+import java.io.*;
 
 public class Util {
     public static int sectorSize = 0x800;
@@ -38,22 +35,43 @@ public class Util {
 	}
 	return result;
     }
+    
+    public static String toHexStringBE(char[] array) {
+	return toHexStringBE(array, 0, array.length);
+    }
+    public static String toHexStringBE(char[] array, int offset, int length) {
+	StringBuilder result = new StringBuilder();
+	for(int i = offset; i < length; ++i)
+	    result.append(toHexStringBE(array[i]));
+	return result.toString();
+    }
+    public static String toHexStringBE(short[] array) {
+	return toHexStringBE(array, 0, array.length);
+    }
+    public static String toHexStringBE(short[] array, int offset, int length) {
+	StringBuilder result = new StringBuilder();
+	for(int i = offset; i < length; ++i)
+	    result.append(toHexStringBE(array[i]));
+	return result.toString();
+    }
     public static String toHexStringBE(int[] array) {
 	return toHexStringBE(array, 0, array.length);
     }
     public static String toHexStringBE(int[] array, int offset, int length) {
 	StringBuilder result = new StringBuilder();
-	for(int i : array)
-	    result.append(toHexStringBE(i));
+	for(int i = offset; i < length; ++i)
+	    result.append(toHexStringBE(array[i]));
 	return result.toString();
     }
     
     public static String toHexStringLE(byte n) { return byteArrayToHexString(toByteArrayLE(n)); }
     public static String toHexStringLE(short n) { return byteArrayToHexString(toByteArrayLE(n)); }
+    public static String toHexStringLE(char n) { return byteArrayToHexString(toByteArrayLE(n)); }
     public static String toHexStringLE(int n) { return byteArrayToHexString(toByteArrayLE(n)); }
     public static String toHexStringLE(long n) { return byteArrayToHexString(toByteArrayLE(n)); }
     public static String toHexStringBE(byte n) { return byteArrayToHexString(toByteArrayBE(n)); }
     public static String toHexStringBE(short n) { return byteArrayToHexString(toByteArrayBE(n)); }
+    public static String toHexStringBE(char n) { return byteArrayToHexString(toByteArrayBE(n)); }
     public static String toHexStringBE(int n) { return byteArrayToHexString(toByteArrayBE(n)); }
     public static String toHexStringBE(long n) { return byteArrayToHexString(toByteArrayBE(n)); }
     
@@ -179,6 +197,12 @@ public class Util {
 	result[1] = (byte) ((s >> 8) & 0xFF);
 	return result;
     }
+    public static byte[] toByteArrayLE(char c) {
+	byte[] result = new byte[2];
+	result[0] = (byte) ((c >> 0) & 0xFF);
+	result[1] = (byte) ((c >> 8) & 0xFF);
+	return result;
+    }
     public static byte[] toByteArrayLE(int i) {
 	byte[] result = new byte[4];
 	result[0] = (byte) ((i >> 0) & 0xFF);
@@ -208,6 +232,12 @@ public class Util {
 	byte[] result = new byte[2];
 	result[0] = (byte) ((s >> 8) & 0xFF);
 	result[1] = (byte) ((s >> 0) & 0xFF);
+	return result;
+    }
+    public static byte[] toByteArrayBE(char c) {
+	byte[] result = new byte[2];
+	result[0] = (byte) ((c >> 8) & 0xFF);
+	result[1] = (byte) ((c >> 0) & 0xFF);
 	return result;
     }
     public static byte[] toByteArrayBE(int i) {
@@ -289,73 +319,110 @@ public class Util {
 	System.arraycopy(data, offset, copy, 0, length);
 	return copy;
     }
-
+    
+    public static void arrayCopy(byte[] source, byte[] dest, int destPos) {
+	if(dest.length-destPos < source.length)
+	    throw new RuntimeException("Destination array not large enough.");
+	System.arraycopy(source, 0, dest, 0, source.length);
+    }
+    public static void arrayCopy(byte[] source, byte[] dest) {
+	arrayCopy(source, dest, 0);
+    }
+    
     public static boolean arraysEqual(boolean[] a, boolean[] b) {
-	if(a.length != b.length)
+	return arrayRegionsEqual(a, 0, a.length, b, 0, b.length);
+    }
+    public static boolean arrayRegionsEqual(boolean[] a, int aoff, int alen,
+					    boolean[] b, int boff, int blen) {
+	if(alen != blen)
 	    return false;
 	else {
-	    for(int i = 0; i < a.length; ++i)
-		if(a[i] != b[i])
+	    for(int i = 0; i < alen; ++i)
+		if(a[aoff+i] != b[boff+i])
 		    return false;
 	    return true;
 	}
     }
     public static boolean arraysEqual(byte[] a, byte[] b) {
-	if(a.length != b.length)
+	return arrayRegionsEqual(a, 0, a.length, b, 0, b.length);
+    }
+    public static boolean arrayRegionsEqual(byte[] a, int aoff, int alen,
+					    byte[] b, int boff, int blen) {
+	if(a.length != blen)
 	    return false;
 	else {
-	    for(int i = 0; i < a.length; ++i)
-		if(a[i] != b[i])
+	    for(int i = 0; i < alen; ++i)
+		if(a[aoff+i] != b[boff+i])
 		    return false;
 	    return true;
 	}
     }
     public static boolean arraysEqual(char[] a, char[] b) {
-	if(a.length != b.length)
+	return arrayRegionsEqual(a, 0, a.length, b, 0, b.length);
+    }
+    public static boolean arrayRegionsEqual(char[] a, int aoff, int alen,
+					    char[] b, int boff, int blen) {
+	if(alen != blen)
 	    return false;
 	else {
-	    for(int i = 0; i < a.length; ++i)
-		if(a[i] != b[i])
+	    for(int i = 0; i < alen; ++i)
+		if(a[aoff+i] != b[boff+i])
 		    return false;
 	    return true;
 	}
     }
     public static boolean arraysEqual(short[] a, short[] b) {
-	if(a.length != b.length)
+	return arrayRegionsEqual(a, 0, a.length, b, 0, b.length);
+    }
+    public static boolean arrayRegionsEqual(short[] a, int aoff, int alen,
+					    short[] b, int boff, int blen) {
+	if(alen != blen)
 	    return false;
 	else {
-	    for(int i = 0; i < a.length; ++i)
-		if(a[i] != b[i])
+	    for(int i = 0; i < alen; ++i)
+		if(a[aoff+i] != b[boff+i])
 		    return false;
 	    return true;
 	}
     }
     public static boolean arraysEqual(int[] a, int[] b) {
-	if(a.length != b.length)
+	return arrayRegionsEqual(a, 0, a.length, b, 0, b.length);
+    }
+    public static boolean arrayRegionsEqual(int[] a, int aoff, int alen,
+					    int[] b, int boff, int blen) {
+	if(alen != blen)
 	    return false;
 	else {
-	    for(int i = 0; i < a.length; ++i)
-		if(a[i] != b[i])
+	    for(int i = 0; i < alen; ++i)
+		if(a[aoff+i] != b[boff+i])
 		    return false;
 	    return true;
 	}
     }
     public static boolean arraysEqual(long[] a, long[] b) {
-	if(a.length != b.length)
+	return arrayRegionsEqual(a, 0, a.length, b, 0, b.length);
+    }
+    public static boolean arrayRegionsEqual(long[] a, int aoff, int alen,
+					    long[] b, int boff, int blen) {
+	if(alen != blen)
 	    return false;
 	else {
-	    for(int i = 0; i < a.length; ++i)
-		if(a[i] != b[i])
+	    for(int i = 0; i < alen; ++i)
+		if(a[aoff+i] != b[boff+i])
 		    return false;
 	    return true;
 	}
     }
     public static boolean arraysEqual(Object[] a, Object[] b) {
-	if(a.length != b.length)
+	return arrayRegionsEqual(a, 0, a.length, b, 0, b.length);
+    }
+    public static boolean arrayRegionsEqual(Object[] a, int aoff, int alen,
+					    Object[] b, int boff, int blen) {
+	if(alen != blen)
 	    return false;
 	else {
-	    for(int i = 0; i < a.length; ++i)
-		if(!a[i].equals(b[i]))
+	    for(int i = 0; i < alen; ++i)
+		if(!a[aoff+i].equals(b[boff+i]))
 		    return false;
 	    return true;
 	}
@@ -385,7 +452,139 @@ public class Util {
 	return ((data >>> bitNumber) & 0x1) == 0x1;
     }
 
-    // Added 2007-06-24
+    public static int unsignedArrayCompare(char[] a, char[] b) {
+	return unsignedArrayCompare(a, 0, a.length, b, 0, b.length);
+    }
+    public static int unsignedArrayCompare(char[] a, int aoff, int alen, char[] b, int boff, int blen) {
+	int compareLen = Math.min(alen, blen);
+	for(int i = 0; i < compareLen; ++i) {
+	    int curA = a[aoff+i] & 0xFFFF; // Unsigned char values represented as int
+	    int curB = b[boff+i] & 0xFFFF;
+	    if(curA != curB)
+		return curA - curB;
+	}
+	return alen-blen; // The shortest array gets higher priority
+    }
+
+    // All below is from Util2, HFSExplorer (got tired of having two Util classes...)
+    public static String toASCIIString(byte[] data) {
+	return toASCIIString(data, 0, data.length);
+    }
+    public static String toASCIIString(byte[] data, int offset, int length) {
+	return readString(data, offset, length, "US-ASCII");
+    }
+    public static String toASCIIString(short i) {
+	return toASCIIString(Util.toByteArrayBE(i));
+    }
+    public static String toASCIIString(int i) {
+	return toASCIIString(Util.toByteArrayBE(i));
+    }
+    public static String readString(byte[] data, String encoding) {
+	return readString(data, 0, data.length, encoding);
+    }
+    public static String readString(byte[] data, int offset, int length, String encoding) {
+	try {
+	    return new String(data, offset, length, encoding);
+	} catch(Exception e) {
+	    return null;
+	}
+    }
+    public static String readString(short i, String encoding) {
+	return readString(Util.toByteArrayBE(i), encoding);
+    }
+    public static String readString(int i, String encoding) {
+	return readString(Util.toByteArrayBE(i), encoding);
+    }
+
+    public static String readNullTerminatedASCIIString(byte[] data) {
+	return readNullTerminatedASCIIString(data, 0, data.length);
+    }
+    
+    public static String readNullTerminatedASCIIString(byte[] data, int offset, int maxLength) {
+	int i;
+	for(i = offset; i < (offset+maxLength); ++i)
+	    if(data[i] == 0) break;
+	return toASCIIString(data, offset, i-offset);
+    }
+
+    public static char readCharLE(byte[] data) {
+	return readCharLE(data, 0);
+    }
+    public static char readCharLE(byte[] data, int offset) {
+	return (char) ((data[offset+1] & 0xFF) << 8 |
+		       (data[offset+0] & 0xFF) << 0);
+    }
+    public static char readCharBE(byte[] data) {
+	return readCharBE(data, 0);
+    }
+    public static char readCharBE(byte[] data, int offset) {
+	return (char) ((data[offset+0] & 0xFF) << 8 |
+		       (data[offset+1] & 0xFF) << 0);
+    }
+    
+    public static char[] readCharArrayBE(byte[] b) {
+	char[] result = new char[b.length/2];
+	for(int i = 0; i < result.length; ++i)
+	    result[i] = Util.readCharBE(b, i*2);
+	return result;
+    }
+    public static short[] readShortArrayBE(byte[] b) {
+	short[] result = new short[b.length/2];
+	for(int i = 0; i < result.length; ++i)
+	    result[i] = Util.readShortBE(b, i*2);
+	return result;
+    }
+    public static int[] readIntArrayBE(byte[] b) {
+	int[] result = new int[b.length/4];
+	for(int i = 0; i < result.length; ++i)
+	    result[i] = Util.readIntBE(b, i*4);
+	return result;
+    }
+    
+    public static byte[] readByteArrayLE(char[] data) {
+	return readByteArrayLE(data, 0, data.length);
+    }
+    public static byte[] readByteArrayLE(char[] data, int offset, int size) {
+	byte[] result = new byte[data.length*2];
+	for(int i = 0; i < data.length; ++i) {
+	    byte[] cur = toByteArrayLE(data[i]);
+	    result[i*2] = cur[0];
+	    result[i*2+1] = cur[1];
+	}
+	return result;
+    }
+    public static byte[] readByteArrayBE(char[] data) {
+	return readByteArrayBE(data, 0, data.length);
+    }
+    public static byte[] readByteArrayBE(char[] data, int offset, int size) {
+	byte[] result = new byte[data.length*2];
+	for(int i = 0; i < data.length; ++i) {
+	    byte[] cur = toByteArrayBE(data[i]);
+	    result[i*2] = cur[0];
+	    result[i*2+1] = cur[1];
+	}
+	return result;
+    }
+
+    public static byte[] fillBuffer(InputStream is, byte[] buffer) throws IOException {
+	DataInputStream dis = new DataInputStream(is);
+	dis.readFully(buffer);
+	return buffer;
+    }
+    
+    public static int unsign(byte b) {
+	return b & 0xFF;
+    }
+    public static int unsign(short s) {
+	return s & 0xFFFF;
+    }
+    public static long unsign(int i) {
+	return i & 0xFFFFFFFFL;
+    }
+    
+    // End of Util2 stuff
+
+    // Added 2007-06-24 for DMGExtractor
     public static String readFully(Reader r) throws IOException {
 	StringBuilder sb = new StringBuilder();
 	char[] temp = new char[512];
@@ -398,11 +597,19 @@ public class Util {
 	return sb.toString();
     }
     
-    // Added 2007-06-26
+    // Added 2007-06-26 for DMGExtractor
     public static String[] concatenate(String[] a, String[] b) {
 	String[] c = new String[a.length+b.length];
 	System.arraycopy(a, 0, c, 0, a.length);
 	System.arraycopy(b, 0, c, a.length, b.length);
 	return c;
     }
+    
+    // From IRCForME
+    public static byte[] encodeString(String string, String encoding) {
+	try {
+	    return string.getBytes(encoding);
+	} catch(Exception e) { return null; }
+    }
+    
 }

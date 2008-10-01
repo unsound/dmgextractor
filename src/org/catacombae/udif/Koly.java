@@ -116,8 +116,8 @@ public class Koly {
     }
     
     public void printFields(PrintStream ps, String prefix) {
-	ps.println(prefix + " fourCC: " + getFourCC());
-	ps.println(prefix + " unknown1: " + getUnknown1());
+	ps.println(prefix + " fourCC: \"" + Util.toASCIIString(getFourCC()) + "\"");
+	ps.println(prefix + " unknown1: 0x" + Util.byteArrayToHexString(getUnknown1()));
 	ps.println(prefix + " plistBegin1: " + getPlistBegin1());
 	ps.println(prefix + " plistEndSometimes: " + getPlistEndSometimes());
 	ps.println(prefix + " unknown2: " + getUnknown2());
@@ -127,13 +127,23 @@ public class Koly {
 	ps.println(prefix + " possibleChecksumType: " + getPossibleChecksumType());
 	ps.println(prefix + " unknown6: " + getUnknown6());
 	ps.println(prefix + " possibleUnitSize: " + getPossibleUnitSize());
-	ps.println(prefix + " unknown7: " + getUnknown7());
+	ps.println(prefix + " unknown7: 0x" + Util.byteArrayToHexString(getUnknown7()));
 	ps.println(prefix + " plistBegin2: " + getPlistBegin2());
 	ps.println(prefix + " plistSize: " + getPlistSize());
-	ps.println(prefix + " unknown8: " + getUnknown8());
+	ps.println(prefix + " unknown8: 0x" + Util.byteArrayToHexString(getUnknown8()));
 	ps.println(prefix + " checksumAlgorithm: " + getChecksumAlgorithm());
-	ps.println(prefix + " checksumSize: " + getChecksumSize());
-	ps.println(prefix + " checksumData: " + getChecksumData());
+	int checksumSize = getChecksumSize()/8;
+	byte[] checksumData = getChecksumData();
+	ps.println(prefix + " checksumSize: " + checksumSize);
+	ps.println(prefix + " checksumData: 0x" + Util.byteArrayToHexString(checksumData, 0, checksumSize)); // checksumSize is in bits
+	int i;
+	for(i = 0; i+4 <= (checksumData.length-checksumSize); i += 4)
+	    ps.println(prefix + " trailing data[" + i + "]: 0x " + Util.byteArrayToHexString(checksumData, checksumSize+i, 4));
+	int bytesLeft = i+4 - (checksumData.length-checksumSize);
+	if(bytesLeft > 0 && bytesLeft < 4) {
+	    System.err.println("bytes left: " + bytesLeft);
+	    ps.println(prefix + " trailing data[" + i + "]: 0x " + Util.byteArrayToHexString(checksumData, checksumSize+i, (i+4)-(checksumData.length-checksumSize)));
+	}
     }
     
     public void print(PrintStream ps, String prefix) {
@@ -141,4 +151,16 @@ public class Koly {
 	printFields(ps, prefix);
     }
     
+    /** Test main. Reads the last 512 bytes from the input file (args[0]), creates a
+	Koly object and calls its print method to display the data. */
+    public static void main(String[] args) throws java.io.IOException {
+	byte[] kolyData = new byte[512];
+	java.io.RandomAccessFile raf = new java.io.RandomAccessFile(args[0], "r");
+	raf.seek(raf.length()-512);
+	if(raf.read(kolyData) != kolyData.length)
+	    throw new RuntimeException("Could not read entire koly...");
+	raf.close();
+	Koly k = new Koly(kolyData, 0);
+	k.print(System.out, "");
+    }
 }
