@@ -34,11 +34,11 @@ removeclassfiles() {
 
 increment_buildnumber() {
     echo "Incrementing build number..."
-    java -cp $BUILDTOOLS_CP BuildEnumerator $SOURCES_DIR/org/catacombae/dmgx/BuildNumber.java 1
+    java -cp $BUILDTOOLS_CP BuildEnumerator $SOURCES_DIR/org/catacombae/dmgextractor/BuildNumber.java 1
 }
 decrement_buildnumber() {
     echo "Decrementing build number..."
-    java -cp $BUILDTOOLS_CP BuildEnumerator $SOURCES_DIR/org/catacombae/dmgx/BuildNumber.java -1
+    java -cp $BUILDTOOLS_CP BuildEnumerator $SOURCES_DIR/org/catacombae/dmgextractor/BuildNumber.java -1
 }
 
 build_xml() {
