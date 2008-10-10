@@ -19,7 +19,7 @@ BUILD_CP=$BUILD_DIR:dist/lib/catacombae_io.jar:dist/lib/apache-ant-1.7.0-bzip2.j
 BUILDTOOLS_CP=$BUILD_LIB_PATH/buildenumerator.jar
 JARFILE_DIR=$DIST_LIB_PATH
 JARFILE=dmgextractor.jar
-COMPILE_OPTIONS=-target 1.5 -source 1.5
+COMPILE_OPTIONS="-target 1.5 -source 1.5"
 #PACKAGES=org.catacombae.dmgx org.catacombae.dmgx.gui
 #COMPILEPATHS=org/catacombae/dmgx/*.java org/catacombae/dmgx/gui/*.java
 
@@ -51,11 +51,12 @@ build_xml_apx() {
     javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/xml/apx/*.java
     return $?
 }
-build_io() {
-    echo "Building org.catacombae.io..."
-    javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/io/*.java
-    return $?
-}
+
+#build_io() {
+#    echo "Building org.catacombae.io..."
+#    javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/io/*.java
+#    return $?
+#}
 build_udif() {
     echo "Building org.catacombae.udif..."
     javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/udif/*.java
@@ -66,6 +67,12 @@ build_dmgextractor() {
     javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgextractor/*.java
     return $?
 }
+build_dmgextractor_encodings_encrypted() {
+    echo "Building org.catacombae.dmgextractor.encodings.encrypted..."
+    javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgextractor/encodings/encrypted/*.java
+    return $?
+}
+
 build_dmgx() {
     echo "Building org.catacombae.dmgx..."
     javac $COMPILE_OPTIONS -cp $BUILD_CP -sourcepath $SOURCES_DIR -d $BUILD_DIR -Xlint:unchecked $SOURCES_DIR/org/catacombae/dmgx/*.java
@@ -94,12 +101,13 @@ main() {
 	if [ "$?" == 0 ]; then
 	    build_xml_apx
 	    if [ "$?" == 0 ]; then
-		build_io
+		build_dmgextractor_encodings_encrypted
 		if [ "$?" == 0 ]; then
 		    build_udif
 		    if [ "$?" == 0 ]; then
 			build_dmgextractor
 			if [ "$?" == 0 ]; then
+			    
 			    build_dmgx
 			    if [ "$?" == 0 ]; then
 				build_dmgx_gui
