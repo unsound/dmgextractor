@@ -1,0 +1,23 @@
+struct V2Header {
+  uint8_t  signature[8];                        Header signature (ASCII: 'encrcdsa').
+  uint8_t  unknown1[44];                        Unknown data.
+  uint32_t blockSize;                           Block size of the encrypted block data.
+  uint8_t  unknown2[12];                        Unknown data.
+  uint32_t offsetToDataStart;                   Offset to the start of the encrypted block data.
+  uint8_t  unknown3[12];                        Unknown data.
+  uint32_t possiblePointerToKdfAlgorithm;       Could be a pointer to where kdf_algorithm is located.
+  uint8_t  unknown4[8];                         Unknown data.
+  uint32_t kdfAlgorithm;                        Algorithm of the key derivation function.
+  uint32_t kdfPrngAlgorithm;                    ?
+  uint32_t kdfIterationCount;                   Iteration count (normally 1000).
+  uint32_t kdfSaltLen;                          Length of kdfSalt (in bytes).
+  uint8_t  kdfSalt[32];                         Salt value for key derivation.
+  uint32_t blobEncIvSize;                       Size of blobEncIv.
+  uint8_t  blobEncIv[32];                       Initialization Vector for encryption-key unwrapping.
+  uint32_t blobEncKeyBits;                      Number of bits in the keyblob's encryption key.
+  uint32_t blobEncAlgorithm;                    Encryption algorithm used to encrypt the key blob.
+  uint32_t blobEncPadding;                      Padding. (?)
+  uint32_t blobEncMode;                         Encryption mode for the algorithm.
+  uint32_t encryptedKeyblobSize;                Size of encryptedKeyBlob.
+  uint8_t  encryptedKeyblob[48];                The encrypted key blob, containing all keys.
+};
