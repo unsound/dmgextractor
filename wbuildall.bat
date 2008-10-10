@@ -1,3 +1,3 @@
 @echo off
-call buildall.bat
+call %~dp0buildall.bat
 pause
