@@ -1,7 +1,7 @@
 #!/bin/sh
 
 SOURCES_DIR=src
-BUILDTOOLS_CP=$BUILD_LIB_PATH/buildenumerator.jar
+BUILDTOOLS_CP=lib/buildenumerator.jar
 
 error() {
     echo "There were errors..."
