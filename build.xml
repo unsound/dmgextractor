@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project basedir="." default="all" name="DMGExtractor">
+  <property environment="env"/>
+  <property name="debuglevel" value="source,lines,vars"/>
+  <property name="java.target.level" value="1.5"/>
+  <property name="java.source.level" value="1.5"/>
+  <property name="java.source.dir" value="src"/>
+  <property name="builddir" value=".antbuild~"/>
+  <property name="java.build.library.dir" value="lib"/>
+  <property name="java.runtime.library.dir" value="targets/application/lib"/>
+  <property name="target.application.manifest.dir" value="src.META-INF/application"/>
+  <property name="target.standalone.manifest.dir" value="src.META-INF/standalone"/>
+  <property name="target.standalone.jnlp.dir" value="src.JNLP-INF/standalone"/>
+  <property name="target.application.outjar" value="targets/application/lib/dmgextractor.jar"/>
+  <property name="target.standalone.outjar" value="targets/standalone/dmgextractor-standalone.jar"/>
+  <property name="target.hfsxlib.outjar" value="targets/hfsxlib/hfsx_dmglib.jar"/>
+  
+  
+  <!-- TARGET: init -->
+  
+  <target name="init">
+    <mkdir dir="${builddir}"/>
+  </target>
+
+  
+  <!-- TARGET: clean -->
+  
+  <target name="clean">
+    <mkdir dir="${builddir}"/>
+    <delete dir="${builddir}"/>
+  </target>
+  
+  
+  <!-- TARGET: all -->
+  
+  <target name="all">
+    <echo message="Currently defined targets:"/>
+    <echo message="  build-application - Builds the application target, compiling all project sources."/>
+    <echo message="  build-standalone - Builds the standalone target, creating a standalone executable jar file with only the essentials to run DMGExtractor."/>
+    <echo message="  build-hfsxlib - Builds the library subset of DMGExtractor required by HFSExplorer."/>
+    <echo message="  javadoc - Creates the javadoc documentation for the project."/>
+  </target>
+  
+  
+  <!-- TARGET: application -->
+  
+  <path id="target.application.classpath">
+    <fileset dir="${java.runtime.library.dir}">
+      <include name="*.jar"/>
+      <exclude name="dmgextractor.jar"/>
+    </fileset>
+  </path>
+  
+  <target name="build-application" depends="clean,jar-application"/>
+  
+  <target name="compile-application" depends="init">
+    <javac srcdir="${java.source.dir}"
+	   destdir="${builddir}"
+	   includes="**"
+	   debug="true"
+	   debuglevel="${debuglevel}"
+	   source="${java.source.level}"
+	   target="${java.target.level}"
+	   deprecation="on">
+      <compilerarg value="-Xlint:unchecked"/>
+      <classpath refid="target.application.classpath"/>
+    </javac>
+  </target>
+  
+  <target name="jar-application" depends="compile-application">
+    <jar destfile="${target.application.outjar}" basedir="${builddir}" manifest="${target.application.manifest.dir}/MANIFEST.MF"/>
+  </target>
+  
+  
+  <!-- TARGET: standalone -->
+  
+  <target name="build-standalone" depends="clean,jar-standalone"/>
+  
+  <target name="copyresources-standalone" depends="init">
+    <copy todir="${builddir}">
+      <zipfileset src="${java.runtime.library.dir}/catacombae_io.jar" includes="**/*.class"/>
+      <zipfileset src="${java.runtime.library.dir}/apache-ant-1.7.0-bzip2.jar" includes="**/*.class"/>
+      <zipfileset src="${java.runtime.library.dir}/iharder-base64.jar" includes="**/*.class"/>
+    </copy>
+    <mkdir dir="${builddir}/JNLP-INF"/>
+    <copy file="${target.standalone.jnlp.dir}/dmgextractor.jnlp" tofile="${builddir}/JNLP-INF/APPLICATION.JNLP"/>
+  </target>
+  
+  <target name="compile-standalone" depends="init,copyresources-standalone">
+    <javac srcdir="${java.source.dir}"
+	   destdir="${builddir}"
+	   includes="org/catacombae/dmgextractor/DMGExtractorGraphical.java"
+	   debug="true"
+	   debuglevel="${debuglevel}"
+	   source="${java.source.level}"
+	   target="${java.target.level}"
+	   deprecation="on">
+      <compilerarg value="-Xlint:unchecked"/>
+      <classpath>
+	<pathelement path="${builddir}"/>
+      </classpath>
+    </javac>
+  </target>
+  
+  <target name="jar-standalone" depends="compile-standalone">
+    <jar destfile="${target.standalone.outjar}" basedir="${builddir}" manifest="${target.standalone.manifest.dir}/MANIFEST.MF"/>
+  </target>
+  
+  
+  <!-- TARGET: hfsxlib -->
+  
+  <path id="target.hfsxlib.classpath">
+    <fileset dir="${java.runtime.library.dir}">
+      <include name="*.jar"/>
+      <exclude name="dmgextractor.jar"/>
+    </fileset>
+  </path>
+  
+  <target name="build-hfsxlib" depends="clean,jar-hfsxlib"/>
+  
+  <target name="compile-hfsxlib" depends="init">
+    <javac srcdir="${java.source.dir}"
+	   destdir="${builddir}"
+	   debug="true"
+	   debuglevel="${debuglevel}"
+	   source="${java.source.level}"
+	   target="${java.target.level}"
+	   deprecation="on">
+      <!-- All entry points to the DMGExtractor libraries from HFSExplorer should be listed here. -->
+      <include name="org/catacombae/udif/UDIFRandomAccessStream.java"/>
+      <include name="org/catacombae/dmgextractor/encodings/encrypted/ReadableCEncryptedEncodingStream.java"/>
+      
+      <compilerarg value="-Xlint:unchecked"/>
+      <classpath refid="target.hfsxlib.classpath"/>
+    </javac>
+  </target>
+  
+  <target name="jar-hfsxlib" depends="compile-hfsxlib">
+    <jar destfile="${target.hfsxlib.outjar}" basedir="${builddir}"/>
+  </target>
+  
+  
+  <!-- TARGET: javadoc -->
+  
+  <path id="javadoc.classpath">
+    <!--<fileset dir="${java.build.library.dir}">
+      <include name="**/*.jar"/>
+    </fileset>-->
+    <fileset dir="${java.runtime.library.dir}">
+      <include name="**/*.jar"/>
+    </fileset>
+  </path>
+  
+  <target name="javadoc">
+    <javadoc destdir="javadoc.~"
+	     packagenames="org.catacombae.*"
+	     sourcepath="${java.source.dir}"
+	     access="private"
+             author="true"
+             version="true"
+             use="true"
+             windowtitle="DMGExtractor API">
+      
+      <link href="http://java.sun.com/j2se/1.5.0/docs/api/"/>
+      <classpath>
+	<path refid="javadoc.classpath"/>
+      </classpath>
+    </javadoc>
+  </target>
+</project>
