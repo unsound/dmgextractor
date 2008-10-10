@@ -1,0 +1,15 @@
+struct V1Header {
+  uint8_t  unknown0[48];                Unknown data.
+  uint32_t kdfIterationCount;           Iteration count (normally 1000).
+  uint32_t kdfSaltLen;                  Length of kdfSalt (in bytes).
+  uint8_t  kdfSalt[48];                 Salt value for key derivation.
+  uint8_t  unwrapIv[32];                Initialization Vector for encryption-key unwrapping.
+  uint32_t lenWrappedAesKey;            Length of wrappedAesKey (max 296).
+  uint8_t  wrappedAesKey[296];          The AES key (wrapped).
+  uint32_t lenWrappedHmacSha1Key;       Length of wrappedHmacSha1Key (max 300).
+  uint8_t  wrappedHmacSha1Key[300];     The HMAC SHA-1 key (wrapped).
+  uint32_t lenWrappedIntegrityKey;      Length of wrappedIntegrityKey.
+  uint8_t  wrappedIntegrityKey[48];     Integrity key.
+  uint8_t  unknown792[476];             Unknown data.
+  uint8_t  signature[8];                Header signature (ASCII: 'cdsaencr').
+};
