@@ -21,10 +21,18 @@ import java.io.*;
 public class Util {
     public static int sectorSize = 0x800;
     
-    public static String byteArrayToHexString(byte[] array) { 
+    /**
+     * Tests whether the current VM is a Java 6 or higher VM.
+     * @return
+     */
+    public static boolean isJava6OrHigher() {
+    	return System.getProperty("java.vm.version").compareTo("1.6") >= 0;
+    }
+
+    public static String byteArrayToHexString(byte[] array) {
 	return byteArrayToHexString(array, 0, array.length);
     }
-    public static String byteArrayToHexString(byte[] array, int offset, int length) { 
+    public static String byteArrayToHexString(byte[] array, int offset, int length) {
 	String result = "";
 	for(int i = offset; i < (offset+length); ++i) {
 	    byte b = array[i];
@@ -35,7 +43,7 @@ public class Util {
 	}
 	return result;
     }
-    
+
     public static String toHexStringBE(char[] array) {
 	return toHexStringBE(array, 0, array.length);
     }
@@ -63,7 +71,7 @@ public class Util {
 	    result.append(toHexStringBE(array[i]));
 	return result.toString();
     }
-    
+
     public static String toHexStringLE(byte n) { return byteArrayToHexString(toByteArrayLE(n)); }
     public static String toHexStringLE(short n) { return byteArrayToHexString(toByteArrayLE(n)); }
     public static String toHexStringLE(char n) { return byteArrayToHexString(toByteArrayLE(n)); }
@@ -74,14 +82,14 @@ public class Util {
     public static String toHexStringBE(char n) { return byteArrayToHexString(toByteArrayBE(n)); }
     public static String toHexStringBE(int n) { return byteArrayToHexString(toByteArrayBE(n)); }
     public static String toHexStringBE(long n) { return byteArrayToHexString(toByteArrayBE(n)); }
-    
+
     public static byte[] invert(byte[] array) {
 	byte[] newArray = new byte[array.length];
 	for(int i = 0; i < array.length; ++i)
 	    newArray[newArray.length-i-1] = array[i];
 	return newArray;
     }
-    
+
     public static long readLongLE(byte[] data) {
 	return readLongLE(data, 0);
     }
@@ -150,7 +158,7 @@ public class Util {
 // 	    System.out.println("6. 0x" + toHexStringBE(d6));
 // 	    System.out.println("7. 0x" + toHexStringBE(d7));
 // 	    System.out.println("8. 0x" + toHexStringBE(d8));
-// 	    return d1 | d2 | d3 | d4 | d5 | d6 | d7 | d8; 
+// 	    return d1 | d2 | d3 | d4 | d5 | d6 | d7 | d8;
 // 	}
 // 	else {
 	return (((long)data[offset+0] & 0xFF) << 56 |
@@ -267,45 +275,95 @@ public class Util {
 		return false;
 	return true;
     }
-    
-    public static void zero(byte[] ba) {
-	set(ba, 0, ba.length, (byte)0);
+
+    public static void zero(byte[]... arrays) {
+        for(byte[] ba : arrays)
+            set(ba, 0, ba.length, (byte)0);
     }
     public static void zero(byte[] ba, int offset, int length) {
-	set(ba, offset, length, (byte)0);
+        set(ba, offset, length, (byte)0);
     }
-    public static void zero(short[] ba) {
-	set(ba, 0, ba.length, (short)0);
+    public static void zero(short[]... arrays) {
+        for(short[] array : arrays)
+            set(array, 0, array.length, (short)0);
     }
     public static void zero(short[] ba, int offset, int length) {
-	set(ba, offset, length, (short)0);
+        set(ba, offset, length, (short)0);
     }
-    public static void zero(int[] ba) {
-	set(ba, 0, ba.length, (int)0);
+    public static void zero(int[]... arrays) {
+        for(int[] array : arrays)
+            set(array, 0, array.length, (int) 0);
     }
     public static void zero(int[] ba, int offset, int length) {
-	set(ba, offset, length, (int)0);
+        set(ba, offset, length, (int) 0);
     }
-    public static void zero(long[] ba) {
-	set(ba, 0, ba.length, (long)0);
+    public static void zero(long[]... arrays) {
+        for(long[] array : arrays)
+            set(array, 0, array.length, (long) 0);
     }
     public static void zero(long[] ba, int offset, int length) {
-	set(ba, offset, length, (long)0);
+        set(ba, offset, length, (long) 0);
     }
-    
+
+    public static void set(boolean[] array, boolean value) {
+        set(array, 0, array.length, value);
+    }
+
+    public static void set(byte[] array, byte value) {
+        set(array, 0, array.length, value);
+    }
+
+    public static void set(short[] array, short value) {
+        set(array, 0, array.length, value);
+    }
+
+    public static void set(char[] array, char value) {
+        set(array, 0, array.length, value);
+    }
+
+    public static void set(int[] array, int value) {
+        set(array, 0, array.length, value);
+    }
+
+    public static void set(long[] array, long value) {
+        set(array, 0, array.length, value);
+    }
+
+    public static <T> void set(T[] array, T value) {
+        set(array, 0, array.length, value);
+    }
+
+    public static void set(boolean[] ba, int offset, int length, boolean value) {
+	for(int i = offset; i < length; ++i)
+	    ba[i] = value;
+    }
+
     public static void set(byte[] ba, int offset, int length, byte value) {
 	for(int i = offset; i < length; ++i)
 	    ba[i] = value;
     }
+
     public static void set(short[] ba, int offset, int length, short value) {
 	for(int i = offset; i < length; ++i)
 	    ba[i] = value;
     }
+
+    public static void set(char[] ba, int offset, int length, char value) {
+	for(int i = offset; i < length; ++i)
+	    ba[i] = value;
+    }
+
     public static void set(int[] ba, int offset, int length, int value) {
 	for(int i = offset; i < length; ++i)
 	    ba[i] = value;
     }
+
     public static void set(long[] ba, int offset, int length, long value) {
+	for(int i = offset; i < length; ++i)
+	    ba[i] = value;
+    }
+
+    public static <T> void set(T[] ba, int offset, int length, T value) {
 	for(int i = offset; i < length; ++i)
 	    ba[i] = value;
     }
@@ -313,22 +371,61 @@ public class Util {
     public static byte[] createCopy(byte[] data) {
 	return createCopy(data, 0, data.length);
     }
-    
+
     public static byte[] createCopy(byte[] data, int offset, int length) {
 	byte[] copy = new byte[length];
 	System.arraycopy(data, offset, copy, 0, length);
 	return copy;
     }
-    
-    public static void arrayCopy(byte[] source, byte[] dest, int destPos) {
+
+    /**
+     * Creates a copy of the input data reversed byte by byte. This is helpful for endian swapping.
+     *
+     * @param data
+     * @return
+     */
+    public static byte[] createReverseCopy(byte[] data) {
+	return createReverseCopy(data, 0, data.length);
+    }
+
+    /**
+     * Creates a copy of the input data reversed byte by byte. This is helpful for endian swapping.
+     *
+     * @param data
+     * @param offset
+     * @param length
+     * @return
+     */
+    public static byte[] createReverseCopy(byte[] data, int offset, int length) {
+	byte[] copy = new byte[length];
+	for(int i = 0; i < copy.length; ++i) {
+            copy[i] = data[offset+(length-i-1)];
+        }
+	return copy;
+    }
+
+    public static byte[] arrayCopy(byte[] source, byte[] dest) {
+	return arrayCopy(source, dest, 0);
+    }
+
+    public static byte[] arrayCopy(byte[] source, byte[] dest, int destPos) {
 	if(dest.length-destPos < source.length)
 	    throw new RuntimeException("Destination array not large enough.");
 	System.arraycopy(source, 0, dest, 0, source.length);
+        return dest;
     }
-    public static void arrayCopy(byte[] source, byte[] dest) {
-	arrayCopy(source, dest, 0);
+
+    public static <T> T[] arrayCopy(T[] source, T[] dest) {
+        return arrayCopy(source, dest, 0);
     }
-    
+
+    public static <T> T[] arrayCopy(T[] source, T[] dest, int destPos) {
+        if(dest.length-destPos < source.length)
+	    throw new RuntimeException("Destination array not large enough.");
+	System.arraycopy(source, 0, dest, 0, source.length);
+        return dest;
+    }
+
     public static boolean arraysEqual(boolean[] a, boolean[] b) {
 	return arrayRegionsEqual(a, 0, a.length, b, 0, b.length);
     }
@@ -427,10 +524,10 @@ public class Util {
 	    return true;
 	}
     }
-    
+
     public static long pow(long a, long b) {
 	if(b < 0) throw new IllegalArgumentException("b can not be negative");
-	
+
 	long result = 1;
 	for(long i = 0; i < b; ++i)
 	    result *= a;
@@ -447,16 +544,32 @@ public class Util {
 	}
 	return length;
     }
-    
+
     public static boolean getBit(long data, int bitNumber) {
 	return ((data >>> bitNumber) & 0x1) == 0x1;
     }
 
-    public static int unsignedArrayCompare(char[] a, char[] b) {
-	return unsignedArrayCompare(a, 0, a.length, b, 0, b.length);
+    public static int arrayCompareLex(byte[] a, byte[] b) {
+        return arrayCompareLex(a, 0, a.length, b, 0, b.length);
     }
-    public static int unsignedArrayCompare(char[] a, int aoff, int alen, char[] b, int boff, int blen) {
-	int compareLen = Math.min(alen, blen);
+
+    public static int arrayCompareLex(byte[] a, int aoff, int alen, byte[] b, int boff, int blen) {
+        int compareLen = alen < blen ? alen : blen; // equiv. Math.min
+	for(int i = 0; i < compareLen; ++i) {
+	    byte curA = a[aoff+i];
+	    byte curB = b[boff+i];
+	    if(curA != curB)
+		return curA - curB;
+	}
+	return alen-blen; // The shortest array gets higher priority
+    }
+
+    public static int unsignedArrayCompareLex(char[] a, char[] b) {
+	return unsignedArrayCompareLex(a, 0, a.length, b, 0, b.length);
+    }
+
+    public static int unsignedArrayCompareLex(char[] a, int aoff, int alen, char[] b, int boff, int blen) {
+	int compareLen = alen < blen ? alen : blen; // equiv. Math.min
 	for(int i = 0; i < compareLen; ++i) {
 	    int curA = a[aoff+i] & 0xFFFF; // Unsigned char values represented as int
 	    int curB = b[boff+i] & 0xFFFF;
@@ -466,7 +579,7 @@ public class Util {
 	return alen-blen; // The shortest array gets higher priority
     }
 
-    // All below is from Util2, HFSExplorer (got tired of having two Util classes...)
+    // All below is from Util2 (got tired of having two Util classes...)
     public static String toASCIIString(byte[] data) {
 	return toASCIIString(data, 0, data.length);
     }
@@ -499,7 +612,7 @@ public class Util {
     public static String readNullTerminatedASCIIString(byte[] data) {
 	return readNullTerminatedASCIIString(data, 0, data.length);
     }
-    
+
     public static String readNullTerminatedASCIIString(byte[] data, int offset, int maxLength) {
 	int i;
 	for(i = offset; i < (offset+maxLength); ++i)
@@ -521,7 +634,10 @@ public class Util {
 	return (char) ((data[offset+0] & 0xFF) << 8 |
 		       (data[offset+1] & 0xFF) << 0);
     }
-    
+
+    public static byte[] readByteArrayBE(byte[] b) {
+	return createCopy(b);
+    }
     public static char[] readCharArrayBE(byte[] b) {
 	char[] result = new char[b.length/2];
 	for(int i = 0; i < result.length; ++i)
@@ -540,7 +656,13 @@ public class Util {
 	    result[i] = Util.readIntBE(b, i*4);
 	return result;
     }
-    
+    public static long[] readLongArrayBE(byte[] b) {
+	long[] result = new long[b.length/8];
+	for(int i = 0; i < result.length; ++i)
+	    result[i] = Util.readLongBE(b, i*8);
+	return result;
+    }
+
     public static byte[] readByteArrayLE(char[] data) {
 	return readByteArrayLE(data, 0, data.length);
     }
@@ -571,9 +693,9 @@ public class Util {
 	dis.readFully(buffer);
 	return buffer;
     }
-    
-    public static int unsign(byte b) {
-	return b & 0xFF;
+
+    public static short unsign(byte b) {
+	return (short)(b & 0xFF);
     }
     public static int unsign(short s) {
 	return s & 0xFFFF;
@@ -581,9 +703,8 @@ public class Util {
     public static long unsign(int i) {
 	return i & 0xFFFFFFFFL;
     }
-    
-    // End of Util2 stuff
 
+    
     // Added 2007-06-24 for DMGExtractor
     public static String readFully(Reader r) throws IOException {
 	StringBuilder sb = new StringBuilder();
@@ -596,7 +717,7 @@ public class Util {
 	}
 	return sb.toString();
     }
-    
+
     // Added 2007-06-26 for DMGExtractor
     public static String[] concatenate(String[] a, String[] b) {
 	String[] c = new String[a.length+b.length];
@@ -604,12 +725,12 @@ public class Util {
 	System.arraycopy(b, 0, c, a.length, b.length);
 	return c;
     }
-    
+
     // From IRCForME
     public static byte[] encodeString(String string, String encoding) {
 	try {
 	    return string.getBytes(encoding);
 	} catch(Exception e) { return null; }
     }
-    
+
 }
