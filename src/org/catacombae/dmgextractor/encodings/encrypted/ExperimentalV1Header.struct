@@ -1,0 +1,36 @@
+struct ExperimentalV1Header {
+  uint8_t  unknown0[16];                Unknown data.
+  uint32_t blockSize;                   Block size of the encrypted block data.
+  uint32_t unknownInt20;                Unknown integer.
+  uint32_t unknownInt24;                Unknown integer.
+  uint32_t unknownInt28;                Unknown integer.
+  uint32_t unknownInt32;                Unknown integer.
+  uint32_t unknownInt36;                Unknown integer.
+  uint32_t kdfAlgorithm;                Algorithm of the key derivation function.
+  uint32_t kdfPrngAlgorithm;            Some other algorithm?
+  uint32_t kdfIterationCount;           Iteration count for the key derivation function (normally 1000).
+  uint32_t kdfSaltLen;                  Length of kdfSalt in bytes.
+  uint8_t  kdfSalt[32];                 Salt value for the key derivation function
+  uint32_t laban;                       Unknown variable with observed value 16/0x10.
+  uint32_t edward;                      Unknown variable with observed value 5/0x5.
+  uint32_t palle;                       Unknown variable with observed value 0x80000001.
+  uint32_t lisa;                        Unknown variable with observed value 128/0x80.
+  uint8_t  unwrapIv[32];                Initialization Vector for encryption-key unwrapping.
+  uint32_t lenWrappedAesKey;            Length of wrappedAesKey in bytes (max 256).
+  uint8_t  wrappedAesKey[256];          The AES key (wrapped).
+  uint32_t unknownInt396;               Unknown integer (observed value: 91/0x5B).
+  uint32_t unknownInt400;               Unknown integer (observed value: 160/0xA0).
+  uint8_t  unknown404[32];              Unknown data (observed: 8 bytes filled, rest 0).
+  uint32_t lenWrappedHmacSha1Key;       Length of wrappedHmacSha1Key in bytes (max 256).
+  uint8_t  wrappedHmacSha1Key[256];     The HMAC SHA-1 key (wrapped).
+  uint32_t unknownInt696;               Unknown integer (observed value: 91/0x5B).
+  uint32_t unknownInt700;               Unknown integer (observed value: 160/0xA0).
+  uint8_t  unknown704[32];              Unknown data (obs. 8 bytes filled, rest 0).
+  uint32_t lenWrappedIntegrityKey;      Length of wrappedIntegrityKey.
+  uint8_t  wrappedIntegrityKey[256];    Integrity key.
+  uint32_t lenUnknown1000;              Length of unknown1000.
+  uint8_t  unknown1000[256];            Unknown key-like field with length specified by unknownRnd95GaLen (max 256).
+  uint64_t decryptedDataLength;         Length in bytes of the underlying data stream.
+  uint32_t possibleHeaderVersion;       Could be a variable indicating header version (observed: 1/0x1).
+  uint8_t  signature[8];                Header signature (ASCII: 'cdsaencr').
+};

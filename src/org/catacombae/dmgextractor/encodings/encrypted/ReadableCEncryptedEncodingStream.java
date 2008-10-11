@@ -67,7 +67,7 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
     private final SecretKeySpec hmacSha1Key;
     private final Mac hmacSha1;
     private final Cipher aesCipher;
-    private final long length;
+    private final long streamLength;
 
     // Tracker variables
     private long blockNumber = 0;
@@ -104,12 +104,13 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
                 throw new RuntimeException("Unknown header version: " + headerVersion);
         }
 
-        this.length = (backingStream.length()-header.getTrailingReservedBytes()) -
-                header.getBlockDataStart();
+        this.streamLength = header.getEncryptedDataLength();
+        /*
         if(this.length % header.getBlockSize() != 0) {
             System.err.println("WARNING: Block data area length (" + this.length +
                     ") is not aligned to block size (" + header.getBlockSize() + ")!");
         }
+         * */
 
         try {
             final String pbeAlgorithmName = "PBKDF2WithHmacSHA1"; //"PBEWithHmacSHA1AndDESede";
@@ -158,12 +159,12 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
     public void seek(long pos) throws RuntimeIOException {
         if(pos < 0)
             throw new IllegalArgumentException("Negative seek request: pos (" + pos + ") < 0");
-        else if(pos > length) {
+        else if(pos > streamLength) {
             // throw new IllegalArgumentException("Trying to seek beyond EOF: pos (" + pos +
             //        ") > length (" + length + ")");
 
             // Let's just seek to the end of file instead of throwing stuff around us.
-            this.blockNumber = length/header.getBlockSize();
+            this.blockNumber = streamLength/header.getBlockSize();
             this.posInBlock = 0;
         }
         else {
@@ -184,7 +185,7 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
 
     @Override
     public long length() throws RuntimeIOException {
-        return length;
+        return streamLength;
     }
 
     @Override
@@ -213,7 +214,7 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
 
         try {
             int totalBytesRead = 0;
-            while(totalBytesRead < len && blockNumber*header.getBlockSize() < length) {
+            while(totalBytesRead < len && blockNumber*header.getBlockSize() < streamLength) {
                 int bytesRead = backingStream.read(encBlockData);
                 if(bytesRead != encBlockData.length) {
                     if(bytesRead > 0)
@@ -224,9 +225,14 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
 
                 int bytesDecrypted = decrypt(encBlockData, decBlockData, blockNumber);
                 Assert.eq(bytesDecrypted, decBlockData.length);
+                
+                final long bytesLeftInStream = streamLength - blockNumber*header.getBlockSize();
+                final int blockSize =
+                        (int)(bytesLeftInStream < decBlockData.length ? bytesLeftInStream : decBlockData.length);
+
 
                 final int bytesLeftToRead = len-totalBytesRead;
-                final int bytesLeftInBlock = decBlockData.length-posInBlock;
+                final int bytesLeftInBlock = blockSize-posInBlock;
                 int bytesToCopy = bytesLeftToRead < bytesLeftInBlock ? bytesLeftToRead : bytesLeftInBlock;
                 
                 System.arraycopy(decBlockData, posInBlock, b, off + totalBytesRead, bytesToCopy);
@@ -265,12 +271,13 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
         /* The 160-bit MAC value is truncated to 16 bytes (128 bits) to be
          * used as the cipher's IV. */
         System.arraycopy(hmacSha1.doFinal(), 0, iv, 0, iv.length);
-        Debug.print("  iv: 0x" + Util.byteArrayToHexString(iv));
+        //Debug.print("  iv: 0x" + Util.byteArrayToHexString(iv));
 
         try {
             aesCipher.init(Cipher.DECRYPT_MODE, aesKey, new IvParameterSpec(iv));
             int bytesDecrypted =
                     aesCipher.doFinal(encBlockData, 0, encBlockData.length, decBlockData, 0);
+
             return bytesDecrypted;
         } catch(Exception e) {
             throw new RuntimeException("Unexpected exception when trying to " +
@@ -335,6 +342,11 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
                 new ReadableCEncryptedEncodingStream(backingStream, password.toCharArray());
 
         System.out.println("Length of encrypted data: " + rras.length() + " bytes");
+
+        byte[] lastBlock = new byte[4096];
+        rras.seek(rras.length()/4096);
+        rras.readFully(lastBlock);
+        System.out.println("Last block: 0x" + Util.byteArrayToHexString(lastBlock));
 
         byte[] sig = new byte[2];
         rras.readFully(sig);
