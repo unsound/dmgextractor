@@ -19,18 +19,34 @@
 
 package org.catacombae.dmgextractor;
 
-import org.catacombae.udif.*;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.RandomAccessFile;
 import java.util.LinkedList;
 import java.util.Iterator;
 import java.util.Collections;
 import javax.swing.JOptionPane;
 import javax.swing.JFileChooser;
 import javax.swing.ProgressMonitor;
+import org.catacombae.dmgextractor.encodings.encrypted.ReadableCEncryptedEncodingStream;
+import org.catacombae.io.FileStream;
+import org.catacombae.io.ReadableFileStream;
+import org.catacombae.io.ReadableRandomAccessStream;
+import org.catacombae.io.TruncatableRandomAccessStream;
+import org.catacombae.udif.Koly;
+import org.catacombae.udif.Plist;
+import org.catacombae.udif.PlistPartition;
+import org.catacombae.udif.UDIFBlock;
 import org.xml.sax.XMLReader;
 
 public class DMGExtractor {
-    public static final String APPNAME = "DMGExtractor 0.60";
+    public static final String BASE_APP_NAME = "DMGExtractor";
+    public static final String VERSION = "0.70pre";
+    public static final String APPNAME = BASE_APP_NAME + " " + VERSION;
     public static final String BUILDSTRING = "(Build #" + BuildNumber.BUILD_NUMBER + ")";
     // Constants defining block types in the dmg file
     public static final int BT_ADC = 0x80000004;
@@ -86,11 +102,30 @@ public class DMGExtractor {
 	parseArgs(args);
 	
 	printlnVerbose("Processing: \"" + dmgFile + "\"");
-	RandomAccessFile dmgRaf = new RandomAccessFile(dmgFile, "r");
-	RandomAccessFile isoRaf = null;
+	ReadableRandomAccessStream dmgRaf = new ReadableFileStream(new RandomAccessFile(dmgFile, "r"));
+        if(ReadableCEncryptedEncodingStream.isCEncryptedEncoding(dmgRaf)) {
+            char[] password;
+            while(true) {
+                password = getPasswordFromUser();
+                if(password == null) {
+                    println("No password specified. Can not continue...");
+                    System.exit(0);
+                }
+                try {
+                    ReadableCEncryptedEncodingStream encryptionFilter =
+                            new ReadableCEncryptedEncodingStream(dmgRaf, password);
+                    dmgRaf = encryptionFilter;
+                    break;
+                } catch(Exception e) {
+                    println("Incorrect password!");
+                }
+            }
+        }
+        
+	TruncatableRandomAccessStream isoRaf = null;
 	boolean testOnly = false;
 	if(isoFile != null) {
-	    isoRaf = new RandomAccessFile(isoFile, "rw");
+	    isoRaf = new FileStream(isoFile);
 	    isoRaf.setLength(0);
 	    printlnVerbose("Extracting to: " + isoFile);
 	}
@@ -543,19 +578,21 @@ public class DMGExtractor {
 	    System.out.println("          " + lines[i]);
     }
     
+    public static String prompt(String s) throws IOException {
+	System.out.print(s);
+        return stdin.readLine();
+    }
     public static void printCurrentLine(String s) {
 	//System.out.print(BACKSPACE79);
 	System.out.println(s);
-    }
-    public static void println() {
-	System.out.print(BACKSPACE79);
-	System.out.println();
     }
     public static void println(String... lines) {
 	if(!graphical) {
 	    System.out.print(BACKSPACE79);
 	    for(String s : lines)
 		System.out.println(s);
+            if(lines.length < 1)
+                System.out.println();
 	}
 	else {
 	    String resultString = null;
@@ -737,6 +774,27 @@ public class DMGExtractor {
 	}
     }
     
+    public static char[] getPasswordFromUser() throws IOException {
+        if(!graphical) {
+            println("The disk image you are trying to extract is encrypted.");
+            String reply = prompt("Please enter password: ");
+            if(reply != null)
+                return reply.toCharArray();
+            else
+                return null;
+	}
+	else {
+            String res = JOptionPane.showInputDialog(null,
+                    "The disk image you are trying to read is encrypted.\n" +
+                    "Please type your password:", "Password protected image",
+                    JOptionPane.QUESTION_MESSAGE);
+            if(res != null)
+                return res.toCharArray();
+            else
+                return null;
+	}
+    }
+    
     public static LinkedList<UDIFBlock> mergeBlocks(LinkedList<UDIFBlock> blockList) {
 	Iterator<UDIFBlock> it = blockList.iterator();
 	return mergeBlocks(it);
@@ -780,7 +838,7 @@ public class DMGExtractor {
 	public void setTotalProgressLength(long len) { totalProgressLength = len; }
 	public void addProgressRaw(long value) {
 	    currentProgress += value;
-	    reportProgress((int)(currentProgress*100/totalProgressLength));
+	    reportProgressPercentage((int)(currentProgress*100/totalProgressLength));
 	}
 	
     }

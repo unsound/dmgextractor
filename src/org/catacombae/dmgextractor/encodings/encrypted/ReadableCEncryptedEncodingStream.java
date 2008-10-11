@@ -57,8 +57,17 @@ import org.catacombae.io.ReadableRandomAccessStream;
 import org.catacombae.io.RuntimeIOException;
 
 /**
- *
- * @author erik
+ * Filtering stream that takes the data of a Mac OS X encrypted disk image and a password as input
+ * and acts as a transparent decryption layer, allowing the user to access the unencrypted
+ * underlying disk image data. (The encryption format isn't disk image specific, so it might be used
+ * by other parts of Mac OS X as well, making this filter even more useful...)
+ * <p>
+ * Documentation on how encrypted disk images work was retrieved from the "Unlocking
+ * FileVault" slides, published by Jacob Appelbaum and Ralf-Philipp Weinmann, and the source code of
+ * the utility vfdecrypt in VileFault, copyright Ralf-Philipp Weinmann, Jacob Appelbaum and
+ * Christian Fromme.
+ * 
+ * @author Erik Larsson
  */
 public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessStream {
     private final ReadableRandomAccessStream backingStream;
@@ -149,7 +158,19 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
             throw new RuntimeException("Exception while trying to decrypt keys.", e);
         }
     }
-
+    
+    /**
+     * Tells whether <code>stream</code> is encoded with CEncryptedEncoding or not. If this method
+     * returns true, the stream can be fed to the ReadableCEncryptedEncoding constructor.
+     * 
+     * @param stream the stream to check for the signatures of a CEncryptedEncoding.
+     * @return whether <code>stream</code> is encoded with CEncryptedEncoding or not.
+     */
+    public static boolean isCEncryptedEncoding(ReadableRandomAccessStream stream) {
+        int version = CEncryptedEncodingUtil.detectVersion(stream);
+        return version == 1 || version == 2;
+    }
+    
     @Override
     public void close() throws RuntimeIOException {
         backingStream.close();
@@ -288,7 +309,7 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
     }
 
     private static void printHelp() {
-        System.err.println("usage: " + ReadableCEncryptedEncodingStream.class.getSimpleName() +
+        System.err.println("usage: " + ReadableCEncryptedEncodingStream.class.getName() +
                 " -i in-file -p password -o out-file");
         System.exit(-1);
     }
@@ -335,7 +356,8 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
 
         runTest(inputFilename, outputFilename, password);
     }
-    public static void runTest(String inputFilename, String outputFilename, String password) throws IOException {
+    
+    private static void runTest(String inputFilename, String outputFilename, String password) throws IOException {
         ReadableRandomAccessStream backingStream = new ReadableFileStream(inputFilename);
 
         ReadableRandomAccessStream rras =
