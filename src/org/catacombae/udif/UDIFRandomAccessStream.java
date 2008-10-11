@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import org.catacombae.io.BasicReadableRandomAccessStream;
 import org.catacombae.io.ReadableFileStream;
+import org.catacombae.io.ReadableRandomAccessStream;
 import org.catacombae.io.RuntimeIOException;
 
 
@@ -43,8 +44,13 @@ public class UDIFRandomAccessStream extends BasicReadableRandomAccessStream {
     private static void dbg(String s) { System.err.println(s); }
     
     public UDIFRandomAccessStream(RandomAccessFile raf) throws RuntimeIOException {
-	this(new UDIFFile(new ReadableFileStream(raf)));
+        this(new ReadableFileStream(raf));
     }
+    
+    public UDIFRandomAccessStream(ReadableRandomAccessStream stream) throws RuntimeIOException {
+	this(new UDIFFile(stream));
+    }
+    
     public UDIFRandomAccessStream(UDIFFile dmgFile) throws RuntimeIOException {
 	this.dmgFile = dmgFile;
 	//dbg("dmgFile.getView().getPlist(); free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
