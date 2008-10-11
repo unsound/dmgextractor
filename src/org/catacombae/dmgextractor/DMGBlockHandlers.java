@@ -20,7 +20,8 @@ package org.catacombae.dmgextractor;
 import org.catacombae.udif.UDIFBlockInputStream;
 import org.catacombae.udif.UDIFBlock;
 import java.io.*;
-import org.catacombae.io.ReadableFileStream;
+import org.catacombae.io.RandomAccessStream;
+import org.catacombae.io.ReadableRandomAccessStream;
 
 /** Please don't try to use this code with concurrent threads... :) Use external synchronization to protect
     the shared data in this class. */
@@ -30,9 +31,9 @@ class DMGBlockHandlers {
     /** Extracts a DMGBlock describing a region of the file dmgRaf to the file isoRaf. If the testOnly flag
 	is set, nothing is written to isoRaf (in fact, it can be null in this case). ui may not be null. in
 	that case, use UserInterface.NullUI. */
-    static long processBlock(UDIFBlock block, RandomAccessFile dmgRaf, RandomAccessFile isoRaf, 
+    static long processBlock(UDIFBlock block, ReadableRandomAccessStream dmgRaf, RandomAccessStream isoRaf, 
 				    boolean testOnly, UserInterface ui) throws IOException {
-	UDIFBlockInputStream is = UDIFBlockInputStream.getStream(new ReadableFileStream(dmgRaf), block);
+	UDIFBlockInputStream is = UDIFBlockInputStream.getStream(dmgRaf, block);
 	long res = processStream(is, isoRaf, testOnly, ui);
 	is.close();
 	if(res != block.getOutSize())
@@ -40,7 +41,7 @@ class DMGBlockHandlers {
 	return res;
     }
     
-    private static long processStream(UDIFBlockInputStream is, RandomAccessFile isoRaf, 
+    private static long processStream(UDIFBlockInputStream is, RandomAccessStream isoRaf, 
 				      boolean testOnly, UserInterface ui) throws IOException {
 	long totalBytesRead = 0;
 	int bytesRead = is.read(inBuffer);

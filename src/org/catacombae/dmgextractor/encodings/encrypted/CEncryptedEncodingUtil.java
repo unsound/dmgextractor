@@ -24,7 +24,7 @@ import org.catacombae.io.ReadableRandomAccessStream;
  *
  * @author erik
  */
-public class CEncryptedEncodingUtil {
+class CEncryptedEncodingUtil {
     private static final String V1_SIGNATURE = "cdsaencr";
     private static final String V2_SIGNATURE = "encrcdsa";
 
