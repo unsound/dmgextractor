@@ -1,0 +1,31 @@
+struct ExperimentalV2Header {
+  uint8_t  signature[8];                        Header signature (ASCII: 'encrcdsa').
+  uint32_t possibleHeaderVersion;               Possibly the version of the encrypted volume format.
+  uint32_t laban;                               Unknown variable with observed value 16/0x10.
+  uint32_t edward;                              Unknown variable with observed value 5/0x5.
+  uint32_t palle;                               Unknown variable with observed value 0x80000001.
+  uint32_t lisa;                                Unknown variable with observed value 128/0x80.
+  uint32_t unknownInt28;                        Unknown variable with observed value 91/0x5B.
+  uint32_t unknownInt32;                        Unknown variable with observed value 160/0xA0.
+  uint8_t  unknown1[16];                        Unknown binary data.
+  uint32_t blockSize;                           Block size of the encrypted block data.
+  uint64_t encryptedDataLength;                 Length in bytes of the data that has been encrypted.
+  uint64_t offsetToDataStart;                   Offset to the start of the encrypted block data.
+  uint32_t unknownInt72;                        Unknown variable with observed value 1/0x1.
+  uint32_t unknownInt76;                        Unknown variable with observed value 1/0x1.
+  uint64_t possiblePointerToKdfAlgorithm;       Could be a pointer to where kdf_algorithm is located.
+  uint64_t unknownLong88;                       Unknown variable with observed value 616/0x268.
+  uint32_t kdfAlgorithm;                        Algorithm of the key derivation function.
+  uint32_t kdfPrngAlgorithm;                    Some other algorithm?
+  uint32_t kdfIterationCount;                   Iteration count (normally 1000).
+  uint32_t kdfSaltLen;                          Length of kdfSalt (in bytes).
+  uint8_t  kdfSalt[32];                         Salt value for key derivation.
+  uint32_t blobEncIvSize;                       Size of blobEncIv.
+  uint8_t  blobEncIv[32];                       Initialization Vector for encryption-key unwrapping.
+  uint32_t blobEncKeyBits;                      Number of bits in the keyblob's encryption key.
+  uint32_t blobEncAlgorithm;                    Encryption algorithm used to encrypt the key blob.
+  uint32_t blobEncPadding;                      Padding. (?)
+  uint32_t blobEncMode;                         Encryption mode for the algorithm.
+  uint32_t encryptedKeyblobSize;                Size of encryptedKeyBlob.
+  uint8_t  encryptedKeyblob[48];                The encrypted key blob, containing all keys.
+};

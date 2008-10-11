@@ -89,6 +89,14 @@ public abstract class CommonCEncryptedEncodingHeader {
      */
     public abstract long getTrailingReservedBytes();
 
+    /**
+     * Returns the length of the data that has been encrypted. This length may
+     * not be aligned with the encryption block size, in which case the last
+     * encryption block will have been padded at the end
+     * @return the length of the data that has been encrypted.
+     */
+    public abstract long getEncryptedDataLength();
+
     public abstract KeySet unwrapKeys(Key derivedKey, Cipher cph)
             throws GeneralSecurityException, InvalidKeyException,
             InvalidAlgorithmParameterException;
@@ -120,7 +128,7 @@ public abstract class CommonCEncryptedEncodingHeader {
 
         @Override
         public int getBlockSize() {
-            return 4096; // This MAY be stored in an unmapped variable. Investigate!
+            return header.getBlockSize();
         }
 
         @Override
@@ -146,6 +154,11 @@ public abstract class CommonCEncryptedEncodingHeader {
         @Override
         public byte[] getUnwrapInitializationVector() {
             return header.getUnwrapIv();
+        }
+
+        @Override
+        public long getEncryptedDataLength() {
+            return header.getDecryptedDataLength(); // Confusion!
         }
 
         @Override
@@ -235,6 +248,11 @@ public abstract class CommonCEncryptedEncodingHeader {
 
         private byte[] getEncryptedKeyBlob() {
             return Util.createCopy(header.getEncryptedKeyblob(), 0, header.getEncryptedKeyblobSize());
+        }
+
+        @Override
+        public long getEncryptedDataLength() {
+            return header.getEncryptedDataLength();
         }
 
         @Override
