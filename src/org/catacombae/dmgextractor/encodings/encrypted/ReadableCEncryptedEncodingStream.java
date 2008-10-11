@@ -366,11 +366,12 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
         System.out.println("Length of encrypted data: " + rras.length() + " bytes");
 
         byte[] lastBlock = new byte[4096];
-        rras.seek(rras.length()/4096);
+        rras.seek(rras.length()-4096);
         rras.readFully(lastBlock);
         System.out.println("Last block: 0x" + Util.byteArrayToHexString(lastBlock));
 
         byte[] sig = new byte[2];
+        rras.seek(0);
         rras.readFully(sig);
         System.out.println("Signature: " + Util.toASCIIString(sig));
         System.out.println("fp=" + rras.getFilePointer());
