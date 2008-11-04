@@ -17,6 +17,9 @@
 
 package org.catacombae.dmgextractor.encodings.encrypted;
 
+import java.io.FilterOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 
 /**
@@ -24,8 +27,21 @@ import java.io.PrintStream;
  * @author erik
  */
 class Debug {
-    private static boolean debugEnabled = true;
-    public static final PrintStream ps = System.err;
+    private static class NullOutputStream extends OutputStream {
+
+        @Override
+        public void write(int b) throws IOException {}
+        
+    }
+    private static boolean debugEnabled = false;
+    public static final PrintStream ps;
+    
+    static {
+        if(debugEnabled)
+            ps = System.err;
+        else
+            ps = new PrintStream(new NullOutputStream());
+    }
 
     public static void print(String s) {
         if(debugEnabled)
