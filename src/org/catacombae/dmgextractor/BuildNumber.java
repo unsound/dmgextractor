@@ -19,7 +19,7 @@ package org.catacombae.dmgextractor;
 
 public class BuildNumber {
     //[BuildEnumerator:Opening] WARNING: The following lines are managed by an external program. Do NOT change.
-    public static final long BUILD_NUMBER = 400L;
+    public static final long BUILD_NUMBER = 404L;
     //[BuildEnumerator:Closing] The lines managed by an external program end here.
 }
 

@@ -69,7 +69,7 @@
   </target>
   
   <target name="jar-application" depends="compile-application">
-    <jar destfile="${target.application.outjar}" basedir="${builddir}" manifest="${target.application.manifest.dir}/MANIFEST.MF"/>
+    <jar destfile="${target.application.outjar}" basedir="${builddir}" manifest="${target.application.manifest.dir}/MANIFEST.MF" level="9"/>
   </target>
   
   
@@ -82,6 +82,7 @@
       <zipfileset src="${java.runtime.library.dir}/catacombae_io.jar" includes="**/*.class"/>
       <zipfileset src="${java.runtime.library.dir}/apache-ant-1.7.0-bzip2.jar" includes="**/*.class"/>
       <zipfileset src="${java.runtime.library.dir}/iharder-base64.jar" includes="**/*.class"/>
+      <zipfileset src="${java.runtime.library.dir}/swing-layout-1.0.3.jar" includes="**/*.class"/>
     </copy>
     <mkdir dir="${builddir}/JNLP-INF"/>
     <copy file="${target.standalone.jnlp.dir}/dmgextractor.jnlp" tofile="${builddir}/JNLP-INF/APPLICATION.JNLP"/>
@@ -104,7 +105,7 @@
   </target>
   
   <target name="jar-standalone" depends="compile-standalone">
-    <jar destfile="${target.standalone.outjar}" basedir="${builddir}" manifest="${target.standalone.manifest.dir}/MANIFEST.MF"/>
+    <jar destfile="${target.standalone.outjar}" basedir="${builddir}" manifest="${target.standalone.manifest.dir}/MANIFEST.MF" level="9"/>
   </target>
   
   
@@ -130,6 +131,7 @@
       <!-- All entry points to the DMGExtractor libraries from HFSExplorer should be listed here. -->
       <include name="org/catacombae/udif/UDIFRandomAccessStream.java"/>
       <include name="org/catacombae/dmgextractor/encodings/encrypted/ReadableCEncryptedEncodingStream.java"/>
+      <include name="org/catacombae/dmgextractor/ui/PasswordDialog.java"/>
       
       <compilerarg value="-Xlint:unchecked"/>
       <classpath refid="target.hfsxlib.classpath"/>
@@ -137,7 +139,7 @@
   </target>
   
   <target name="jar-hfsxlib" depends="compile-hfsxlib">
-    <jar destfile="${target.hfsxlib.outjar}" basedir="${builddir}"/>
+    <jar destfile="${target.hfsxlib.outjar}" basedir="${builddir}" level="9"/>
   </target>
   
   

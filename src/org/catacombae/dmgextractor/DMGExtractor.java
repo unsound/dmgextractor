@@ -33,6 +33,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JFileChooser;
 import javax.swing.ProgressMonitor;
 import org.catacombae.dmgextractor.encodings.encrypted.ReadableCEncryptedEncodingStream;
+import org.catacombae.dmgextractor.ui.PasswordDialog;
 import org.catacombae.io.FileStream;
 import org.catacombae.io.ReadableFileStream;
 import org.catacombae.io.ReadableRandomAccessStream;
@@ -784,14 +785,8 @@ public class DMGExtractor {
                 return null;
 	}
 	else {
-            String res = JOptionPane.showInputDialog(null,
-                    "The disk image you are trying to read is encrypted.\n" +
-                    "Please type your password:", "Password protected image",
-                    JOptionPane.QUESTION_MESSAGE);
-            if(res != null)
-                return res.toCharArray();
-            else
-                return null;
+            return PasswordDialog.showDialog(null, "Reading encrypted disk image...",
+                    "You need to enter a password to unlock this disk image:");
 	}
     }
     
