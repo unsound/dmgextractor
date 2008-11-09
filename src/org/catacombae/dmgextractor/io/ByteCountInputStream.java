@@ -16,72 +16,92 @@
  */
 
 package org.catacombae.dmgextractor.io;
-import java.io.*;
 
-/** Records information about what has been read. */
+import java.io.IOException;
+import java.io.InputStream;
+
+/**
+ * Filter stream that records information about how many bytes have been
+ * processed (either read or skipped).
+ */
 public class ByteCountInputStream extends InputStream {
     private long bytePos = 0;
     private InputStream is;
-    
+
+    /**
+     * Creates a new ByteCountInputStream wrapping <code>is</code>.
+     * 
+     * @param is the underlying InputStream.
+     */
     public ByteCountInputStream(InputStream is) {
-	this.is = is;
+        this.is = is;
     }
+
+    /**
+     * Returns the number of bytes that have been read since the creation
+     * of this filter stream.
+     *
+     * @return the number of bytes that have been read.
+     */
     public long getBytesRead() { return bytePos; }
     
-    /** @see java.io.InputStream */
+    /** {@inheritDoc} */
     @Override
     public int available() throws IOException { return is.available(); }
 
-    /** @see java.io.InputStream */
+    /** {@inheritDoc} */
     @Override
     public void close() throws IOException { is.close(); }
 
-    /** @see java.io.InputStream */
+    /** {@inheritDoc} */
     @Override
-    public void mark(int readLimit) { throw new RuntimeException("Mark/reset not supported"); }
+    public void mark(int readLimit) { throw new UnsupportedOperationException("Mark/reset not supported"); }
     
-    /** @see java.io.InputStream */
+    /** {@inheritDoc} */
     @Override
     public boolean markSupported() { return false; }
 
-    /** @see java.io.InputStream */
+    /** {@inheritDoc} */
     @Override
     public int read() throws IOException {
-	//System.out.println("read();");
-	int res = is.read();
-	if(res > 0)
-	    ++bytePos;
-	return res;
+        //System.out.println("read();");
+        int res = is.read();
+        if(res > 0)
+            ++bytePos;
+        return res;
     }
 
-    /** @see java.io.InputStream */
+    /** {@inheritDoc} */
     @Override
     public int read(byte[] b) throws IOException {
-	//System.out.println("read(b.length=" + b.length + ");");
-	int res = is.read(b);
-	if(res > 0) bytePos += res;
-	return res;
+        //System.out.println("read(b.length=" + b.length + ");");
+        int res = is.read(b);
+        if(res > 0)
+            bytePos += res;
+        return res;
     }
 
-    /** @see java.io.InputStream */
+    /** {@inheritDoc} */
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
-	//System.out.println("read(b.length=" + b.length + ", " + off + ", " + len + ");");
-	int res = is.read(b, off, len);
-	if(res > 0) bytePos += res;
-	return res;
+        //System.out.println("read(b.length=" + b.length + ", " + off + ", " + len + ");");
+        int res = is.read(b, off, len);
+        if(res > 0)
+            bytePos += res;
+        return res;
     }
 
-    /** @see java.io.InputStream */
+    /** {@inheritDoc} */
     @Override
-    public void reset() throws IOException { throw new RuntimeException("Mark/reset not supported"); }
+    public void reset() throws IOException { throw new UnsupportedOperationException("Mark/reset not supported"); }
 
-    /** @see java.io.InputStream */
+    /** {@inheritDoc} */
     @Override
     public long skip(long n) throws IOException {
-	System.out.println("skip(" + n + ");");
-	long res = is.skip(n);
-	if(res > 0) bytePos += res;
-	return res;
+        System.out.println("skip(" + n + ");");
+        long res = is.skip(n);
+        if(res > 0)
+            bytePos += res;
+        return res;
     }
 }

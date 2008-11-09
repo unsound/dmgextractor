@@ -15,11 +15,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgextractor;
+package org.catacombae.dmg.udif;
 
-public class BuildNumber {
-    //[BuildEnumerator:Opening] WARNING: The following lines are managed by an external program. Do NOT change.
-    public static final long BUILD_NUMBER = 417L;
-    //[BuildEnumerator:Closing] The lines managed by an external program end here.
+import org.catacombae.io.ReadableRandomAccessStream;
+
+public class UDIFFile {
+    private ReadableRandomAccessStream stream;
+    private UDIFFileView dmgView;
+    
+    public UDIFFile(ReadableRandomAccessStream stream) {
+	this.stream = stream;
+	this.dmgView = new UDIFFileView(stream);
+    }
+    
+    public UDIFFileView getView() {
+	return dmgView;
+    }
+    
+    public ReadableRandomAccessStream getStream() {
+	return stream;
+    }
 }
-
