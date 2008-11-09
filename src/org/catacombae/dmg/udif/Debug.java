@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2006 Erik Larsson
+ * Copyright (C) 2007 Erik Larsson
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,11 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.catacombae.dmgextractor;
+package org.catacombae.dmg.udif;
 
-public class BuildNumber {
-    //[BuildEnumerator:Opening] WARNING: The following lines are managed by an external program. Do NOT change.
-    public static final long BUILD_NUMBER = 417L;
-    //[BuildEnumerator:Closing] The lines managed by an external program end here.
+public class Debug {
+    public static boolean debug = false;
+    
+    public static void warning(String message) {
+	if(debug)
+	    System.err.println(message);
+    }
+    
+    public static void notification(String message) {
+	if(debug)
+	    System.out.println("------->NOTE: " + message);
+    }
 }
-

@@ -129,8 +129,8 @@
 	   target="${java.target.level}"
 	   deprecation="on">
       <!-- All entry points to the DMGExtractor libraries from HFSExplorer should be listed here. -->
-      <include name="org/catacombae/udif/UDIFRandomAccessStream.java"/>
-      <include name="org/catacombae/dmgextractor/encodings/encrypted/ReadableCEncryptedEncodingStream.java"/>
+      <include name="org/catacombae/dmg/udif/UDIFRandomAccessStream.java"/>
+      <include name="org/catacombae/dmg/encodings/encrypted/ReadableCEncryptedEncodingStream.java"/>
       <include name="org/catacombae/dmgextractor/ui/PasswordDialog.java"/>
       
       <compilerarg value="-Xlint:unchecked"/>

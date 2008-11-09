@@ -17,8 +17,8 @@
 
 package org.catacombae.dmgextractor;
 
-import org.catacombae.udif.UDIFBlockInputStream;
-import org.catacombae.udif.UDIFBlock;
+import org.catacombae.dmg.udif.UDIFBlockInputStream;
+import org.catacombae.dmg.udif.UDIFBlock;
 import java.io.*;
 import org.catacombae.io.RandomAccessStream;
 import org.catacombae.io.ReadableRandomAccessStream;
