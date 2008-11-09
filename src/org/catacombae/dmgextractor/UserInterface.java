@@ -29,9 +29,16 @@ interface UserInterface {
 
     public boolean getOutputConfirmationFromUser();
 
-    public File getOutputFileFromUser();
+    public File getOutputFileFromUser(File inputFile);
 
     public char[] getPasswordFromUser();
+
+    /**
+     * If outputFilename is null, is would mean that a simulation is in progress.
+     * @param inputFilename
+     * @param outputFilename
+     */
+    public void setProgressFilenames(String inputFilename, String outputFilename);
 
     /**
      * Unconditionally displays a message to the user, to inform about certain
@@ -105,21 +112,16 @@ interface UserInterface {
      */
     public void addProgressRaw(long value);
 
-    static class NullUI implements UserInterface {
+    static class NullUI extends BasicUI {
+
+        public NullUI() {
+            super(false);
+        }
 
         public void reportProgress(int progressPercentage) {
         }
 
-        public void setTotalProgressLength(long len) {
-        }
-
-        public void addProgressRaw(long value) {
-        }
-
         public void displayMessage(String... messageLines) {
-        }
-
-        public void displayMessageVerbose(String... messageLines) {
         }
 
         public boolean warning(String... messageLines) {
@@ -144,12 +146,16 @@ interface UserInterface {
             return false;
         }
 
-        public File getOutputFileFromUser() {
+        public File getOutputFileFromUser(File inputFile) {
             return null;
         }
 
         public char[] getPasswordFromUser() {
             return null;
+        }
+
+        public void setProgressFilenames(String inputFilename, String outputFilename) {
+            throw new UnsupportedOperationException("Not supported yet.");
         }
     }
 }
