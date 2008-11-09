@@ -21,6 +21,7 @@ import java.io.File;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.ProgressMonitor;
+import javax.swing.filechooser.FileFilter;
 import org.catacombae.dmgextractor.ui.PasswordDialog;
 
 /**
@@ -31,7 +32,9 @@ import org.catacombae.dmgextractor.ui.PasswordDialog;
 class SwingUI extends BasicUI implements UserInterface {
 
     private ProgressMonitor progmon = null;
-
+    private String inputFilename = null;
+    private String outputFilename = null;
+    
     public SwingUI(boolean verbose) {
         super(verbose);
 
@@ -86,7 +89,16 @@ class SwingUI extends BasicUI implements UserInterface {
     public void reportProgress(int progressPercentage) {
         if(progressPercentage != previousPercentage) {
             if(progmon == null) {
-                progmon = new ProgressMonitor(null, "Extracting dmg to iso...", "0%", 0, 100);
+                final String progmonText;
+                if(outputFilename != null) {
+                    progmonText = "Extracting \"" +
+                            inputFilename + "\" to\n    \"" + outputFilename + "\"...";
+                }
+                else {
+                    progmonText = "Simulating extraction of \"" +
+                            inputFilename + "\"...";
+                }
+                progmon = new ProgressMonitor(null, progmonText, "0%", 0, 100);
                 progmon.setProgress(0);
                 progmon.setMillisToPopup(0);
             }
@@ -155,8 +167,9 @@ class SwingUI extends BasicUI implements UserInterface {
         while(true) {
             if(jfc.showDialog(null, "Open") == JFileChooser.APPROVE_OPTION) {
                 File f = jfc.getSelectedFile();
-                if(f.exists())
+                if(f.exists()) {
                     return f;
+                }
                 else
                     JOptionPane.showMessageDialog(null, "The file does not exist! Choose again...",
                             "Error", JOptionPane.ERROR_MESSAGE);
@@ -176,22 +189,54 @@ class SwingUI extends BasicUI implements UserInterface {
     }
 
     /** {@inheritDoc} */
-    public File getOutputFileFromUser() {
+    public File getOutputFileFromUser(File inputFile) {
         final String msgFileExists = "The file already exists. Do you want to overwrite?";
 
         JFileChooser jfc = new JFileChooser();
         jfc.setMultiSelectionEnabled(false);
         jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+        SimplerFileFilter defaultFileFilter = new SimplerFileFilter(".iso", "CD/DVD image (*.iso)");
+        jfc.addChoosableFileFilter(defaultFileFilter);
+        jfc.addChoosableFileFilter(new SimplerFileFilter(".img", "Raw image (*.img)"));
+        jfc.addChoosableFileFilter(new SimplerFileFilter(".bin", "Binary file (*.bin)"));
+        jfc.addChoosableFileFilter(new SimplerFileFilter(".dmg", "Mac OS X read/write disk image (*.dmg)"));
+        jfc.setFileFilter(defaultFileFilter);
         jfc.setDialogTitle("Select your output file");
+        
+        if(inputFile != null) {
+            String name = inputFile.getName();
+            String defaultOutName = name;
+            int lastDotIndex = defaultOutName.lastIndexOf(".");
+            if(lastDotIndex >= 0) {
+                defaultOutName = defaultOutName.substring(0, lastDotIndex);
+            }
+            jfc.setSelectedFile(new File(inputFile.getParentFile(),
+                    defaultOutName));
+        }
+
         while(true) {
             if(jfc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-                File f = jfc.getSelectedFile();
-                if(!f.exists())
-                    return f;
+                File selectedFile = jfc.getSelectedFile();
+                final File saveFile;
+                FileFilter selectedFileFilter = jfc.getFileFilter();
+                if(selectedFileFilter instanceof SimplerFileFilter) {
+                    SimplerFileFilter sff = (SimplerFileFilter) selectedFileFilter;
+                    if(!selectedFile.getName().endsWith(sff.getExtension()))
+                        saveFile = new File(selectedFile.getParentFile(), selectedFile.getName() + sff.getExtension());
+                    else
+                        saveFile = selectedFile;
+                }
+                else {
+                    saveFile = selectedFile;
+                }
+
+                if(!saveFile.exists())
+                    return saveFile;
                 else if(JOptionPane.showConfirmDialog(null, msgFileExists,
                         "Confirmation", JOptionPane.YES_NO_OPTION,
                         JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
-                    return f;
+                    return saveFile;
                 }
             }
             else
@@ -203,5 +248,10 @@ class SwingUI extends BasicUI implements UserInterface {
     public char[] getPasswordFromUser() {
         return PasswordDialog.showDialog(null, "Reading encrypted disk image...",
                 "You need to enter a password to unlock this disk image:");
+    }
+
+    public void setProgressFilenames(String inputFilename, String outputFilename) {
+        this.inputFilename = inputFilename;
+        this.outputFilename = outputFilename;
     }
 }

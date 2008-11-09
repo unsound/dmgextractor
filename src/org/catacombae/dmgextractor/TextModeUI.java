@@ -48,9 +48,9 @@ class TextModeUI extends BasicUI implements UserInterface {
     /** {@inheritDoc} */
     public boolean warning(String... messageLines) {
         if(messageLines.length > 0) {
-            ps.println("!------>WARNING: " + messageLines[0]);
+            ps.println("WARNING: " + messageLines[0]);
             for(int i = 1; i < messageLines.length; ++i)
-                ps.println("          " + messageLines[i]);
+                ps.println("         " + messageLines[i]);
         }
         return true;
     }
@@ -144,7 +144,7 @@ class TextModeUI extends BasicUI implements UserInterface {
     }
 
     /** {@inheritDoc} */
-    public File getOutputFileFromUser() {
+    public File getOutputFileFromUser(File inputFile) {
         /*
         final String msg1 = "Please specify the path of the iso file to extract to: ";
         final String msg2 = "The file already exists. Do you want to overwrite?";
@@ -189,5 +189,11 @@ class TextModeUI extends BasicUI implements UserInterface {
     private String prompt(String s) throws IOException {
         ps.print(s);
         return stdin.readLine();
+    }
+
+    public void setProgressFilenames(String inputFilename, String outputFilename) {
+        /*
+         * We currently don't act on this.
+         */
     }
 }

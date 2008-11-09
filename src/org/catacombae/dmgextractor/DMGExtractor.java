@@ -37,6 +37,7 @@ import org.catacombae.dmg.udif.Koly;
 import org.catacombae.dmg.udif.Plist;
 import org.catacombae.dmg.udif.PlistPartition;
 import org.catacombae.dmg.udif.UDIFBlock;
+import org.catacombae.dmg.udif.UDIFDetector;
 import org.xml.sax.XMLReader;
 
 public class DMGExtractor {
@@ -59,7 +60,7 @@ public class DMGExtractor {
         "later. See <http://www.gnu.org/copyleft/gpl.html> for the details.",
         ""
     };
-    
+
     /**
      * Contains settings variables for a DMGExtractor session.
      */
@@ -90,19 +91,31 @@ public class DMGExtractor {
 
             ui.displayMessage(COPYRIGHT_MESSAGE);
             if(ses.parseArgsErrorMessage == null) {
-                if(ses.dmgFile == null) {
-                    if(ses.graphical) {
+                if(ses.graphical) {
+                    if(ses.dmgFile == null) {
                         ses.dmgFile = ui.getInputFileFromUser();
-                        if(ses.dmgFile != null && ses.isoFile == null) {
-                            if(ui.getOutputConfirmationFromUser()) {
-                                ses.isoFile = ui.getOutputFileFromUser();
-                            }
+                    }
+                    if(ses.dmgFile != null && ses.isoFile == null) {
+                        if(ui.getOutputConfirmationFromUser()) {
+                            ses.isoFile = ui.getOutputFileFromUser(ses.dmgFile);
+                            if(ses.isoFile == null)
+                                System.exit(0);
                         }
                     }
                 }
 
-                if(ses.dmgFile != null)
+                if(ses.dmgFile != null) {
+                    String dmgFilename = null;
+                    String isoFilename = null;
+
+                    if(ses.dmgFile != null)
+                        dmgFilename = ses.dmgFile.getName();
+                    if(ses.isoFile != null)
+                        isoFilename = ses.isoFile.getName();
+
+                    ui.setProgressFilenames(dmgFilename, isoFilename);
                     extractProcedure(ses, ui);
+                }
                 else if(!ses.graphical)
                     printUsageInstructions(ui, ses.startupCommand,
                             "Error: No input file specified.");
@@ -125,8 +138,12 @@ public class DMGExtractor {
     private static void extractProcedure(Session ses, UserInterface ui) throws Exception {
         
         ui.displayMessageVerbose("Processing: \"" + ses.dmgFile + "\"");
+
         ReadableRandomAccessStream dmgRaf = new ReadableFileStream(new RandomAccessFile(ses.dmgFile, "r"));
+
+        final boolean encrypted;
         if(ReadableCEncryptedEncodingStream.isCEncryptedEncoding(dmgRaf)) {
+            encrypted = true;
             char[] password;
             while(true) {
                 password = ui.getPasswordFromUser();
@@ -144,17 +161,31 @@ public class DMGExtractor {
                 }
             }
         }
+        else
+            encrypted = false;
 
         TruncatableRandomAccessStream isoRaf = null;
-        boolean testOnly = false;
+        final boolean testOnly;
         if(ses.isoFile != null) {
+            testOnly = false;
             isoRaf = new FileStream(ses.isoFile);
             isoRaf.setLength(0);
-            ui.displayMessageVerbose("Extracting to: " + ses.isoFile);
+            ui.displayMessageVerbose("Extracting to: \"" + ses.isoFile + "\"");
         }
         else {
             testOnly = true;
             ui.displayMessageVerbose("Simulating extraction...");
+        }
+
+        if(!UDIFDetector.isUDIFEncoded(dmgRaf)) {
+            if(!encrypted) {
+                if(!ui.warning("The image you chose does not seem to be UDIF encoded or encrypted.",
+                    "It will simply be copied to its destination.")) {
+                    System.exit(1);
+                }
+            }
+            copyData(dmgRaf, isoRaf, ui);
+            System.exit(0);
         }
 
         Koly koly;
@@ -259,6 +290,10 @@ public class DMGExtractor {
                             "        inOffset=" + inOffset + " inSize=" + inSize,
                             "        trueOutOffset=" + trueOutOffset + " trueInOffset=" + trueInOffset);
                 }
+                else
+                    ui.displayMessageVerbose("      Processing " + blockTypeString +
+                            " block. In: " + inSize +
+                            " bytes. Out: " + outSize + " bytes.");
 
                 if(!testOnly && isoRaf.getFilePointer() != trueOutOffset) {
                     ++warningsReported;
@@ -468,6 +503,28 @@ public class DMGExtractor {
         }
     }
 
+    private static void copyData(ReadableRandomAccessStream inStream,
+            TruncatableRandomAccessStream outStream, UserInterface ui) {
+        byte[] buffer = new byte[64*1024];
+
+        ui.setTotalProgressLength(inStream.length());
+        long totalBytesCopied = 0;
+        inStream.seek(0);
+        int bytesRead = inStream.read(buffer);
+        while(bytesRead > 0 && !ui.cancelSignaled()) {
+            if(outStream != null)
+                outStream.write(buffer, 0, bytesRead);
+            ui.addProgressRaw(bytesRead);
+            totalBytesCopied += bytesRead;
+
+            bytesRead = inStream.read(buffer);
+        }
+
+        ui.reportProgress(100);
+        ui.reportFinished(outStream == null, 0, 0, totalBytesCopied);
+    }
+
+
     /**
      *
      * @param message
@@ -495,7 +552,7 @@ public class DMGExtractor {
             int i;
             for(i = 0; i < args.length; ++i) {
                 String cur = args[i];
-                //ps.println("Parsing argument: \"" + cur + "\"");
+                //System.err.println("Parsing argument: \"" + cur + "\"");
                 if(!cur.startsWith("-"))
                     break;
                 else if(cur.equals("-gui"))
@@ -566,14 +623,15 @@ public class DMGExtractor {
         String[] prefixMessage = new String[0];
 
         if(errorMessage != null)
-            Util.concatenate(prefixMessage, errorMessage);
+            prefixMessage = Util.concatenate(prefixMessage, errorMessage);
 
         // 80 char ruler:
         //  <-------------------------------------------------------------------------------->
         String[] mainMessage = new String[] {
             "  usage: " + startupCommand + " [options] <dmgFile> [<outputFile>]",
-            "  if an output file is not supplied, the program will simulate an extraction",
-            "  (useful for detecting errors in dmg-files)",
+            "",
+            "  If an output file is not supplied, the program will simulate an extraction",
+            "  (useful for detecting errors in dmg-files).",
             "",
             "  options:",
             "    -v          verbose operation... for finding out what went wrong",
