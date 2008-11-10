@@ -42,7 +42,7 @@ import org.xml.sax.XMLReader;
 
 public class DMGExtractor {
     public static final String BASE_APP_NAME = "DMGExtractor";
-    public static final String VERSION = "0.70pre";
+    public static final String VERSION = "0.70";
     
     public static final String APPNAME = BASE_APP_NAME + " " + VERSION;
     public static final String BUILDSTRING = "(Build #" + BuildNumber.BUILD_NUMBER + ")";
@@ -179,8 +179,8 @@ public class DMGExtractor {
 
         if(!UDIFDetector.isUDIFEncoded(dmgRaf)) {
             if(!encrypted) {
-                if(!ui.warning("The image you chose does not seem to be UDIF encoded or encrypted.",
-                    "It will simply be copied to its destination.")) {
+                if(!ui.warning("The image you selected does not seem to be UDIF encoded or encrypted.",
+                    "Its contents will be copied unchanged to the destination.")) {
                     System.exit(1);
                 }
             }

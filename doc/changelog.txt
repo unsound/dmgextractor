@@ -1,6 +1,21 @@
 DMGExtractor changelog
 ----------------------
 
+0.70 (build 437)
+----------------
+- Support for AES-128 encrypted .dmg images added after studying VileFault
+  ( http://crypto.nsa.org/vilefault/ ).
+- Program now suggests a sensible default output file.
+- User interaction slightly overhauled when restructuring the program. Should be more
+  informative and practical in many cases.
+- Program now accepts raw .dmg files, though a warning is issued telling the user that
+  essentially the program will only copy the file contents from one location to another.
+- Developers: The package org.catacombae.udif moved to org.catacombae.dmg.udif, and a new
+  package called org.catacombae.dmg.encrypted was created where the implementation of the
+  CEncryptedEncoding layer resides. Developers can easily read encrypted .dmg format files
+  with the class:
+    org.catacombae.dmg.encrypted.ReadableCEncryptedEncodingStream
+
 0.60 (build 386)
 ----------------
 - Upgraded license to GPL version 3 in order to use the Apache bzip2 code which is released
