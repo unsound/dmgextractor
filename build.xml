@@ -79,7 +79,7 @@
   
   <target name="copyresources-standalone" depends="init">
     <copy todir="${builddir}">
-      <zipfileset src="${java.runtime.library.dir}/catacombae_io.jar" includes="**/*.class"/>
+      <zipfileset src="${java.runtime.library.dir}/csframework.jar" includes="**/*.class"/>
       <zipfileset src="${java.runtime.library.dir}/apache-ant-1.7.0-bzip2.jar" includes="**/*.class"/>
       <zipfileset src="${java.runtime.library.dir}/iharder-base64.jar" includes="**/*.class"/>
       <zipfileset src="${java.runtime.library.dir}/swing-layout-1.0.3.jar" includes="**/*.class"/>
