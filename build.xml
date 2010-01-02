@@ -60,6 +60,7 @@
 	   includes="**"
 	   debug="true"
 	   debuglevel="${debuglevel}"
+	   encoding="iso-8859-1"
 	   source="${java.source.level}"
 	   target="${java.target.level}"
 	   deprecation="on">
@@ -129,8 +130,8 @@
 	   target="${java.target.level}"
 	   deprecation="on">
       <!-- All entry points to the DMGExtractor libraries from HFSExplorer should be listed here. -->
-      <include name="org/catacombae/dmg/udif/UDIFRandomAccessStream.java"/>
-      <include name="org/catacombae/dmg/encodings/encrypted/ReadableCEncryptedEncodingStream.java"/>
+      <include name="org/catacombae/dmg/udif/*.java"/>
+      <include name="org/catacombae/dmg/encrypted/*.java"/>
       <include name="org/catacombae/dmgextractor/ui/PasswordDialog.java"/>
       
       <compilerarg value="-Xlint:unchecked"/>
