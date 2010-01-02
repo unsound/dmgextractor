@@ -17,41 +17,57 @@
 
 package org.catacombae.dmgextractor;
 
+import java.io.IOException;
 import org.catacombae.dmg.udif.UDIFBlockInputStream;
 import org.catacombae.dmg.udif.UDIFBlock;
-import java.io.*;
 import org.catacombae.io.RandomAccessStream;
 import org.catacombae.io.ReadableRandomAccessStream;
 
-/** Please don't try to use this code with concurrent threads... :) Use external synchronization to protect
-    the shared data in this class. */
+/**
+ * Please don't try to use this code with concurrent threads... :) Use external
+ * synchronization to protect the shared data in this class.
+ */
 class DMGBlockHandlers {
+
     private static byte[] inBuffer = new byte[0x40000];
-    
-    /** Extracts a DMGBlock describing a region of the file dmgRaf to the file isoRaf. If the testOnly flag
-	is set, nothing is written to isoRaf (in fact, it can be null in this case). ui may not be null. in
-	that case, use UserInterface.NullUI. */
-    static long processBlock(UDIFBlock block, ReadableRandomAccessStream dmgRaf, RandomAccessStream isoRaf, 
-				    boolean testOnly, UserInterface ui) throws IOException {
-	UDIFBlockInputStream is = UDIFBlockInputStream.getStream(dmgRaf, block);
-	long res = processStream(is, isoRaf, testOnly, ui);
-	is.close();
-	if(res != block.getOutSize())
-	    System.err.println("WARNING: Could not extract entire block! Extracted " + res + " of " + block.getOutSize() + " bytes");
-	return res;
+
+    /**
+     * Extracts an UDIFBlock describing a region of the file <code>dmgRaf</code>
+     * to the file <code>isoRaf</code>. If the <code>testOnly</code> flag is
+     * set, nothing is written to <code>isoRaf</code> (in fact, it can be null
+     * in this case). <code>ui</code> may not be null. If you do not want user
+     * interaction, use {@link UserInterface.NullUI}.
+     */
+    static long processBlock(UDIFBlock block, ReadableRandomAccessStream dmgRaf,
+            RandomAccessStream isoRaf, boolean testOnly, UserInterface ui)
+            throws IOException {
+
+        UDIFBlockInputStream is = UDIFBlockInputStream.getStream(dmgRaf, block);
+        long res = processStream(is, isoRaf, testOnly, ui);
+        is.close();
+        if(res != block.getOutSize()) {
+            System.err.println("WARNING: Could not extract entire block! " +
+                    "Extracted " + res + " of " + block.getOutSize() +
+                    " bytes");
+        }
+        return res;
     }
-    
-    private static long processStream(UDIFBlockInputStream is, RandomAccessStream isoRaf, 
-				      boolean testOnly, UserInterface ui) throws IOException {
-	long totalBytesRead = 0;
-	int bytesRead = is.read(inBuffer);
-	while(bytesRead > 0) {
-	    totalBytesRead += bytesRead;
-	    //ui.reportProgress((int)(dmgRaf.getFilePointer()*100/dmgRaf.length()));
-	    ui.addProgressRaw(bytesRead);
-	    if(!testOnly) isoRaf.write(inBuffer, 0, bytesRead);
-	    bytesRead = is.read(inBuffer);
-	}
-	return totalBytesRead;
+
+    private static long processStream(UDIFBlockInputStream is,
+            RandomAccessStream isoRaf, boolean testOnly, UserInterface ui)
+            throws IOException {
+
+        long totalBytesRead = 0;
+        int bytesRead = is.read(inBuffer);
+        while(bytesRead > 0) {
+            totalBytesRead += bytesRead;
+            //ui.reportProgress((int)(dmgRaf.getFilePointer()*100/dmgRaf.length()));
+            ui.addProgressRaw(bytesRead);
+            if(!testOnly) {
+                isoRaf.write(inBuffer, 0, bytesRead);
+            }
+            bytesRead = is.read(inBuffer);
+        }
+        return totalBytesRead;
     }
 }
