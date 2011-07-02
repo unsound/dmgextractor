@@ -617,7 +617,7 @@ void cdSect() :
 }
 
 /*
-// Old but intresting code
+// Old but interesting code
 
 void xmlDocument() :
 {
