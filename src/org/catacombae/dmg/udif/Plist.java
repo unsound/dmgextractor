@@ -1,6 +1,6 @@
 /*-
  * Copyright (C) 2006-2008 Erik Larsson
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -33,7 +33,7 @@ import org.catacombae.xml.apx.*;
 public class Plist {
     //private final byte[] plistData;
     private XMLNode rootNode;
-    
+
     public Plist(byte[] data) {
 	this(data, 0, data.length);
     }
@@ -48,27 +48,25 @@ public class Plist {
 	//System.arraycopy(data, offset, plistData, 0, length);
 	rootNode = parseXMLData(data, useSAXParser);
     }
-    
+
     //public byte[] getData() { return Util.createCopy(plistData); }
-    
+
     public PlistPartition[] getPartitions() throws IOException {
 	LinkedList<PlistPartition> partitionList = new LinkedList<PlistPartition>();
 	XMLNode current = rootNode;
 	current = current.cd("dict");
 	current = current.cdkey("resource-fork");
 	current = current.cdkey("blkx");
-	int numberOfPartitions = current.getChildren().length;
-	
+
 	// Variables to keep track of the pointers of the previous partition
 	long previousOutOffset = 0;
 	long previousInOffset = 0;
-	
-	int i = 0;
+
 	// Iterate over the partitions and gather data
 	for(XMLElement xe : current.getChildren()) {
 	    if(xe instanceof XMLNode) {
 		XMLNode xn = (XMLNode)xe;
-		
+
 		String partitionName = Util.readFully(xn.getKeyValue("Name"));
 		String partitionID = Util.readFully(xn.getKeyValue("ID"));
 		String partitionAttributes = Util.readFully(xn.getKeyValue("Attributes"));
@@ -78,7 +76,7 @@ public class Plist {
 		//System.gc();
 		//System.err.println("Converting data to binary form... free memory: " + Runtime.getRuntime().freeMemory() + " total memory: " + Runtime.getRuntime().totalMemory());
 		//byte[] data = Base64.decode(base64Data);
-		
+
 // 		try {
 // 		    InputStream yo = new Base64.InputStream(new ReaderInputStream(base64Data, Charset.forName("US-ASCII")));
 // 		    String filename1 = "dump_plist_java-" + System.currentTimeMillis() + ".datadpp";
@@ -106,30 +104,29 @@ public class Plist {
 // 			}
 // 			if(curBytesRead > 0)
 // 			    fos.write(buf2, 0, curBytesRead);
-			
+
 // 		    }
 // 		    fos.close();
 // 		} catch(Exception e) { e.printStackTrace(); }
-		
+
 		InputStream base64DataInputStream = new Base64.InputStream(new ReaderInputStream(base64Data, Charset.forName("US-ASCII")));
-		
 		//System.err.println("Creating PlistPartition.");
 		//System.out.println("Block list for partition " + i++ + ":");
-		PlistPartition dpp = new PlistPartition(partitionName, partitionID, partitionAttributes, 
+		PlistPartition dpp = new PlistPartition(partitionName, partitionID, partitionAttributes,
 							      base64DataInputStream, previousOutOffset, previousInOffset);
 		previousOutOffset = dpp.getFinalOutOffset();
 		previousInOffset = dpp.getFinalInOffset();
 		partitionList.addLast(dpp);
 	    }
 	}
-	
+
 	return partitionList.toArray(new PlistPartition[partitionList.size()]);
     }
-    
+
     private XMLNode parseXMLData(byte[] plistData, boolean defaultToSAX) {
 	//InputStream is = new ByteArrayInputStream(plistData);
 	NodeBuilder handler = new NodeBuilder();
-	
+
 	if(defaultToSAX) {
 	    parseXMLDataSAX(plistData, handler);
 	}
@@ -147,7 +144,7 @@ public class Plist {
 		parseXMLDataSAX(plistData, handler);
 	    }
 	}
-	
+
 	XMLNode[] rootNodes = handler.getRoots();
 	if(rootNodes.length != 1)
 	    throw new RuntimeException("Could not parse DMG-file!");
@@ -160,7 +157,7 @@ public class Plist {
 	    ReadableByteArrayStream ya = new ReadableByteArrayStream(buffer);
 	    SynchronizedRandomAccessStream bufferStream =
 		new SynchronizedRandomAccessStream(ya);//new ReadableByteArrayStream(buffer));
-	    
+
 	    // First we parse the xml declaration using a US-ASCII charset just to extract the charset description
 	    //System.err.println("parsing encoding");
 	    InputStream is = new RandomAccessInputStream(bufferStream);
@@ -170,9 +167,9 @@ public class Plist {
 	    //System.err.println("encodingName=" + encodingName);
 	    if(encodingName == null)
 		encodingName = "US-ASCII";
-	    
+
 	    Charset encoding = Charset.forName(encodingName);
-	    
+
 	    // Then we proceed to parse the entire document
 	    is = new RandomAccessInputStream(bufferStream);
 	    Reader usedReader = new BufferedReader(new InputStreamReader(is, encoding));
@@ -197,7 +194,7 @@ public class Plist {
 	    throw new RuntimeException(uee);
 	}
     }
-    
+
     private void parseXMLDataSAX(byte[] buffer, NodeBuilder handler) {
 	try {
 	    InputStream is = new ByteArrayInputStream(buffer);
