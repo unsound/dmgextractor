@@ -135,6 +135,9 @@ public class XmlPlistNode extends PlistNode {
     public Reader getKeyValue(String key) {
         //System.out.println("XMLNode.getKeyValue(\"" + key + "\")");
         XmlPlistNode keyNode = cdkeyXml(key);
+        if(keyNode == null)
+            return null;
+
         XMLElement[] nodeChildren = keyNode.getXMLNode().getChildren();
         if(nodeChildren.length != 1) {
             //System.out.println("  nodeChildren.length == " + nodeChildren.length);
