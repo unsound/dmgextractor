@@ -124,7 +124,7 @@ class Info extends BundleMember {
             bandSizeLong = Long.parseLong(bandSizeString);
         } catch(NumberFormatException nfe) {
             throw new IOException("Illegal numeric value for " + bandSizeKey +
-                    ": " + bandSizeString, nfe);
+                    ": " + bandSizeString);
         }
 
         final long sizeLong;
@@ -132,7 +132,7 @@ class Info extends BundleMember {
             sizeLong = Long.parseLong(sizeString);
         } catch(NumberFormatException nfe) {
             throw new IOException("Illegal numeric value for " + sizeKey +
-                    ": " + sizeString, nfe);
+                    ": " + sizeString);
         }
 
         this.bandSize = bandSizeLong;
