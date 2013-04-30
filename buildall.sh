@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 SOURCES_DIR=src
 BUILDTOOLS_CP=lib/buildenumerator.jar
