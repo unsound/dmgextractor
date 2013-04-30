@@ -17,7 +17,7 @@ ant_build() {
 
 main() {
     ant_build
-    if [ "$?" == 0 ]; then
+    if [ "$?" -eq 0 ]; then
 	jobCompleted
     else
 	error
