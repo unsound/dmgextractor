@@ -29,9 +29,9 @@ ant_build() {
 
 main() {
     increment_buildnumber
-    if [ "$?" == 0 ]; then
+    if [ "$?" -eq 0 ]; then
 	ant_build
-	if [ "$?" == 0 ]; then
+	if [ "$?" -eq 0 ]; then
 	    jobCompleted
 	else
 	    error
