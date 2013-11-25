@@ -138,7 +138,7 @@ public abstract class CommonCEncryptedEncodingHeader {
 
         @Override
         public long getTrailingReservedBytes() {
-            return header.length();
+            return V1Header.length();
         }
 
         @Override

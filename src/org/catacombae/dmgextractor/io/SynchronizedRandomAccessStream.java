@@ -17,7 +17,6 @@
 
 package org.catacombae.dmgextractor.io;
 
-import java.io.*;
 import org.catacombae.io.BasicReadableRandomAccessStream;
 import org.catacombae.io.ReadableRandomAccessStream;
 import org.catacombae.io.RuntimeIOException;

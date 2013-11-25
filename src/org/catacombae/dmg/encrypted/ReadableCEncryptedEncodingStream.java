@@ -84,7 +84,7 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
 
     public ReadableCEncryptedEncodingStream(ReadableRandomAccessStream backingStream,
             char[] password) throws RuntimeIOException {
-        Debug.print("ReadableCEncryptedEncodingStream(" + backingStream + ", " + password +");");
+        Debug.print("ReadableCEncryptedEncodingStream(" + backingStream + ", " + new String(password) +");");
         this.backingStream = backingStream;
         int headerVersion = CEncryptedEncodingUtil.detectVersion(backingStream);
         Debug.print("  headerVersion = " + headerVersion);

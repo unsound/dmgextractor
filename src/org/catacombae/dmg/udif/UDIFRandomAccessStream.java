@@ -41,6 +41,7 @@ public class UDIFRandomAccessStream extends BasicReadableRandomAccessStream {
     private long logicalFilePointer = 0;
     private boolean seekCalled = false;
     
+    @SuppressWarnings("unused")
     private static void dbg(String s) { System.err.println(s); }
     
     public UDIFRandomAccessStream(RandomAccessFile raf) throws RuntimeIOException {

@@ -22,7 +22,6 @@ import java.nio.charset.*;
 
 public class CharByCharReader extends Reader {
     private InputStream is;
-    private Charset cs;
     private CharsetDecoder cdec;
     private byte[] tempBuffer;
     private int tempBufferPtr = 0;
@@ -32,7 +31,6 @@ public class CharByCharReader extends Reader {
     /* The assumption we make here is that a number of bytes define a Unicode character. */
     public CharByCharReader(InputStream is, Charset cs) {
 	this.is = is;
-	this.cs = cs;
 	this.cdec = cs.newDecoder();
 	tempBuffer = new byte[(int)Math.ceil(cdec.maxCharsPerByte())];
     }

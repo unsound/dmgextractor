@@ -51,7 +51,8 @@ public class DMGInfo {
         System.out.println("  Implication: plist size = " + (plistEndAddress - plistAddress1) + " B");
 
 
-        long unknown_0x1D0 = inRaf.readLong();
+        //long unknown_0x1D0 =
+        inRaf.readLong();
 
 
         long unknown_0x1C8 = inRaf.readLong();
@@ -60,7 +61,8 @@ public class DMGInfo {
                     Long.toHexString(unknown_0x1C8) + " and not 0x0000000100000001");
 
 
-        long unknown_0x1C0 = inRaf.readLong();
+        //long unknown_0x1C0 =
+        inRaf.readLong();
 
 
         long unknown_0x1B8 = inRaf.readLong();
@@ -73,7 +75,8 @@ public class DMGInfo {
                     Long.toHexString(unknown_0x1B0) + " and not 0x0000000200000020");
 
 
-        int unknown_0x1A8 = inRaf.readInt();
+        //int unknown_0x1A8 =
+        inRaf.readInt();
 
 
         int unknown_0x1A4 = inRaf.readInt();

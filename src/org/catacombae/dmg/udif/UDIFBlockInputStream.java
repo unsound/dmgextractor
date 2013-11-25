@@ -18,8 +18,6 @@
 package org.catacombae.dmg.udif;
 
 import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.DataFormatException;
@@ -386,32 +384,6 @@ public abstract class UDIFBlockInputStream extends InputStream {
                 throws IOException, RuntimeIOException {
 
             super(raf, block, addInOffset);
-
-            if(false) {
-                byte[] inBuffer = new byte[4096];
-                String basename = System.nanoTime() + "";
-                File outFile = new File(basename + "_bz2.bin");
-                int i = 1;
-                while(outFile.exists())
-                    outFile = new File(basename + "_" + i++ + "_bz2.bin");
-                System.err.println("Creating a new Bzip2BlockInputStream. " +
-                        "Dumping bzip2 block data to file \"" + outFile + "\"");
-                FileOutputStream outStream = new FileOutputStream(outFile);
-                raf.seek(block.getTrueInOffset());
-                long bytesWritten = 0;
-                long bytesToWrite = block.getInSize();
-                while(bytesWritten < bytesToWrite) {
-                    int curBytesRead = raf.read(inBuffer, 0,
-                            (int) Math.min(bytesToWrite - bytesWritten,
-                            inBuffer.length));
-                    if(curBytesRead <= 0)
-                        throw new RuntimeException("Unable to read bzip2 " +
-                                "block fully.");
-                    outStream.write(inBuffer, 0, curBytesRead);
-                    bytesWritten += curBytesRead;
-                }
-                outStream.close();
-            }
 
             bzip2DataStream = new RandomAccessInputStream(
                     new SynchronizedRandomAccessStream(raf),
