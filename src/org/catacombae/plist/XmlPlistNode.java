@@ -73,8 +73,16 @@ public class XmlPlistNode extends PlistNode {
     public PlistNode[] getChildren() {
         final LinkedList<PlistNode> children = new LinkedList<PlistNode>();
 
-        for(String key : getKeys()) {
-            children.add(cdkey(key));
+        String myType = xmlNode.qName;
+        if (myType.equals("array")) {
+            for (XMLElement xn : xmlNode.getChildren()) {
+                if (xn instanceof XMLNode)
+                    children.add(new XmlPlistNode((XMLNode) xn));
+            }
+        } else if (myType.equals("dict")) {
+            for(String key : getKeys()) {
+                children.add(cdkey(key));
+            }
         }
 
         return children.toArray(new PlistNode[children.size()]);
