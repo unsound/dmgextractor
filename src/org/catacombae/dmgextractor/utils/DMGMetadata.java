@@ -291,8 +291,11 @@ public class DMGMetadata {
         public String toString() {
             StringBuilder result = new StringBuilder("[BlockDescriptor");
 
-            String blockTypeString = "\"" + getBlockTypeName() + "\"";
-            if(blockTypeString == null)
+            String blockTypeName = getBlockTypeName();
+            String blockTypeString;
+            if (blockTypeName != null)
+                blockTypeString = "\"" + blockTypeName + "\"";
+            else
                 blockTypeString = "0x" + Integer.toHexString(blockType) + " (unknown type)";
 
             result.append(" blockType=" + blockTypeString);
