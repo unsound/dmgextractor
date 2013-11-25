@@ -122,15 +122,8 @@ public class XmlPlist {
             //try { FileOutputStream dump = new FileOutputStream("dump.xml"); dump.write(buffer); dump.close(); }
             //catch(Exception e) { e.printStackTrace(); }
 
-            if(false) { //
-                APXParser documentParser = APXParser.create(usedReader, new DebugXMLContentHandler(encoding));
-                documentParser.xmlDocument();
-                System.exit(0);
-            }
-            else {
-                APXParser documentParser = APXParser.create(usedReader, new NodeBuilderContentHandler(handler, bufferStream, encoding));
-                documentParser.xmlDocument();
-            }
+            APXParser documentParser = APXParser.create(usedReader, new NodeBuilderContentHandler(handler, bufferStream, encoding));
+            documentParser.xmlDocument();
 
         } catch(ParseException pe) {
             //System.err.println("Could not read the partition list...");
