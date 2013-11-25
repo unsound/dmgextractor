@@ -22,6 +22,7 @@ import java.util.*;
 import java.io.*;
 import java.nio.charset.Charset;
 
+@SuppressWarnings("unused")
 public class APXParserTokenManager implements APXParserConstants
 {
   public  java.io.PrintStream debugStream = System.out;

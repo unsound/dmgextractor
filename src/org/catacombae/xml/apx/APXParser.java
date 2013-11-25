@@ -27,6 +27,7 @@ import java.nio.charset.Charset;
     for any validity constraints. It just breaks up the syntactic structure of an XML file and
     reports it to an org.catacombae.xml.XMLContentHandler. This is sufficient for my needs so it
     remains to be seen if the parser will be extended in the future. */
+@SuppressWarnings({"unused", "unchecked", "rawtypes"})
 public class APXParser implements APXParserConstants {
     public static final String DEFAULT_ENCODING = "US-ASCII";
     //private Reader usedReader;
