@@ -43,9 +43,11 @@ public class DMGMetadata {
     public DMGMetadata(RandomAccessFile dmgFile) throws IOException {
         dmgFile.seek(dmgFile.length() - PLIST_ADDRESS_1);
         long plistBegin1 = dmgFile.readLong();
-        long plistEnd = dmgFile.readLong();
+        //long plistEnd =
+        dmgFile.readLong(); //plistEnd
         dmgFile.seek(dmgFile.length() - PLIST_ADDRESS_2);
-        long plistBegin2 = dmgFile.readLong();
+        //long plistBegin2 =
+        dmgFile.readLong(); //plistBegin2
         long plistSize = dmgFile.readLong();
 
         rawData = new byte[(int) (dmgFile.length() - plistBegin1)];

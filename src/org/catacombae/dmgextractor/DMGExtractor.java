@@ -615,10 +615,6 @@ public class DMGExtractor {
         return ses;
     }
 
-    private static void printUsageInstructions(UserInterface ui, String startupCommand) {
-        printUsageInstructions(ui, startupCommand, null);
-    }
-
     private static void printUsageInstructions(UserInterface ui, String startupCommand, String errorMessage) {
         String[] prefixMessage = new String[0];
 
@@ -648,7 +644,8 @@ public class DMGExtractor {
         ui.displayMessage(Util.concatenate(prefixMessage, mainMessage));
 
     }
-    
+
+    @SuppressWarnings("unused")
     private static void printSAXParserInfo(XMLReader saxParser, PrintStream ps, String prefix) throws Exception {
         ps.println(prefix + "Features:");
         ps.println(prefix + "  external-general-entities: " + saxParser.getFeature("http://xml.org/sax/features/external-general-entities"));
@@ -676,11 +673,6 @@ public class DMGExtractor {
         ps.println(prefix + "  xml-string: " + saxParser.getProperty("http://xml.org/sax/properties/xml-string"));
 
         //ps.println("isValidating: " + saxParser.isValidating());
-    }
-
-    private static LinkedList<UDIFBlock> mergeBlocks(LinkedList<UDIFBlock> blockList) {
-        Iterator<UDIFBlock> it = blockList.iterator();
-        return mergeBlocks(it);
     }
 
     private static LinkedList<UDIFBlock> mergeBlocks(Iterator<UDIFBlock> it) {

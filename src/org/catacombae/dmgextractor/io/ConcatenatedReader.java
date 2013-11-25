@@ -21,7 +21,6 @@ import java.io.*;
 public class ConcatenatedReader extends Reader {
     private final Reader[] sources;
     private int currentSource;
-    private long charPos = 0;
     public ConcatenatedReader(Reader[] sources) {
 	this.sources = sources;
 	this.currentSource = 0;
