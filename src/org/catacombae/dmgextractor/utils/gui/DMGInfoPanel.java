@@ -23,9 +23,12 @@
 
 package org.catacombae.dmgextractor.utils.gui;
 
-import java.awt.*;
-import javax.swing.*;
-import javax.swing.event.*;
+import java.awt.CardLayout;
+import java.awt.Component;
+import javax.swing.JPanel;
+import javax.swing.ListModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 /**
  *
