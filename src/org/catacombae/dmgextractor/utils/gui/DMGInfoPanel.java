@@ -29,6 +29,7 @@ import javax.swing.JPanel;
 import javax.swing.ListModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import org.catacombae.dmg.udif.Koly;
 import org.catacombae.util.Util.Pair;
 
 /**
@@ -40,15 +41,17 @@ public class DMGInfoPanel extends javax.swing.JPanel {
         public ContentPair(String s, Component c) { super(s, c); }
     }
 
+    private final GeneralInfoPanel generalInfoPanel = new GeneralInfoPanel();
+    private final KolyPanel kolyPanel = new KolyPanel();
     private final ContentPair contents[] = {
-        new ContentPair("General info", new GeneralInfoPanel()),
+        new ContentPair("General info", generalInfoPanel),
         new ContentPair("plist", new PlistPanel()),
         new ContentPair("Unknown (256 bytes)", new UnknownDataViewPanel()),
         new ContentPair("Block map", new JPanel()), // N/I
         new ContentPair("Unknown (12 bytes)", new UnknownDataViewPanel()),
         new ContentPair("Apple Partition Map", new JPanel()), // N/I
         new ContentPair("Unknown (X bytes)", new UnknownDataViewPanel()),
-        new ContentPair("koly", new KolyPanel()),
+        new ContentPair("koly", kolyPanel),
     };
 
     private CardLayout contentsCardLayout;
@@ -83,6 +86,18 @@ public class DMGInfoPanel extends javax.swing.JPanel {
                     }
 		}
 	    });
+
+        contentsList.setSelectedIndex(0);
+    }
+
+    public void setGeneralInfo(final String filename, long size,
+            long numberOfPartitions)
+    {
+        generalInfoPanel.setFields(filename, size, numberOfPartitions);
+    }
+
+    public void setKoly(final Koly koly) {
+        kolyPanel.setFields(koly);
     }
     
     /** This method is called from within the constructor to

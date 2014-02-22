@@ -18,8 +18,12 @@
 package org.catacombae.dmgextractor.utils;
 
 import java.awt.BorderLayout;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import javax.swing.JFrame;
 import net.iharder.dnd.FileDrop;
+import org.catacombae.dmg.udif.Koly;
 import org.catacombae.dmgextractor.utils.gui.DMGInfoPanel;
 
 public class DMGInfoWindow extends JFrame {
@@ -33,7 +37,13 @@ public class DMGInfoWindow extends JFrame {
         new FileDrop(this, new FileDrop.Listener() {
 
             public void filesDropped(java.io.File[] files) {
-                if(files.length > 0);//loadFile(files[0]);
+                if(files.length > 0) {
+                    try {
+                        loadFile(files[0]);
+                    } catch(IOException ioe) {
+                        ioe.printStackTrace();
+                    }
+                }
             }
         });
 
@@ -42,7 +52,38 @@ public class DMGInfoWindow extends JFrame {
 
     }
 
+    private void loadFile(File f) throws IOException {
+        RandomAccessFile inputFile;
+        byte[] kolyData = new byte[512];
+        String kolySignature;
+
+        inputFile = new RandomAccessFile(f, "r");
+
+        inputFile.seek(inputFile.length() - 512);
+        inputFile.readFully(kolyData);
+        kolySignature = new String(kolyData, 0, 4, "US-ASCII");
+        if(!kolySignature.equals("koly")) {
+            System.out.println("ERROR: Invalid signature. Found " +
+                    "\"" + kolySignature + "\" instead of \"koly\".");
+            return;
+        }
+
+        infoPanel.setKoly(new Koly(kolyData, 0));
+
+        infoPanel.setGeneralInfo(f.getName(), inputFile.length(), 0);
+    }
+
     public static void main(String[] args) {
-        new DMGInfoWindow().setVisible(true);
+        DMGInfoWindow window = new DMGInfoWindow();
+
+        if(args.length > 0) {
+            try {
+                window.loadFile(new File(args[0]));
+            } catch(IOException ioe) {
+                ioe.printStackTrace();
+            }
+        }
+
+        window.setVisible(true);
     }
 }
