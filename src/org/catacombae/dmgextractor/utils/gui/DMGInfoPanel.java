@@ -29,30 +29,37 @@ import javax.swing.JPanel;
 import javax.swing.ListModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import org.catacombae.util.Util.Pair;
 
 /**
  *
  * @author  erik
  */
 public class DMGInfoPanel extends javax.swing.JPanel {
+    private static class ContentPair extends Pair<String, Component> {
+        public ContentPair(String s, Component c) { super(s, c); }
+    }
+
+    private final ContentPair contents[] = {
+        new ContentPair("General info", new GeneralInfoPanel()),
+        new ContentPair("plist", new PlistPanel()),
+        new ContentPair("Unknown (256 bytes)", new UnknownDataViewPanel()),
+        new ContentPair("Block map", new JPanel()), // N/I
+        new ContentPair("Unknown (12 bytes)", new UnknownDataViewPanel()),
+        new ContentPair("Apple Partition Map", new JPanel()), // N/I
+        new ContentPair("Unknown (X bytes)", new UnknownDataViewPanel()),
+        new ContentPair("koly", new KolyPanel()),
+    };
+
     private CardLayout contentsCardLayout;
-    private String[] contentTags = {
-        "General info", 
-        "plist", 
-        "Unknown (256 bytes)", 
-        "Block map", 
-        "Unknown (12 bytes)", 
-        "Apple Partition Map", 
-        "Unknown (X bytes)", 
-        "koly"};
-    
+
     /** Creates new form DMGInfoPanel */
     public DMGInfoPanel() {
         initComponents();
         
         ListModel listModel = new javax.swing.AbstractListModel() {
-            public int getSize() { return contentTags.length; }
-            public Object getElementAt(int i) { return contentTags[i]; }
+            public int getSize() { return contents.length; }
+            public Object getElementAt(int i) { return contents[i].getA(); }
         };
         
         contentsList.setModel(listModel);
@@ -62,18 +69,8 @@ public class DMGInfoPanel extends javax.swing.JPanel {
         
         
         // Now, let's add all components to contentsPane
-        Component[] cmp = new Component[contentTags.length];
-        cmp[0] = new GeneralInfoPanel();
-        cmp[1] = new PlistPanel();
-        cmp[2] = new UnknownDataViewPanel();
-        cmp[3] = new JPanel(); // N/I
-        cmp[4] = new UnknownDataViewPanel();
-        cmp[5] = new JPanel(); // N/I
-        cmp[6] = new UnknownDataViewPanel();
-        cmp[7] = new KolyPanel();
-        
-        for(int i = 0; i < contentTags.length; ++i)
-            contentsPane.add(cmp[i], contentTags[i]);
+        for(int i = 0; i < contents.length; ++i)
+            contentsPane.add(contents[i].getB(), contents[i].getA());
         
 	contentsList.addListSelectionListener(new ListSelectionListener() {
 		public void valueChanged(ListSelectionEvent lse) {
@@ -81,7 +78,8 @@ public class DMGInfoPanel extends javax.swing.JPanel {
                     if(!lse.getValueIsAdjusting()) {
                         int index = contentsList.getSelectedIndex();
                         //System.out.println("Switching to " + index + "...");
-                        contentsCardLayout.show(contentsPane, contentTags[index]);
+                        contentsCardLayout.show(contentsPane,
+                                contents[index].getA());
                     }
 		}
 	    });
