@@ -99,10 +99,7 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
                 header = CommonCEncryptedEncodingHeader.create(v1header);
                 break;
             case 2:
-                byte[] v2HeaderData = new byte[V2Header.length()];
-                backingStream.seek(0);
-                backingStream.readFully(v2HeaderData);
-                V2Header v2header = new V2Header(v2HeaderData, 0);
+                V2Header v2header = new V2Header(backingStream, 0);
                 Debug.print("  V2 header:");
                 v2header.print(Debug.ps, "    ");
                 header = CommonCEncryptedEncodingHeader.create(v2header);
