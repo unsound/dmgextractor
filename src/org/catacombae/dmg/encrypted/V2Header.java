@@ -58,7 +58,7 @@ public class V2Header {
      * 12   4     uint32_t     laban                          Unknown variable with observed value 16/0x10.
      * 16   4     uint32_t     edward                         Unknown variable with observed value 5/0x5.
      * 20   4     uint32_t     palle                          Unknown variable with observed value 0x80000001.
-     * 24   4     uint32_t     lisa                           Unknown variable with observed value 128/0x80.
+     * 24   4     uint32_t     keyBits                        Number of bits in the key.
      * 28   4     uint32_t     unknownInt28                   Unknown variable with observed value 91/0x5B.
      * 32   4     uint32_t     unknownInt32                   Unknown variable with observed value 160/0xA0.
      * 36   1*16  uint8_t[16]  unknown1                       Unknown binary data.
@@ -92,7 +92,7 @@ public class V2Header {
     private final byte[] laban = new byte[4];
     private final byte[] edward = new byte[4];
     private final byte[] palle = new byte[4];
-    private final byte[] lisa = new byte[4];
+    private final byte[] keyBits = new byte[4];
     private final byte[] unknownInt28 = new byte[4];
     private final byte[] unknownInt32 = new byte[4];
     private final byte[] unknown1 = new byte[1*16];
@@ -128,7 +128,7 @@ public class V2Header {
 	System.arraycopy(data, offset+12, laban, 0, 4);
 	System.arraycopy(data, offset+16, edward, 0, 4);
 	System.arraycopy(data, offset+20, palle, 0, 4);
-	System.arraycopy(data, offset+24, lisa, 0, 4);
+	System.arraycopy(data, offset+24, keyBits, 0, 4);
 	System.arraycopy(data, offset+28, unknownInt28, 0, 4);
 	System.arraycopy(data, offset+32, unknownInt32, 0, 4);
 	System.arraycopy(data, offset+36, unknown1, 0, 1*16);
@@ -182,8 +182,13 @@ public class V2Header {
     public int getEdward() { return Util.readIntBE(edward); }
     /** Unknown variable with observed value 0x80000001. */
     public int getPalle() { return Util.readIntBE(palle); }
-    /** Unknown variable with observed value 128/0x80. */
-    public int getLisa() { return Util.readIntBE(lisa); }
+
+    /**
+     * Number of bits in the key (128 for AES-128 encrypted images, 256 for
+     * AES-256, ...).
+     */
+    public int getKeyBits() { return Util.readIntBE(keyBits); }
+
     /** Unknown variable with observed value 91/0x5B. */
     public int getUnknownInt28() { return Util.readIntBE(unknownInt28); }
     /** Unknown variable with observed value 160/0xA0. */
@@ -237,7 +242,7 @@ public class V2Header {
 	ps.println(prefix + " laban: " + getLaban());
 	ps.println(prefix + " edward: " + getEdward());
 	ps.println(prefix + " palle: " + getPalle());
-	ps.println(prefix + " lisa: " + getLisa());
+	ps.println(prefix + " keyBits: " + getKeyBits());
 	ps.println(prefix + " unknownInt28: " + getUnknownInt28());
 	ps.println(prefix + " unknownInt32: " + getUnknownInt32());
 	ps.println(prefix + " unknown1: " + getUnknown1());
@@ -276,7 +281,7 @@ public class V2Header {
 	System.arraycopy(this.laban, 0, result, offset, this.laban.length); offset += this.laban.length;
 	System.arraycopy(this.edward, 0, result, offset, this.edward.length); offset += this.edward.length;
 	System.arraycopy(this.palle, 0, result, offset, this.palle.length); offset += this.palle.length;
-	System.arraycopy(this.lisa, 0, result, offset, this.lisa.length); offset += this.lisa.length;
+	System.arraycopy(this.keyBits, 0, result, offset, this.keyBits.length); offset += this.keyBits.length;
 	System.arraycopy(this.unknownInt28, 0, result, offset, this.unknownInt28.length); offset += this.unknownInt28.length;
 	System.arraycopy(this.unknownInt32, 0, result, offset, this.unknownInt32.length); offset += this.unknownInt32.length;
 	System.arraycopy(this.unknown1, 0, result, offset, this.unknown1.length); offset += this.unknown1.length;
