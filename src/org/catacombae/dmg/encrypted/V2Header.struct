@@ -19,5 +19,4 @@ struct V2Header {
   uint32_t blobEncPadding;                      Padding. (?)
   uint32_t blobEncMode;                         Encryption mode for the algorithm.
   uint32_t encryptedKeyblobSize;                Size of encryptedKeyBlob.
-  uint8_t  encryptedKeyblob[48];                The encrypted key blob, containing all keys.
 };
