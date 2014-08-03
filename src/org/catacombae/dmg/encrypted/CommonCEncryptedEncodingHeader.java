@@ -258,6 +258,9 @@ public abstract class CommonCEncryptedEncodingHeader {
         @Override
         public KeySet unwrapKeys(Key derivedKey, Cipher cph)
                 throws InvalidKeyException, InvalidAlgorithmParameterException, GeneralSecurityException {
+
+            final int keyBytes = (header.getKeyBits() + 7) / 8;
+
             Debug.print("V2Implementation.unwrapKeys(" + derivedKey + ", " + cph + ");");
             cph.init(Cipher.DECRYPT_MODE, derivedKey, new IvParameterSpec(getUnwrapInitializationVector()));
 
@@ -272,11 +275,11 @@ public abstract class CommonCEncryptedEncodingHeader {
             Debug.print("    bp == " + bp);
 
             Debug.print("  decryptedKeyBlob: 0x" + Util.byteArrayToHexString(decryptedKeyBlob));
-            byte[] aesKey = new byte[16];
+            byte[] aesKey = new byte[keyBytes];
             byte[] hmacSha1Key = new byte[20];
-            System.arraycopy(decryptedKeyBlob, 0, aesKey, 0, 16);
+            System.arraycopy(decryptedKeyBlob, 0, aesKey, 0, keyBytes);
             Debug.print("  aesKey: 0x" + Util.byteArrayToHexString(aesKey));
-            System.arraycopy(decryptedKeyBlob, 16, hmacSha1Key, 0, 20);
+            System.arraycopy(decryptedKeyBlob, keyBytes, hmacSha1Key, 0, 20);
             Debug.print("  hmacSha1Key: 0x" + Util.byteArrayToHexString(hmacSha1Key));
 
             Util.zero(decryptedKeyBlob); // No unused secret data in memory.
