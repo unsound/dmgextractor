@@ -8,8 +8,10 @@ package org.catacombae.dmg.sparsebundle;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.LinkedList;
 import org.catacombae.io.BasicReadableRandomAccessStream;
 import org.catacombae.io.RuntimeIOException;
+import org.catacombae.util.Util.Pair;
 
 /**
  *
@@ -32,6 +34,10 @@ public class ReadableSparseBundleStream extends BasicReadableRandomAccessStream
         this.bundle = bundle;
     }
 
+    public long getBandSize() {
+        return bundle.getBandSize();
+    }
+
     @Override
     public void close() throws RuntimeIOException {
         if(this.band != null)
@@ -46,7 +52,7 @@ public class ReadableSparseBundleStream extends BasicReadableRandomAccessStream
 
     @Override
     public long length() throws RuntimeIOException {
-        return bundle.getSize();
+        return bundle.getToken().getSize() + bundle.getSize();
     }
 
     @Override
@@ -57,6 +63,18 @@ public class ReadableSparseBundleStream extends BasicReadableRandomAccessStream
     @Override
     public int read(final byte[] data, final int off, final int len)
             throws RuntimeIOException {
+        return read(data, off, len, null);
+    }
+
+    public int read(final byte[] data, LinkedList<Pair<Long, Long>> holeList)
+    {
+        return read(data, 0, data.length, holeList);
+    }
+
+    public int read(final byte[] data, final int off, final int len,
+            LinkedList<Pair<Long, Long>> holeList)
+            throws RuntimeIOException
+    {
         if(data == null)
             throw new IllegalArgumentException("data is null.");
         if(off < 0 || off > data.length)
@@ -64,7 +82,14 @@ public class ReadableSparseBundleStream extends BasicReadableRandomAccessStream
         if(len < 0 || len > (data.length - off))
             throw new IllegalArgumentException("len out of range.");
 
-        final long bundleSize = bundle.getSize();
+        final Token token = bundle.getToken();
+        final long tokenSize = token.getSize();
+        if(tokenSize < 0) {
+            throw new RuntimeException("Internal error: token size " +
+                    "(" + tokenSize + ") < 0");
+        }
+
+        final long bundleSize = tokenSize + bundle.getSize();
         if(pos >= bundleSize)
             return -1;
 
@@ -76,46 +101,98 @@ public class ReadableSparseBundleStream extends BasicReadableRandomAccessStream
             readSize = len;
 
         final long bandSize = bundle.getBandSize();
+        long curHoleStart = 0;
+        long curHoleLength = 0;
+
         int curOff = off;
         int remainingSize = readSize;
         while(remainingSize > 0) {
-            final long curBandNumber = pos / bandSize;
-            final long posInBand = pos % bandSize;
-
-            if(band == null)
-                band = bundle.lookupBand(curBandNumber);
-            else if(curBandNumber != bandNumber) {
-                band.close();
-                band = bundle.lookupBand(curBandNumber);
-            }
-
-            bandNumber = curBandNumber;
-
-            final long remainingInBand = bandSize - posInBand;
             final int bytesToRead;
-            if(remainingSize > remainingInBand)
-                bytesToRead = (int) remainingInBand;
-            else
-                bytesToRead = remainingSize;
-
             final int bytesRead;
-            if(band == null) {
-                Arrays.fill(data, curOff, curOff+bytesToRead, (byte) 0);
-                bytesRead = bytesToRead;
+
+            if(pos < tokenSize) {
+                bytesToRead = tokenSize < len ? (int) tokenSize : len;
+
+                try {
+                    bytesRead = token.read(pos, data, curOff, len);
+                } catch(IOException e) {
+                    throw new RuntimeIOException("Exception while reading " +
+                            "from token.", e);
+                }
             }
             else {
-                try {
-                    bytesRead = band.read(posInBand, data, curOff, bytesToRead);
-                } catch(IOException ex) {
-                    throw new RuntimeIOException("Exception while reading " +
-                            "from band " + bandNumber + ".", ex);
+                final long posInData = pos - tokenSize;
+                final long curBandNumber = posInData / bandSize;
+                final long posInBand = posInData % bandSize;
+
+                long bandHoleStart;
+                long bandHoleLength;
+
+                if(band == null)
+                    band = bundle.lookupBand(curBandNumber);
+                else if(curBandNumber != bandNumber) {
+                    band.close();
+                    band = bundle.lookupBand(curBandNumber);
                 }
 
-                if(bytesRead < 0) {
-                    if(bytesRead != -1)
-                        throw new RuntimeException("Unexpected return value " +
-                                "from Band.read: " + bytesRead);
-                    break;
+                bandNumber = curBandNumber;
+
+                final long remainingInBand = bandSize - posInBand;
+                if(remainingSize > remainingInBand)
+                    bytesToRead = (int) remainingInBand;
+                else
+                    bytesToRead = remainingSize;
+
+                if(band == null) {
+                    Arrays.fill(data, curOff, curOff+bytesToRead, (byte) 0);
+                    bytesRead = bytesToRead;
+
+                    bandHoleStart = curOff;
+                    bandHoleLength = bytesRead;
+                }
+                else {
+                    try {
+                        bytesRead = band.read(posInBand, data, curOff,
+                                bytesToRead);
+                    } catch(IOException ex) {
+                        throw new RuntimeIOException("Exception while " +
+                                "reading from band " + bandNumber + ".", ex);
+                    }
+
+                    if(bytesRead < 0) {
+                        if(bytesRead != -1)
+                            throw new RuntimeException("Unexpected return " +
+                                    "value from Band.read: " + bytesRead);
+                        break;
+                    }
+
+                    bandHoleStart = 0;
+                    bandHoleLength = 0;
+                }
+
+                if(holeList != null) {
+                    if(curHoleLength != 0) {
+                        if(bandHoleLength != 0 &&
+                            (curHoleStart + curHoleLength) == bandHoleStart)
+                        {
+                            /* Concatenate with previous hole. */
+                            curHoleLength += bandHoleLength;
+                        }
+                        else {
+                            /* Add previous hole to list and begin new hole. */
+                            holeList.add(new Pair<Long, Long>(curHoleStart,
+                                    curHoleLength));
+
+                            if(bandHoleLength != 0) {
+                                curHoleStart = bandHoleStart;
+                                curHoleLength = bandHoleLength;
+                            }
+                        }
+                    }
+                    else if(bandHoleLength != 0) {
+                        curHoleStart = bandHoleStart;
+                        curHoleLength = bandHoleLength;
+                    }
                 }
             }
 
@@ -125,6 +202,11 @@ public class ReadableSparseBundleStream extends BasicReadableRandomAccessStream
 
             if(bytesRead != bytesToRead)
                 break;
+        }
+
+        if(holeList != null && curHoleLength != 0) {
+            holeList.add(new Pair<Long, Long>(curHoleStart,
+                    curHoleLength));
         }
 
         return readSize - remainingSize;

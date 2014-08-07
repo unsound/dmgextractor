@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.Collections;
 import javax.swing.JOptionPane;
 import org.catacombae.dmg.encrypted.ReadableCEncryptedEncodingStream;
+import org.catacombae.dmg.sparsebundle.ReadableSparseBundleStream;
 import org.catacombae.io.FileStream;
 import org.catacombae.io.ReadableFileStream;
 import org.catacombae.io.ReadableRandomAccessStream;
@@ -38,6 +39,7 @@ import org.catacombae.dmg.udif.Plist;
 import org.catacombae.dmg.udif.PlistPartition;
 import org.catacombae.dmg.udif.UDIFBlock;
 import org.catacombae.dmg.udif.UDIFDetector;
+import org.catacombae.io.RuntimeIOException;
 import org.xml.sax.XMLReader;
 
 public class DMGExtractor {
@@ -139,7 +141,22 @@ public class DMGExtractor {
         
         ui.displayMessageVerbose("Processing: \"" + ses.dmgFile + "\"");
 
-        ReadableRandomAccessStream dmgRaf = new ReadableFileStream(new RandomAccessFile(ses.dmgFile, "r"));
+        ReadableRandomAccessStream dmgRaf = null;
+
+        if(ses.dmgFile.isDirectory()) {
+            try {
+                ReadableSparseBundleStream sbStream =
+                        new ReadableSparseBundleStream(ses.dmgFile);
+                dmgRaf = sbStream;
+            } catch(RuntimeIOException e) {
+                /* Not a sparse bundle, apparently. */
+            }
+        }
+
+        if(dmgRaf == null) {
+            dmgRaf = new ReadableFileStream(new RandomAccessFile(ses.dmgFile,
+                    "r"));
+        }
 
         final boolean encrypted;
         if(ReadableCEncryptedEncodingStream.isCEncryptedEncoding(dmgRaf)) {

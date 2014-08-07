@@ -194,6 +194,10 @@ class SparseBundle {
         return bandCount;
     }
 
+    Token getToken() {
+        return token;
+    }
+
     /**
      * Looks up and returns the {@link Band} with the specified band number.
      *

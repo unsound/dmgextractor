@@ -42,6 +42,7 @@ package org.catacombae.dmg.encrypted;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.Key;
+import java.util.LinkedList;
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.SecretKeyFactory;
@@ -51,10 +52,12 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.catacombae.dmgextractor.Util;
 import org.catacombae.dmg.encrypted.CommonCEncryptedEncodingHeader.KeySet;
+import org.catacombae.dmg.sparsebundle.ReadableSparseBundleStream;
 import org.catacombae.io.BasicReadableRandomAccessStream;
 import org.catacombae.io.ReadableFileStream;
 import org.catacombae.io.ReadableRandomAccessStream;
 import org.catacombae.io.RuntimeIOException;
+import org.catacombae.util.Util.Pair;
 
 /**
  * Filtering stream that takes the data of a Mac OS X encrypted disk image and a password as input
@@ -71,6 +74,7 @@ import org.catacombae.io.RuntimeIOException;
  */
 public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessStream {
     private final ReadableRandomAccessStream backingStream;
+    private final ReadableSparseBundleStream sbStream;
     private final CommonCEncryptedEncodingHeader header;
     private final SecretKeySpec aesKey;
     private final SecretKeySpec hmacSha1Key;
@@ -86,6 +90,14 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
             char[] password) throws RuntimeIOException {
         Debug.print("ReadableCEncryptedEncodingStream(" + backingStream + ", " + password +");");
         this.backingStream = backingStream;
+
+        if(backingStream instanceof ReadableSparseBundleStream) {
+            this.sbStream = (ReadableSparseBundleStream) backingStream;
+        }
+        else {
+            this.sbStream = null;
+        }
+
         int headerVersion = CEncryptedEncodingUtil.detectVersion(backingStream);
         Debug.print("  headerVersion = " + headerVersion);
         switch(headerVersion) {
@@ -177,7 +189,7 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
     public void seek(long pos) throws RuntimeIOException {
         if(pos < 0)
             throw new IllegalArgumentException("Negative seek request: pos (" + pos + ") < 0");
-        else if(pos > streamLength) {
+        else if(streamLength != 0 && pos > streamLength) {
             // throw new IllegalArgumentException("Trying to seek beyond EOF: pos (" + pos +
             //        ") > length (" + length + ")");
 
@@ -229,11 +241,37 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
 
         byte[] encBlockData = new byte[header.getBlockSize()];
         byte[] decBlockData = new byte[encBlockData.length];
+        LinkedList<Pair<Long, Long>> holeList = null;
+        long bandBlockCount;
+
+        if(sbStream != null) {
+            bandBlockCount = sbStream.getBandSize() / header.getBlockSize();
+        }
+        else {
+            bandBlockCount = 0;
+        }
 
         try {
             int totalBytesRead = 0;
-            while(totalBytesRead < len && blockNumber*header.getBlockSize() < streamLength) {
-                int bytesRead = backingStream.read(encBlockData);
+            while(totalBytesRead < len && (streamLength == 0 ||
+                    blockNumber*header.getBlockSize() < streamLength))
+            {
+                int bytesRead;
+
+                if(sbStream != null) {
+                    if(holeList == null) {
+                        holeList = new LinkedList<Pair<Long, Long>>();
+                    }
+                    else {
+                        holeList.clear();
+                    }
+
+                    bytesRead = sbStream.read(encBlockData, holeList);
+                }
+                else {
+                    bytesRead = backingStream.read(encBlockData);
+                }
+
                 if(bytesRead != encBlockData.length) {
                     if(bytesRead > 0)
                         System.err.println("WARNING: Could not read entire block! " +
@@ -241,12 +279,68 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
                     break;
                 }
 
-                int bytesDecrypted = decrypt(encBlockData, decBlockData, blockNumber);
-                Assert.eq(bytesDecrypted, decBlockData.length);
+                boolean isHole;
+                if(holeList != null) {
+                    switch(holeList.size()) {
+                        case 0:
+                            isHole = false;
+                            break;
+                        case 1:
+                            final Pair<Long, Long> hole = holeList.getFirst();
+
+                            if(hole.getA() != 0 ||
+                                hole.getB() != encBlockData.length)
+                            {
+                                throw new RuntimeIOException("Unexpected: " +
+                                        "Hole only partially covers the " +
+                                        "block (hole start: " + hole.getA() +
+                                        ", hole length: " + hole.getB() +
+                                        ", block size: " + encBlockData.length +
+                                        ").");
+                            }
+
+                            isHole = true;
+                            break;
+                        default:
+                            throw new RuntimeIOException("Unexpected: Got " +
+                                    holeList.size() + " holes in " +
+                                    encBlockData.length + " byte read.");
+                    }
+                }
+                else {
+                    isHole = false;
+                }
+
+                if(isHole) {
+                    Util.arrayCopy(encBlockData, decBlockData);
+                }
+                else {
+                    final long virtualBlockNumber;
+                    if(sbStream != null) {
+                        virtualBlockNumber = blockNumber % bandBlockCount;
+                    }
+                    else {
+                        virtualBlockNumber = blockNumber;
+                    }
+
+                    int bytesDecrypted =
+                            decrypt(encBlockData, decBlockData,
+                            virtualBlockNumber);
+                    Assert.eq(bytesDecrypted, decBlockData.length);
+                }
                 
-                final long bytesLeftInStream = streamLength - blockNumber*header.getBlockSize();
-                final int blockSize =
-                        (int)(bytesLeftInStream < decBlockData.length ? bytesLeftInStream : decBlockData.length);
+                final int blockSize;
+                if(streamLength > 0) {
+                    final long bytesLeftInStream =
+                            streamLength - blockNumber * header.getBlockSize();
+
+                    blockSize =
+                            (int) (bytesLeftInStream < decBlockData.length ?
+                            bytesLeftInStream : decBlockData.length);
+                }
+                else {
+                    blockSize = decBlockData.length;
+                }
 
 
                 final int bytesLeftToRead = len-totalBytesRead;

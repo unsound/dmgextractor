@@ -41,7 +41,12 @@ abstract class BasicUI implements UserInterface {
     /** {@inheritDoc} */
     public void addProgressRaw(long value) {
         currentProgress += value;
-        reportProgress((int) (currentProgress * 100 / totalProgressLength));
+        if(totalProgressLength > 0) {
+            reportProgress((int) (currentProgress * 100 / totalProgressLength));
+        }
+        else {
+            reportProgress(0);
+        }
     }
 
     /** {@inheritDoc} */
