@@ -158,12 +158,13 @@ class SwingUI extends BasicUI implements UserInterface {
     public File getInputFileFromUser() {
         SimpleFileFilter sff = new SimpleFileFilter();
         sff.addExtension("dmg");
-        sff.setDescription("Mac OS X disk images (*.dmg)");
+        sff.addExtension("sparsebundle");
+        sff.setDescription("Mac OS X disk images (*.dmg, *.sparsebundle)");
         JFileChooser jfc = new JFileChooser();
         jfc.setFileFilter(sff);
         jfc.setMultiSelectionEnabled(false);
-        jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        jfc.setDialogTitle("Choose the .dmg file to read...");
+        jfc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        jfc.setDialogTitle("Choose the image file to read...");
         while(true) {
             if(jfc.showDialog(null, "Open") == JFileChooser.APPROVE_OPTION) {
                 File f = jfc.getSelectedFile();
