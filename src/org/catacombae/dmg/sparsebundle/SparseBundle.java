@@ -132,14 +132,13 @@ class SparseBundle {
 
         this.bandsDir = bandsDirFile;
 
-        /* Check the 'bands' directory
-
         /* Cached variables. */
         this.size = mainInfo.getSize();
         this.bandSize = mainInfo.getBandSize();
         this.bandCount = (mainInfo.getSize() + mainInfo.getBandSize() - 1) /
                 mainInfo.getBandSize();
 
+        /* Check the 'bands' directory. */
         checkBandsDir();
     }
 
