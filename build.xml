@@ -48,7 +48,7 @@
   </target>
 
 
-  <!-- TARGET: application -->
+  <!-- TARGET: build-application -->
   
   <path id="target.application.classpath">
     <fileset dir="${java.runtime.library.dir}">
@@ -94,7 +94,7 @@
   </target>
 
 
-  <!-- TARGET: standalone -->
+  <!-- TARGET: build-standalone -->
   
   <target name="build-standalone" depends="clean-standalone,jar-standalone"/>
   
@@ -145,7 +145,7 @@
   </target>
 
 
-  <!-- TARGET: hfsxlib -->
+  <!-- TARGET: build-hfsxlib -->
   
   <path id="target.hfsxlib.classpath">
     <fileset dir="${java.runtime.library.dir}">
