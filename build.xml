@@ -17,21 +17,6 @@
   <property name="target.hfsxlib.outjar" value="targets/hfsxlib/hfsx_dmglib.jar"/>
   
   
-  <!-- TARGET: init -->
-  
-  <target name="init">
-    <mkdir dir="${builddir}"/>
-  </target>
-
-  
-  <!-- TARGET: clean -->
-  
-  <target name="clean">
-    <mkdir dir="${builddir}"/>
-    <delete dir="${builddir}"/>
-  </target>
-  
-  
   <!-- TARGET: all -->
   
   <target name="all">
@@ -43,6 +28,26 @@
   </target>
   
   
+  <!-- TARGET: build-all -->
+
+  <target name="build-all" depends="build-application,build-standalone,build-hfsxlib"/>
+
+
+  <!-- TARGET: init-application -->
+
+  <target name="init-application">
+    <mkdir dir="${builddir}"/>
+  </target>
+
+
+  <!-- TARGET: clean-application -->
+
+  <target name="clean-application">
+    <mkdir dir="${builddir}"/>
+    <delete dir="${builddir}"/>
+  </target>
+
+
   <!-- TARGET: application -->
   
   <path id="target.application.classpath">
@@ -52,9 +57,9 @@
     </fileset>
   </path>
   
-  <target name="build-application" depends="clean,jar-application"/>
+  <target name="build-application" depends="clean-application,jar-application"/>
   
-  <target name="compile-application" depends="init">
+  <target name="compile-application" depends="init-application">
     <javac srcdir="${java.source.dir}"
 	   destdir="${builddir}"
 	   includes="**"
@@ -74,11 +79,26 @@
   </target>
   
   
+  <!-- TARGET: init-standalone -->
+
+  <target name="init-standalone">
+    <mkdir dir="${builddir}"/>
+  </target>
+
+
+  <!-- TARGET: clean-standalone -->
+
+  <target name="clean-standalone">
+    <mkdir dir="${builddir}"/>
+    <delete dir="${builddir}"/>
+  </target>
+
+
   <!-- TARGET: standalone -->
   
-  <target name="build-standalone" depends="clean,jar-standalone"/>
+  <target name="build-standalone" depends="clean-standalone,jar-standalone"/>
   
-  <target name="copyresources-standalone" depends="init">
+  <target name="copyresources-standalone" depends="init-standalone">
     <copy todir="${builddir}">
       <zipfileset src="${java.runtime.library.dir}/csframework.jar" includes="**/*.class"/>
       <zipfileset src="${java.runtime.library.dir}/apache-ant-1.7.0-bzip2.jar" includes="**/*.class"/>
@@ -89,7 +109,7 @@
     <copy file="${target.standalone.jnlp.dir}/dmgextractor.jnlp" tofile="${builddir}/JNLP-INF/APPLICATION.JNLP"/>
   </target>
   
-  <target name="compile-standalone" depends="init,copyresources-standalone">
+  <target name="compile-standalone" depends="init-standalone,copyresources-standalone">
     <javac srcdir="${java.source.dir}"
 	   destdir="${builddir}"
 	   includes="org/catacombae/dmgextractor/DMGExtractorGraphical.java"
@@ -110,6 +130,21 @@
   </target>
   
   
+  <!-- TARGET: init-hfsxlib -->
+
+  <target name="init-hfsxlib">
+    <mkdir dir="${builddir}"/>
+  </target>
+
+
+  <!-- TARGET: clean-hfsxlib -->
+
+  <target name="clean-hfsxlib">
+    <mkdir dir="${builddir}"/>
+    <delete dir="${builddir}"/>
+  </target>
+
+
   <!-- TARGET: hfsxlib -->
   
   <path id="target.hfsxlib.classpath">
@@ -119,9 +154,9 @@
     </fileset>
   </path>
   
-  <target name="build-hfsxlib" depends="clean,jar-hfsxlib"/>
+  <target name="build-hfsxlib" depends="clean-hfsxlib,jar-hfsxlib"/>
   
-  <target name="compile-hfsxlib" depends="init">
+  <target name="compile-hfsxlib" depends="init-hfsxlib">
     <javac srcdir="${java.source.dir}"
 	   destdir="${builddir}"
 	   debug="true"
