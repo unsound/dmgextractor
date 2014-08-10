@@ -36,7 +36,7 @@ class SparseBundle {
         File mainInfoFile = null;
         File backupInfoFile = null;
         File tokenFile = null;
-        File bandsDir = null;
+        File bandsDirFile = null;
 
         for(File f : files) {
             if(f.getName().equals(mainInfoFilename))
@@ -46,7 +46,7 @@ class SparseBundle {
             else if(f.getName().equals(tokenFilename))
                 tokenFile = f;
             else if(f.getName().equals(bandsDirname))
-                bandsDir = f;
+                bandsDirFile = f;
             else
                 System.err.println("Warning: Encountered unknown file \"" +
                         f.getName() + " in sparse bundle base dir (\"" +
@@ -54,12 +54,12 @@ class SparseBundle {
         }
 
         if(mainInfoFile == null || backupInfoFile == null ||
-                tokenFile == null || bandsDir == null) {
+                tokenFile == null || bandsDirFile == null) {
             throw new RuntimeIOException("Some files are missing from the " +
                     "sparse bundle directory (\"" +
                     sparseBundleDir.getAbsolutePath() + "\".");
         }
-        else if(!bandsDir.exists() || !bandsDir.isDirectory())
+        else if(!bandsDirFile.exists() || !bandsDirFile.isDirectory())
             throw new RuntimeIOException("Invalid '" + bandsDirname + "' " +
                     "directory.");
 
@@ -130,7 +130,7 @@ class SparseBundle {
 
         this.token = new Token(tokenRaf, tokenLock);
 
-        this.bandsDir = bandsDir;
+        this.bandsDir = bandsDirFile;
 
         /* Check the 'bands' directory
 
