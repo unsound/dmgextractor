@@ -115,10 +115,13 @@ public class ReadableSparseBundleStream extends BasicReadableRandomAccessStream
             final int bytesRead;
 
             if(pos < tokenSize) {
-                bytesToRead = tokenSize < len ? (int) tokenSize : len;
+                final long remainingInToken = tokenSize - pos;
+
+                bytesToRead =
+                        remainingInToken < len ? (int) remainingInToken : len;
 
                 try {
-                    bytesRead = token.read(pos, data, curOff, len);
+                    bytesRead = token.read(pos, data, curOff, bytesToRead);
                 } catch(RuntimeIOException ex) {
                     final IOException cause = ex.getIOCause();
 
