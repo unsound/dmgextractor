@@ -116,7 +116,12 @@ public class DMGExtractor {
                         isoFilename = ses.isoFile.getName();
 
                     ui.setProgressFilenames(dmgFilename, isoFilename);
-                    extractProcedure(ses, ui);
+                    if(!extractProcedure(ses, ui)) {
+                        System.exit(1);
+                    }
+                    else {
+                        System.exit(0);
+                    }
                 }
                 else if(!ses.graphical)
                     printUsageInstructions(ui, ses.startupCommand,
@@ -137,7 +142,9 @@ public class DMGExtractor {
         }
     }
  
-    private static void extractProcedure(Session ses, UserInterface ui) throws Exception {
+    private static boolean extractProcedure(Session ses, UserInterface ui)
+            throws Exception
+    {
         
         ui.displayMessageVerbose("Processing: \"" + ses.dmgFile + "\"");
 
@@ -177,7 +184,8 @@ public class DMGExtractor {
                 password = ui.getPasswordFromUser();
                 if(password == null) {
                     ui.displayMessage("No password specified. Can not continue...");
-                    System.exit(0);
+                    dmgRaf.close();
+                    return true;
                 }
                 try {
                     ReadableCEncryptedEncodingStream encryptionFilter =
@@ -193,30 +201,51 @@ public class DMGExtractor {
             encrypted = false;
 
         TruncatableRandomAccessStream isoRaf = null;
-        final boolean testOnly;
         if(ses.isoFile != null) {
-            testOnly = false;
             isoRaf = new FileStream(ses.isoFile);
             isoRaf.setLength(0);
             ui.displayMessageVerbose("Extracting to: \"" + ses.isoFile + "\"");
         }
         else {
-            testOnly = true;
             ui.displayMessageVerbose("Simulating extraction...");
         }
 
+        final boolean result;
+
         if(!UDIFDetector.isUDIFEncoded(dmgRaf)) {
-            if(!sparse && !encrypted) {
-                if(!ui.warning("The image you selected does not seem to be " +
-                        "UDIF encoded, sparse or encrypted.",
-                        "Its contents will be copied unchanged to the " +
-                        "destination."))
-                    System.exit(1);
-                }
+            if(!sparse && !encrypted &&
+                    !ui.warning("The image you selected does not seem to be " +
+                    "UDIF encoded, sparse or encrypted.",
+                    "Its contents will be copied unchanged to the " +
+                    "destination."))
+            {
+                result = false;
             }
-            copyData(dmgRaf, isoRaf, ui);
-            System.exit(0);
+            else {
+                copyData(dmgRaf, isoRaf, ui);
+                result = true;
+            }
         }
+
+        else {
+            extractUDIF(dmgRaf, isoRaf, ui, ses);
+            result = true;
+        }
+
+        if(isoRaf != null) {
+            isoRaf.close();
+        }
+
+        dmgRaf.close();
+
+        return result;
+    }
+
+    private static void extractUDIF(ReadableRandomAccessStream dmgRaf,
+            TruncatableRandomAccessStream isoRaf, UserInterface ui, Session ses)
+            throws Exception
+    {
+        final boolean testOnly = ses.isoFile == null;
 
         Koly koly;
         {
@@ -288,7 +317,7 @@ public class DMGExtractor {
             Iterator<UDIFBlock> blockIterator = dpp.getBlockIterator();
             while(blockIterator.hasNext()) {
                 if(ui.cancelSignaled())
-                    System.exit(0);
+                    return;
                 UDIFBlock currentBlock = blockIterator.next();
 
                 /* Offset of the input data for the current block in the input file */
@@ -332,7 +361,7 @@ public class DMGExtractor {
                             " != " + trueOutOffset + ")");
 
                     if(!proceed)
-                        System.exit(0);
+                        return;
                 }
 
 
@@ -342,7 +371,7 @@ public class DMGExtractor {
                     if(extractionError(ui, testOnly, "BT_ADC not supported."))
                         break;
                     else
-                        System.exit(0);
+                        return;
                 }
                 else if(blockType == UDIFBlock.BT_ZLIB) {
                     try {
@@ -362,7 +391,7 @@ public class DMGExtractor {
                         if(extractionError(ui, testOnly, message))
                             break;
                         else
-                            System.exit(0);
+                            return;
                     }
                 }
                 else if(blockType == UDIFBlock.BT_BZIP2) {
@@ -397,7 +426,7 @@ public class DMGExtractor {
                         if(extractionError(ui, testOnly, message))
                             break;
                         else
-                            System.exit(0);
+                            return;
                     }
                 }
                 else if(blockType == UDIFBlock.BT_END) {
@@ -430,7 +459,7 @@ public class DMGExtractor {
                         if(extractionError(ui, testOnly, message))
                             break;
                         else
-                            System.exit(0);
+                            return;
                     }
 
                 }
@@ -443,14 +472,7 @@ public class DMGExtractor {
         ui.reportProgress(100);
         ui.reportFinished(isoRaf == null, errorsReported, warningsReported, totalSize);
 
-        if(!ses.debug) {
-            if(isoRaf != null)
-                isoRaf.close();
-            dmgRaf.close();
-        }
-        else {
-            if(isoRaf != null)
-                isoRaf.close();
+        if(ses.debug) {
             ConcatenatedIterator<UDIFBlock> cit = new ConcatenatedIterator<UDIFBlock>();
             for(PlistPartition dpp : partitions)
                 cit.add(dpp.getBlockIterator());
@@ -528,7 +550,6 @@ public class DMGExtractor {
                 }
                 previous = b;
             }
-            dmgRaf.close();
             ui.displayMessage("Done!");
         }
     }
