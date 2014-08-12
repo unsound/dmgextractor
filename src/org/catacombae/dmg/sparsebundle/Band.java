@@ -5,10 +5,8 @@
 
 package org.catacombae.dmg.sparsebundle;
 
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileLock;
 import java.util.Arrays;
+import org.catacombae.io.RuntimeIOException;
 
 /**
  *
@@ -18,21 +16,20 @@ class Band extends BundleMember {
     private final long bandActualSize;
     private final long bandVirtualSize;
 
-    public Band(RandomAccessFile tokenFile, FileLock tokenFileLock,
-            long bandSize) throws IOException {
-        super(tokenFile, tokenFileLock);
+    public Band(FileAccessor tokenFile, long bandSize) {
+        super(tokenFile);
 
         this.bandVirtualSize = bandSize;
         try {
             this.bandActualSize = tokenFile.length();
-        } catch(IOException ex) {
+        } catch(RuntimeIOException ex) {
             super.close();
             throw ex;
         }
     }
 
     public int read(long offset, byte[] dest, int destOffset, int destLength)
-            throws IOException {
+            throws RuntimeIOException {
         if(offset < 0)
             throw new IllegalArgumentException("negative offset.");
         if(dest == null)
@@ -62,17 +59,18 @@ class Band extends BundleMember {
                 actualLength = readLength;
         }
 
-        this.file.seek(offset);
-        int bytesRead = this.file.read(dest, destOffset, actualLength);
-        if(bytesRead != actualLength)
-            return bytesRead;
-        else {
-            if(actualLength != readLength) {
-                Arrays.fill(dest, destOffset + actualLength,
-                        destOffset + readLength, (byte) 0);
-            }
-
-            return readLength;
+        if(actualLength > 0) {
+            this.stream.seek(offset);
+            int bytesRead = this.stream.read(dest, destOffset, actualLength);
+            if(bytesRead != actualLength)
+                return bytesRead;
         }
+
+        if(actualLength != readLength) {
+            Arrays.fill(dest, destOffset + actualLength,
+                    destOffset + readLength, (byte) 0);
+        }
+
+        return readLength;
     }
 }

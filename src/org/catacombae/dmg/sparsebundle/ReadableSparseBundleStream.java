@@ -30,6 +30,10 @@ public class ReadableSparseBundleStream extends BasicReadableRandomAccessStream
         this(new SparseBundle(sparseBundleDir));
     }
 
+    public ReadableSparseBundleStream(final FileAccessor sparseBundleDir) {
+        this(new SparseBundle(sparseBundleDir));
+    }
+
     ReadableSparseBundleStream(final SparseBundle bundle) {
         this.bundle = bundle;
     }
@@ -115,9 +119,15 @@ public class ReadableSparseBundleStream extends BasicReadableRandomAccessStream
 
                 try {
                     bytesRead = token.read(pos, data, curOff, len);
-                } catch(IOException e) {
-                    throw new RuntimeIOException("Exception while reading " +
-                            "from token.", e);
+                } catch(RuntimeIOException ex) {
+                    final IOException cause = ex.getIOCause();
+
+                    if(cause != null) {
+                        throw new RuntimeIOException("Exception while " +
+                                "reading from token.", cause);
+                    }
+
+                    throw ex;
                 }
             }
             else {
@@ -154,9 +164,16 @@ public class ReadableSparseBundleStream extends BasicReadableRandomAccessStream
                     try {
                         bytesRead = band.read(posInBand, data, curOff,
                                 bytesToRead);
-                    } catch(IOException ex) {
-                        throw new RuntimeIOException("Exception while " +
-                                "reading from band " + bandNumber + ".", ex);
+                    } catch(RuntimeIOException ex) {
+                        final IOException cause = ex.getIOCause();
+
+                        if(cause != null) {
+                            throw new RuntimeIOException("Exception while " +
+                                    "reading from band " + bandNumber + ".",
+                                    cause);
+                        }
+
+                        throw ex;
                     }
 
                     if(bytesRead < 0) {

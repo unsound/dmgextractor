@@ -6,8 +6,6 @@
 package org.catacombae.dmg.sparsebundle;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileLock;
 import org.catacombae.io.RuntimeIOException;
 
 /**
@@ -18,14 +16,20 @@ class Token extends BundleMember {
 
     private final long size;
 
-    public Token(RandomAccessFile tokenFile, FileLock tokenFileLock) {
-        super(tokenFile, tokenFileLock);
+    public Token(FileAccessor tokenFile) {
+        super(tokenFile);
 
         try {
-            this.size = this.file.length();
-        } catch(IOException e) {
-            throw new RuntimeIOException("Exception while getting size of " +
-                    "'token' file.", e);
+            this.size = this.stream.length();
+        } catch(RuntimeIOException ex) {
+            final IOException cause = ex.getIOCause();
+
+            if(cause != null) {
+                throw new RuntimeIOException("Exception while getting size " +
+                        "of 'token' file.", cause);
+            }
+
+            throw ex;
         }
     }
 
@@ -34,10 +38,10 @@ class Token extends BundleMember {
     }
 
     public final int read(final long pos, final byte[] data, final int offset,
-            final int length) throws IOException
+            final int length) throws RuntimeIOException
     {
-        this.file.seek(pos);
+        this.stream.seek(pos);
 
-        return this.file.read(data, offset, length);
+        return this.stream.read(data, offset, length);
     }
 }

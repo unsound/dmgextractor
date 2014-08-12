@@ -6,8 +6,8 @@
 package org.catacombae.dmg.sparsebundle;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileLock;
+import org.catacombae.io.ReadableRandomAccessStream;
+import org.catacombae.io.RuntimeIOException;
 
 /**
  *
@@ -16,25 +16,40 @@ import java.nio.channels.FileLock;
 abstract class BundleMember {
 
     /* Backing store. */
-    protected RandomAccessFile file;
-    protected FileLock fileLock;
+    private final FileAccessor file;
+    protected final ReadableRandomAccessStream stream;
 
-    public BundleMember(RandomAccessFile file, FileLock fileLock) {
+    public BundleMember(FileAccessor file) {
         this.file = file;
-        this.fileLock = fileLock;
+        this.stream = file.createReadableStream();
     }
 
     public void close() {
+        stream.close();
+
         try {
-            fileLock.release();
-        } catch(IOException ioe) {
-            ioe.printStackTrace();
+            file.unlock();
+        } catch(RuntimeIOException ex) {
+            final IOException cause = ex.getIOCause();
+
+            if(cause != null) {
+                ex.printStackTrace();
+            }
+            else {
+                throw ex;
+            }
         }
 
         try {
             file.close();
-        } catch(IOException ioe) {
-            ioe.printStackTrace();
+        } catch(RuntimeIOException ex) {
+            final IOException cause = ex.getIOCause();
+            if(cause != null) {
+                ex.printStackTrace();
+            }
+            else {
+                throw ex;
+            }
         }
     }
 
