@@ -561,14 +561,13 @@ public class DMGExtractor {
         ui.setTotalProgressLength(inStream.length());
         long totalBytesCopied = 0;
         inStream.seek(0);
-        int bytesRead = inStream.read(buffer);
-        while(bytesRead > 0 && !ui.cancelSignaled()) {
+
+        int bytesRead;
+        while((bytesRead = inStream.read(buffer)) > 0 && !ui.cancelSignaled()) {
             if(outStream != null)
                 outStream.write(buffer, 0, bytesRead);
             ui.addProgressRaw(bytesRead);
             totalBytesCopied += bytesRead;
-
-            bytesRead = inStream.read(buffer);
         }
 
         ui.reportProgress(100);
