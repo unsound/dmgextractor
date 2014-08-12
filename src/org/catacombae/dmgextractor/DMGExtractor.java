@@ -143,14 +143,25 @@ public class DMGExtractor {
 
         ReadableRandomAccessStream dmgRaf = null;
 
+        final boolean sparse;
         if(ses.dmgFile.isDirectory()) {
+            ReadableSparseBundleStream sbStream = null;
             try {
-                ReadableSparseBundleStream sbStream =
-                        new ReadableSparseBundleStream(ses.dmgFile);
-                dmgRaf = sbStream;
+                sbStream = new ReadableSparseBundleStream(ses.dmgFile);
             } catch(RuntimeIOException e) {
                 /* Not a sparse bundle, apparently. */
             }
+
+            if(sbStream != null) {
+                dmgRaf = sbStream;
+                sparse = true;
+            }
+            else {
+                sparse = false;
+            }
+        }
+        else {
+            sparse = false;
         }
 
         if(dmgRaf == null) {
@@ -195,9 +206,11 @@ public class DMGExtractor {
         }
 
         if(!UDIFDetector.isUDIFEncoded(dmgRaf)) {
-            if(!encrypted) {
-                if(!ui.warning("The image you selected does not seem to be UDIF encoded or encrypted.",
-                    "Its contents will be copied unchanged to the destination.")) {
+            if(!sparse && !encrypted) {
+                if(!ui.warning("The image you selected does not seem to be " +
+                        "UDIF encoded, sparse or encrypted.",
+                        "Its contents will be copied unchanged to the " +
+                        "destination."))
                     System.exit(1);
                 }
             }
