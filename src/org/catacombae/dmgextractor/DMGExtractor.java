@@ -30,6 +30,8 @@ import java.util.Collections;
 import javax.swing.JOptionPane;
 import org.catacombae.dmg.encrypted.ReadableCEncryptedEncodingStream;
 import org.catacombae.dmg.sparsebundle.ReadableSparseBundleStream;
+import org.catacombae.dmg.sparseimage.ReadableSparseImageStream;
+import org.catacombae.dmg.sparseimage.SparseImageRecognizer;
 import org.catacombae.io.FileStream;
 import org.catacombae.io.ReadableFileStream;
 import org.catacombae.io.ReadableRandomAccessStream;
@@ -40,6 +42,7 @@ import org.catacombae.dmg.udif.PlistPartition;
 import org.catacombae.dmg.udif.UDIFBlock;
 import org.catacombae.dmg.udif.UDIFDetector;
 import org.catacombae.io.RuntimeIOException;
+import org.catacombae.io.SynchronizedReadableRandomAccessStream;
 import org.xml.sax.XMLReader;
 
 public class DMGExtractor {
@@ -150,7 +153,7 @@ public class DMGExtractor {
 
         ReadableRandomAccessStream dmgRaf = null;
 
-        final boolean sparse;
+        final boolean sparseBundle;
         if(ses.dmgFile.isDirectory()) {
             ReadableSparseBundleStream sbStream = null;
             try {
@@ -161,14 +164,14 @@ public class DMGExtractor {
 
             if(sbStream != null) {
                 dmgRaf = sbStream;
-                sparse = true;
+                sparseBundle = true;
             }
             else {
-                sparse = false;
+                sparseBundle = false;
             }
         }
         else {
-            sparse = false;
+            sparseBundle = false;
         }
 
         if(dmgRaf == null) {
@@ -200,6 +203,14 @@ public class DMGExtractor {
         else
             encrypted = false;
 
+        boolean sparseImage = false;
+        if(!sparseBundle && SparseImageRecognizer.isSparseImage(dmgRaf)) {
+            ReadableSparseImageStream sparseImageStream =
+                    new ReadableSparseImageStream(dmgRaf);
+            dmgRaf = sparseImageStream;
+            sparseImage = true;
+        }
+
         TruncatableRandomAccessStream isoRaf = null;
         if(ses.isoFile != null) {
             isoRaf = new FileStream(ses.isoFile);
@@ -213,7 +224,7 @@ public class DMGExtractor {
         final boolean result;
 
         if(!UDIFDetector.isUDIFEncoded(dmgRaf)) {
-            if(!sparse && !encrypted &&
+            if(!sparseBundle && !encrypted && !sparseImage &&
                     !ui.warning("The image you selected does not seem to be " +
                     "UDIF encoded, sparse or encrypted.",
                     "Its contents will be copied unchanged to the " +

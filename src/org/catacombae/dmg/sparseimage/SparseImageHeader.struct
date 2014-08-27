@@ -1,0 +1,21 @@
+struct SparseImageHeader {
+    u8 signature[4];                /* Must contain the string "sprs". */
+    be32 reservedAt4;               /* Possibly the sparseimage format version
+                                     * (observed value: 3). */
+    be32 sectorsPerBlock;           /* The number of sectors in each sparseimage
+                                     * block (observed value: 2048). */
+    be32 reservedAt12;              /* Changes from 0x00000000 to 0x00000001
+                                     * when image goes from empty -> containing
+                                     * content. Stays at 0x00000001 as new
+                                     * blocks are allocated. Likely to be a
+                                     * "flags" field of some kind. */
+    be32 sectorCount;               /* The number of sectors in the virtual
+                                     * device. */
+    u8 reservedAt20[12];            /* Observed value: 0x0 for all bytes. */
+    be32 sectorCount2;              /* The number of sectors in the virtual
+                                     * device (again). One of these two fields
+                                     * has some additional meaning. */
+    u8 reservedAt36[28];            /* Observed value: 0x0 for all bytes. */
+    be32 blockMap[1008];            /* The block map, mapping real to virtual
+                                     * block indices. */
+};

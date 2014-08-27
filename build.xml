@@ -168,6 +168,8 @@
       <include name="org/catacombae/dmg/udif/*.java"/>
       <include name="org/catacombae/dmg/encrypted/*.java"/>
       <include name="org/catacombae/dmg/sparsebundle/ReadableSparseBundleStream.java"/>
+      <include name="org/catacombae/dmg/sparseimage/ReadableSparseImageStream.java"/>
+      <include name="org/catacombae/dmg/sparseimage/SparseImageRecognizer.java"/>
       <include name="org/catacombae/dmgextractor/ui/PasswordDialog.java"/>
       
       <compilerarg value="-Xlint:unchecked"/>
