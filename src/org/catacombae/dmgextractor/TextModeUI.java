@@ -175,9 +175,9 @@ class TextModeUI extends BasicUI implements UserInterface {
     public char[] getPasswordFromUser() {
         displayMessage("The disk image you are trying to extract is encrypted.");
         try {
-            String reply = prompt("Please enter password: ");
+            char[] reply = prompt("Please enter password: ");
             if(reply != null)
-                return reply.toCharArray();
+                return reply;
             else
                 return null;
         } catch(IOException ioe) {
@@ -186,9 +186,26 @@ class TextModeUI extends BasicUI implements UserInterface {
         }
     }
 
-    private String prompt(String s) throws IOException {
+    private char[] prompt(String s) throws IOException {
+        char[] result = null;
+
         ps.print(s);
-        return stdin.readLine();
+
+        if(Java6Util.isJava6OrHigher()) {
+            result = Java6Util.readPassword();
+        }
+
+        if(result == null) {
+            String line = stdin.readLine();
+            if(line != null) {
+                result = line.toCharArray();
+            }
+            else {
+                result = null;
+            }
+        }
+
+        return result;
     }
 
     public void setProgressFilenames(String inputFilename, String outputFilename) {
