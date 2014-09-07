@@ -73,8 +73,36 @@ public class XmlPlistNode extends PlistNode {
     public PlistNode[] getChildren() {
         final LinkedList<PlistNode> children = new LinkedList<PlistNode>();
 
-        for(String key : getKeys()) {
-            children.add(cdkey(key));
+        if(xmlNode.qName.equals("dict")) {
+            for(String key : getKeys()) {
+                children.add(cdkey(key));
+            }
+        }
+        else if(xmlNode.qName.equals("array")) {
+            for(XMLElement xe : xmlNode.getChildren()) {
+                if(xe instanceof XMLNode) {
+                    children.add(new XmlPlistNode((XMLNode) xe));
+                }
+                else if(xe instanceof XMLText) {
+                    String text = "";
+                    try {
+                        text = Util.readFully(((XMLText) xe).getText());
+                    } catch(IOException ex) {
+                        ex.printStackTrace();
+                    }
+                    throw new RuntimeException("Unexpected text inside array " +
+                            "plist element: \"" + text + "\"");
+                }
+                else {
+                    System.err.println(xe.toString());
+                    throw new RuntimeException("Unexpected element inside " +
+                            "array: " + xe);
+                }
+            }
+        }
+        else {
+            throw new RuntimeException("getChildren called for " +
+                    "non-dict/array type \"" + xmlNode.qName + "\".");
         }
 
         return children.toArray(new PlistNode[children.size()]);
