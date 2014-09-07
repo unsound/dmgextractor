@@ -201,6 +201,11 @@ public abstract class UDIFBlockInputStream extends InputStream {
         long bytesSkipped = 0;
         while(bytesSkipped < n) {
             int curSkip = (int) Math.min(n - bytesSkipped, skipBuffer.length);
+            if(curSkip < 0) {
+                throw new RuntimeException("Internal error: curSkip is " +
+                        "negative (" + curSkip + ").");
+            }
+
             int res = read(skipBuffer, 0, curSkip);
             if(res > 0)
                 bytesSkipped += res;
@@ -326,8 +331,13 @@ public abstract class UDIFBlockInputStream extends InputStream {
         /** Extremely more efficient skip method! */
         @Override
         public long skip(long n) throws IOException {
-            final int bytesToSkip =
-                    (int) Math.min(block.getInSize() - inPos, n);
+            final long bytesToSkip =
+                    Math.min(block.getInSize() - inPos, n);
+            if(bytesToSkip < 0) {
+                throw new RuntimeException("Internal error: bytesToSkip is " +
+                        "negative (" + bytesToSkip + ").");
+            }
+
             inPos += bytesToSkip;
 
             // make read() refill buffer at next call..
@@ -362,8 +372,13 @@ public abstract class UDIFBlockInputStream extends InputStream {
         /** Extremely more efficient skip method! */
         @Override
         public long skip(long n) throws IOException {
-            final int bytesToSkip =
-                    (int) Math.min(block.getOutSize() - outPos, n);
+            final long bytesToSkip =
+                    Math.min(block.getOutSize() - outPos, n);
+            if(bytesToSkip < 0) {
+                throw new RuntimeException("Internal error: bytesToSkip is " +
+                        "negative (" + bytesToSkip + ").");
+            }
+
             outPos += bytesToSkip;
 
             // make read() refill buffer at next call..
