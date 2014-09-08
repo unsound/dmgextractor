@@ -34,7 +34,8 @@ public class CharByCharReader extends Reader {
 	this.is = is;
 	this.cs = cs;
 	this.cdec = cs.newDecoder();
-	tempBuffer = new byte[(int)Math.ceil(cdec.maxCharsPerByte())];
+        tempBuffer =
+                new byte[(int)Math.ceil(cs.newEncoder().maxBytesPerChar())];
     }
     
     public void close() throws IOException {}
