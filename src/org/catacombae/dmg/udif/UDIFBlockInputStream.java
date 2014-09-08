@@ -226,7 +226,7 @@ public abstract class UDIFBlockInputStream extends InputStream {
         public ZlibBlockInputStream(ReadableRandomAccessStream raf,
                 UDIFBlock block, int addInOffset) throws IOException {
             super(raf, block, addInOffset);
-            inflater = new Inflater(true);
+            inflater = new Inflater();
             inBuffer = new byte[4096];
             inPos = 0;
             feedInflater();
@@ -242,16 +242,7 @@ public abstract class UDIFBlockInputStream extends InputStream {
             int bytesToFeed = (int) Math.min(inBuffer.length, bytesLeftToRead);
             //System.out.println("  bytesToFeed=" + bytesToFeed);
 
-            byte[] buf;
-            int bytesToWrite = bytesToFeed;
-            if(bytesLeftToRead <= inBuffer.length) {
-                buf = new byte[inBuffer.length + 1];
-                bytesToWrite++;
-            }
-            else
-                buf = inBuffer;
-
-            int curBytesRead = raf.read(buf, 0, bytesToFeed);
+            int curBytesRead = raf.read(inBuffer, 0, bytesToFeed);
             inPos += curBytesRead;
             inflater.setInput(inBuffer, 0, curBytesRead);
             //System.out.println("  curBytesRead=" + curBytesRead);
