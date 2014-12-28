@@ -27,7 +27,7 @@ import java.io.PrintStream;
  * User interface implementation using plain old System.in and System.out for a
  * text-based UI.
  *
- * @author Erik Larsson
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 class TextModeUI extends BasicUI implements UserInterface {
 

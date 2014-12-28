@@ -26,7 +26,7 @@ import org.catacombae.io.RuntimeIOException;
  * Contains a few static utility methods for easily detecting an UDIF encoded
  * disk image.
  *
- * @author Erik Larsson
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class UDIFDetector {
     /**

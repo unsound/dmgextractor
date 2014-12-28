@@ -20,9 +20,8 @@ package org.catacombae.dmg.sparsebundle;
 import org.catacombae.io.ReadableRandomAccessStream;
 
 /**
- *
- * @author erik
- */
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
+*/
 public interface FileAccessor {
     public FileAccessor[] listFiles();
     public boolean isFile();

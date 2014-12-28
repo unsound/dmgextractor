@@ -24,8 +24,7 @@
 package org.catacombae.dmgextractor.utils.gui;
 
 /**
- *
- * @author  erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class PlistPanel extends javax.swing.JPanel {
     

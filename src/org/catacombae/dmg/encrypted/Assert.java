@@ -18,8 +18,7 @@
 package org.catacombae.dmg.encrypted;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class Assert {
     public static void eq(long a, long b) {

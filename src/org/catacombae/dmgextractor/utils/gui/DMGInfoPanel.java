@@ -33,8 +33,7 @@ import org.catacombae.dmg.udif.Koly;
 import org.catacombae.util.Util.Pair;
 
 /**
- *
- * @author  erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class DMGInfoPanel extends javax.swing.JPanel {
     private static class ContentPair extends Pair<String, Component> {

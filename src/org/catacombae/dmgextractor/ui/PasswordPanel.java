@@ -23,7 +23,7 @@ import java.awt.event.ActionListener;
 /**
  * The UI design component for PasswordDialog.
  * 
- * @author Erik Larsson
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 class PasswordPanel extends javax.swing.JPanel {
 

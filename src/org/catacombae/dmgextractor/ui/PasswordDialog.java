@@ -25,8 +25,7 @@ import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 
 /**
- *
- * @author Erik Larsson
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class PasswordDialog extends JDialog {
     private final PasswordPanel passwordPanel;

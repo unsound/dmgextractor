@@ -20,8 +20,7 @@ package org.catacombae.plist;
 import java.io.Reader;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public abstract class PlistNode {
     public abstract PlistNode[] getChildren();

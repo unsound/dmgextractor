@@ -29,8 +29,7 @@ import org.catacombae.io.RuntimeIOException;
 import org.catacombae.io.SynchronizedReadableRandomAccessStream;
 
 /**
- *
- * @author Erik Larsson
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 class SparseBundle {
     private static final String mainInfoFilename = "Info.plist";

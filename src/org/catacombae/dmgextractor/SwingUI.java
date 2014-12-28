@@ -27,7 +27,7 @@ import org.catacombae.dmgextractor.ui.PasswordDialog;
 /**
  * User interface implementation using Java Swing.
  * 
- * @author Erik Larsson
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 class SwingUI extends BasicUI implements UserInterface {
 

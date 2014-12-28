@@ -21,8 +21,7 @@ import org.catacombae.io.ReadableRandomAccessStream;
 import org.catacombae.util.Util;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class SparseImageRecognizer {
     public static boolean isSparseImage(final ReadableRandomAccessStream s) {

@@ -26,8 +26,7 @@ import org.catacombae.io.RuntimeIOException;
 import org.catacombae.util.Util.Pair;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class ReadableSparseBundleStream extends BasicReadableRandomAccessStream
 {

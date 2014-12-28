@@ -28,8 +28,7 @@ import org.catacombae.xml.XMLNode;
 import org.catacombae.xml.XMLText;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class XmlPlistNode extends PlistNode {
     private final XMLNode xmlNode;

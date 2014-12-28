@@ -39,8 +39,7 @@ import org.catacombae.xml.apx.ParseException;
 import org.xml.sax.SAXException;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class XmlPlist {
 

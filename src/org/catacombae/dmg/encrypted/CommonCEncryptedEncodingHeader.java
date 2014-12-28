@@ -48,8 +48,7 @@ import javax.crypto.spec.IvParameterSpec;
 import org.catacombae.dmgextractor.Util;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public abstract class CommonCEncryptedEncodingHeader {
     public static CommonCEncryptedEncodingHeader create(V1Header header) {

@@ -20,8 +20,7 @@ package org.catacombae.dmg.sparsebundle;
 import java.io.File;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class Dump {
     public static void main(String[] args) {

@@ -21,8 +21,7 @@ import java.io.IOException;
 import org.catacombae.io.RuntimeIOException;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 class Token extends BundleMember {
 

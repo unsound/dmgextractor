@@ -23,8 +23,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 class Debug {
     private static class NullOutputStream extends OutputStream {

@@ -18,8 +18,7 @@
 package org.catacombae.dmgextractor;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 abstract class BasicUI implements UserInterface {
 

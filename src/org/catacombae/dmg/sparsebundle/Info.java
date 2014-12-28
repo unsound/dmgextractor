@@ -25,8 +25,7 @@ import org.catacombae.plist.XmlPlist;
 import org.catacombae.util.Util;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 class Info extends BundleMember {
     private long bandSize;

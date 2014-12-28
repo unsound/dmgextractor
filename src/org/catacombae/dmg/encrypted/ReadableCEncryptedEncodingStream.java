@@ -70,7 +70,7 @@ import org.catacombae.util.Util.Pair;
  * the utility vfdecrypt in VileFault, copyright Ralf-Philipp Weinmann, Jacob Appelbaum and
  * Christian Fromme.
  * 
- * @author Erik Larsson
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessStream {
     private final ReadableRandomAccessStream backingStream;

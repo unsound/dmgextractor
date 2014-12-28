@@ -24,7 +24,7 @@ import java.lang.reflect.Method;
  * This class should encapsulate all of the logic in DMGExtractor that is
  * Java 6-specific.
  *
- * @author <a href="http://www.catacombae.org/">Erik Larsson</a>
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class Java6Util extends org.catacombae.util.Java6Util {
     /**

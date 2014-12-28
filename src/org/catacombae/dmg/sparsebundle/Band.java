@@ -21,8 +21,7 @@ import java.util.Arrays;
 import org.catacombae.io.RuntimeIOException;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 class Band extends BundleMember {
     private final long bandActualSize;

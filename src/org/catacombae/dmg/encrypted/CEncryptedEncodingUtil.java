@@ -21,8 +21,7 @@ import org.catacombae.dmgextractor.Util;
 import org.catacombae.io.ReadableRandomAccessStream;
 
 /**
- *
- * @author erik
+ * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 class CEncryptedEncodingUtil {
     private static final String V1_SIGNATURE = "cdsaencr";
