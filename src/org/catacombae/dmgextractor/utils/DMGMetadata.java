@@ -307,7 +307,7 @@ public class DMGMetadata {
         }
     }
 
-    // Saxat från HFSExplorer.java
+    // Saxat frÃ¥n HFSExplorer.java
     public static class APMPartition {
 
         public int pmSig; // {partition signature}

@@ -69,10 +69,10 @@ public class ReaderInputStream extends InputStream {
     @Override
     public int read(byte[] b) throws IOException { return read(b, 0, b.length); }
 
-    /* Säg då att vi skippar 204 bytes. Vad händer? När vi går in i read(3) är remainingChardata = 0,
-       och off = 0, len = 204. b.length = 4096. Alltså kommer ingen av de 4 första if-satserna vara
+    /* SÃ¤g dÃ¥ att vi skippar 204 bytes. Vad hÃ¤nder? NÃ¤r vi gÃ¥r in i read(3) Ã¤r remainingChardata = 0,
+       och off = 0, len = 204. b.length = 4096. AlltsÃ¥ kommer ingen av de 4 fÃ¶rsta if-satserna vara
        giltiga...
-       I vilken situation kan vi ha läst in mindre data i b än returvärdet?
+       I vilken situation kan vi ha lÃ¤st in mindre data i b Ã¤n returvÃ¤rdet?
     */
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
