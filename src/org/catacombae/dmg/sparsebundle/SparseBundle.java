@@ -85,40 +85,22 @@ class SparseBundle {
         try {
             mainInfoFile.lock();
         } catch(RuntimeIOException ex) {
-            final IOException cause = ex.getIOCause();
-
-            if(cause != null) {
-                throw new RuntimeIOException("Failed to acquire a shared " +
-                        "lock on '" + mainInfoFilename + "'.", cause);
-            }
-
-            throw ex;
+            System.err.println("Warning: Failed to acquire a shared lock on " +
+                    "'" + mainInfoFilename + "'.");
         }
 
         try {
             backupInfoFile.lock();
         } catch(RuntimeIOException ex) {
-            final IOException cause = ex.getIOCause();
-
-            if(cause != null) {
-                throw new RuntimeIOException("Failed to acquire a shared " +
-                        "lock on '" + backupInfoFilename + "'.", cause);
-            }
-
-            throw ex;
+            System.err.println("Warning: Failed to acquire a shared lock on " +
+                    "'" + backupInfoFilename + "'.");
         }
 
         try {
             tokenFile.lock();
         } catch(RuntimeIOException ex) {
-            final IOException cause = ex.getIOCause();
-
-            if(cause != null) {
-                throw new RuntimeIOException("Failed to acquire a shared " +
-                        "lock on '" + tokenFilename + "'.", cause);
-            }
-
-            throw ex;
+            System.err.println("Warning: Failed to acquire a shared lock on " +
+                    "'" + tokenFilename + "'.");
         }
 
         try { this.mainInfo = new Info(mainInfoFile); }
@@ -231,14 +213,8 @@ class SparseBundle {
         try {
             bandFile.lock();
         } catch(RuntimeIOException ex) {
-            final IOException cause = ex.getIOCause();
-
-            if(cause != null) {
-                throw new RuntimeIOException("Failed to acquire a shared " +
-                        "lock on '" + bandFilename + "'.", cause);
-            }
-
-            throw ex;
+            System.err.println("Warning: Failed to acquire a shared lock on " +
+                    "'" + bandFilename + "'.");
         }
 
         final long curBandSize;
