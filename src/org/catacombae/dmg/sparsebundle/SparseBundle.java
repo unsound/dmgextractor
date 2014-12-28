@@ -77,8 +77,8 @@ class SparseBundle {
             final IOException cause = ex.getIOCause();
 
             if(cause != null) {
-                throw new RuntimeIOException("Failed to aquire a shared lock " +
-                        "on '" + mainInfoFilename + "'.", cause);
+                throw new RuntimeIOException("Failed to acquire a shared " +
+                        "lock on '" + mainInfoFilename + "'.", cause);
             }
 
             throw ex;
@@ -90,8 +90,8 @@ class SparseBundle {
             final IOException cause = ex.getIOCause();
 
             if(cause != null) {
-                throw new RuntimeIOException("Failed to aquire a shared lock " +
-                        "on '" + backupInfoFilename + "'.", cause);
+                throw new RuntimeIOException("Failed to acquire a shared " +
+                        "lock on '" + backupInfoFilename + "'.", cause);
             }
 
             throw ex;
@@ -103,8 +103,8 @@ class SparseBundle {
             final IOException cause = ex.getIOCause();
 
             if(cause != null) {
-                throw new RuntimeIOException("Failed to aquire a shared lock " +
-                        "on '" + tokenFilename + "'.", cause);
+                throw new RuntimeIOException("Failed to acquire a shared " +
+                        "lock on '" + tokenFilename + "'.", cause);
             }
 
             throw ex;
@@ -223,8 +223,8 @@ class SparseBundle {
             final IOException cause = ex.getIOCause();
 
             if(cause != null) {
-                throw new RuntimeIOException("Failed to aquire a shared lock " +
-                        "on '" + bandFilename + "'.", cause);
+                throw new RuntimeIOException("Failed to acquire a shared " +
+                        "lock on '" + bandFilename + "'.", cause);
             }
 
             throw ex;
