@@ -1,0 +1,2 @@
+Main-Class: org.catacombae.dmgextractor.fuse.MountDMG
+Class-Path: csframework.jar apache-ant-1.7.0-bzip2.jar iharder-base64.jar jfuse.jar

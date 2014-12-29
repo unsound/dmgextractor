@@ -1,0 +1,29 @@
+#!/bin/sh
+
+BASEDIR="`dirname "$0"`"
+if [ $? -ne 0 ]; then
+    echo "WARNING: No dirname utility found!"
+    echo "         Script will only work if invoked from its parent directory."
+    BASEDIR="."
+fi
+
+LIB="${BASEDIR}/../lib"
+
+case `uname -s` in
+[Dd]arwin*)
+	if test -z "${DYLD_LIBRARY_PATH}"; then
+	    # Set up a sane initial library path.
+	    DYLD_LIBRARY_PATH="/lib:/usr/lib"
+	fi
+	export DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH}:/usr/local/lib:${LIB}"
+	;;
+[Ll]inux* | [Nn]et[Bb][Ss][Dd]*)
+	if ! test -z "${LD_LIBRARY_PATH}"; then
+	    # Append ':' before appending custom search path.
+	    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:"
+	fi
+	export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}/usr/local/lib:${LIB}"
+	;;
+esac
+
+java -cp "$LIB/dmgextractor-fuse.jar" org.catacombae.dmgextractor.fuse.MountDMG "$@"

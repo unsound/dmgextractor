@@ -29,7 +29,7 @@ import java.io.PrintStream;
  *
  * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
-class TextModeUI extends BasicUI implements UserInterface {
+public class TextModeUI extends BasicUI implements UserInterface {
 
     /** A string containing 79 backspace characters. */
     public static final String BACKSPACE79 =

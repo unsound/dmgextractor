@@ -15,6 +15,9 @@
   <property name="target.application.outjar" value="targets/application/lib/dmgextractor.jar"/>
   <property name="target.standalone.outjar" value="targets/standalone/dmgextractor-standalone.jar"/>
   <property name="target.hfsxlib.outjar" value="targets/hfsxlib/hfsx_dmglib.jar"/>
+  <property name="target.dmgextractor-fuse.manifest.dir" value="src.META-INF/dmgextractor-fuse"/>
+  <property name="target.dmgextractor-fuse.outdir" value="targets/dmgextractor-fuse/lib"/>
+  <property name="target.dmgextractor-fuse.outjar" value="${target.dmgextractor-fuse.outdir}/dmgextractor-fuse.jar"/>
   
   
   <!-- TARGET: all -->
@@ -24,13 +27,14 @@
     <echo message="  build-application - Builds the application target, compiling all project sources."/>
     <echo message="  build-standalone - Builds the standalone target, creating a standalone executable jar file with only the essentials to run DMGExtractor."/>
     <echo message="  build-hfsxlib - Builds the library subset of DMGExtractor required by HFSExplorer."/>
+    <echo message="  build-dmgextractor-fuse - Builds the DMGExtractor FUSE driver."/>
     <echo message="  javadoc - Creates the javadoc documentation for the project."/>
   </target>
   
   
   <!-- TARGET: build-all -->
 
-  <target name="build-all" depends="build-application,build-standalone,build-hfsxlib"/>
+  <target name="build-all" depends="build-application,build-standalone,build-hfsxlib,build-dmgextractor-fuse"/>
 
 
   <!-- TARGET: init-application -->
@@ -184,6 +188,59 @@
   </target>
   
   
+  <!-- TARGET: init-dmgextractor-fuse -->
+
+  <target name="init-dmgextractor-fuse">
+    <mkdir dir="${builddir}"/>
+  </target>
+
+
+  <!-- TARGET: clean-dmgextractor-fuse -->
+
+  <target name="clean-dmgextractor-fuse">
+    <mkdir dir="${builddir}"/>
+    <delete dir="${builddir}"/>
+  </target>
+
+
+  <!-- TARGET: build-dmgextractor-fuse -->
+
+  <path id="target.dmgextractor-fuse.classpath">
+    <fileset dir="${java.runtime.library.dir}">
+      <include name="*.jar"/>
+      <exclude name="dmgextractor.jar"/>
+    </fileset>
+    <fileset dir="${target.dmgextractor-fuse.outdir}">
+      <include name="jfuse.jar"/>
+    </fileset>
+  </path>
+
+  <target name="build-dmgextractor-fuse" depends="clean-dmgextractor-fuse,jar-dmgextractor-fuse"/>
+
+  <target name="compile-dmgextractor-fuse" depends="init-dmgextractor-fuse">
+    <javac srcdir="${java.source.dir}"
+	   destdir="${builddir}"
+	   debug="true"
+	   debuglevel="${debuglevel}"
+	   encoding="utf-8"
+	   source="${java.source.level}"
+	   target="${java.target.level}"
+	   deprecation="on">
+      <include name="org/catacombae/dmgextractor/fuse/MountDMG.java"/>
+
+      <compilerarg value="-Xlint:unchecked"/>
+      <classpath refid="target.dmgextractor-fuse.classpath"/>
+    </javac>
+  </target>
+
+
+  <!-- TARGET: jar-dmgextractor-fuse -->
+
+  <target name="jar-dmgextractor-fuse" depends="compile-dmgextractor-fuse">
+    <jar destfile="${target.dmgextractor-fuse.outjar}" basedir="${builddir}" manifest="${target.dmgextractor-fuse.manifest.dir}/MANIFEST.MF" level="9"/>
+  </target>
+
+
   <!-- TARGET: javadoc -->
   
   <path id="javadoc.classpath">
