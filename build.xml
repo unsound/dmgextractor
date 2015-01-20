@@ -103,7 +103,7 @@
       <zipfileset src="${java.runtime.library.dir}/csframework.jar" includes="**/*.class"/>
       <zipfileset src="${java.runtime.library.dir}/apache-ant-1.7.0-bzip2.jar" includes="**/*.class"/>
       <zipfileset src="${java.runtime.library.dir}/iharder-base64.jar" includes="**/*.class"/>
-      <zipfileset src="${java.runtime.library.dir}/swing-layout-1.0.3.jar" includes="**/*.class"/>
+      <zipfileset src="${java.runtime.library.dir}/swing-layout-1.0.4.jar" includes="**/*.class"/>
     </copy>
     <mkdir dir="${builddir}/JNLP-INF"/>
     <copy file="${target.standalone.jnlp.dir}/dmgextractor.jnlp" tofile="${builddir}/JNLP-INF/APPLICATION.JNLP"/>
