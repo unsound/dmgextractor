@@ -31,8 +31,9 @@ class Info extends BundleMember {
     private long bandSize;
     private long size;
 
-    public Info(FileAccessor file) throws RuntimeIOException {
-        super(file);
+    public Info(FileAccessor file, boolean fileLocked) throws RuntimeIOException
+    {
+        super(file, fileLocked);
         refresh();
     }
 

@@ -28,10 +28,12 @@ abstract class BundleMember {
 
     /* Backing store. */
     private final FileAccessor file;
+    private final boolean fileLocked;
     protected final ReadableRandomAccessStream stream;
 
-    public BundleMember(FileAccessor file) {
+    public BundleMember(FileAccessor file, boolean fileLocked) {
         this.file = file;
+        this.fileLocked = fileLocked;
         this.stream = file.createReadableStream();
     }
 
@@ -39,7 +41,9 @@ abstract class BundleMember {
         stream.close();
 
         try {
-            file.unlock();
+            if(fileLocked) {
+                file.unlock();
+            }
         } catch(RuntimeIOException ex) {
             final IOException cause = ex.getIOCause();
 

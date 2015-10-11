@@ -57,6 +57,10 @@ class SparseBundle {
         FileAccessor tokenFile = null;
         FileAccessor bandsDirFile = null;
 
+        boolean mainInfoFileLocked = false;
+        boolean backupInfoFileLocked = false;
+        boolean tokenFileLocked = false;
+
         for(FileAccessor f : files) {
             if(f.getName().equals(mainInfoFilename))
                 mainInfoFile = f;
@@ -84,6 +88,7 @@ class SparseBundle {
 
         try {
             mainInfoFile.lock();
+            mainInfoFileLocked = true;
         } catch(RuntimeIOException ex) {
             System.err.println("Warning: Failed to acquire a shared lock on " +
                     "'" + mainInfoFilename + "'.");
@@ -91,6 +96,7 @@ class SparseBundle {
 
         try {
             backupInfoFile.lock();
+            backupInfoFileLocked = true;
         } catch(RuntimeIOException ex) {
             System.err.println("Warning: Failed to acquire a shared lock on " +
                     "'" + backupInfoFilename + "'.");
@@ -98,12 +104,15 @@ class SparseBundle {
 
         try {
             tokenFile.lock();
+            tokenFileLocked = true;
         } catch(RuntimeIOException ex) {
             System.err.println("Warning: Failed to acquire a shared lock on " +
                     "'" + tokenFilename + "'.");
         }
 
-        try { this.mainInfo = new Info(mainInfoFile); }
+        try {
+            this.mainInfo = new Info(mainInfoFile, mainInfoFileLocked);
+        }
         catch(RuntimeIOException ex) {
             final IOException cause = ex.getIOCause();
 
@@ -115,7 +124,9 @@ class SparseBundle {
             throw ex;
         }
 
-        try { this.backupInfo = new Info(backupInfoFile); }
+        try {
+            this.backupInfo = new Info(backupInfoFile, backupInfoFileLocked);
+        }
         catch(RuntimeIOException ex) {
             final IOException cause = ex.getIOCause();
 
@@ -127,7 +138,7 @@ class SparseBundle {
             throw ex;
         }
 
-        this.token = new Token(tokenFile);
+        this.token = new Token(tokenFile, tokenFileLocked);
 
         this.bandsDir = bandsDirFile;
 
@@ -207,11 +218,13 @@ class SparseBundle {
     Band lookupBand(long bandNumber) throws RuntimeIOException {
         final String bandFilename = Long.toHexString(bandNumber);
         final FileAccessor bandFile = bandsDir.lookupChild(bandFilename);
+        boolean bandFileLocked = false;
         if(!bandFile.exists())
             return null;
 
         try {
             bandFile.lock();
+            bandFileLocked = true;
         } catch(RuntimeIOException ex) {
             System.err.println("Warning: Failed to acquire a shared lock on " +
                     "'" + bandFilename + "'.");
@@ -234,7 +247,7 @@ class SparseBundle {
             throw new RuntimeIOException("Invalid band: Size (" + curBandSize +
                     ") is larger than bandSize (" + bandSize + ").");
 
-        try { return new Band(bandFile, bandSize); }
+        try { return new Band(bandFile, bandFileLocked, bandSize); }
         catch(RuntimeIOException ex) {
             final IOException cause = ex.getIOCause();
 

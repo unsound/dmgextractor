@@ -27,8 +27,9 @@ class Band extends BundleMember {
     private final long bandActualSize;
     private final long bandVirtualSize;
 
-    public Band(FileAccessor tokenFile, long bandSize) {
-        super(tokenFile);
+    public Band(FileAccessor tokenFile, boolean bandFileLocked, long bandSize)
+    {
+        super(tokenFile, bandFileLocked);
 
         this.bandVirtualSize = bandSize;
         try {

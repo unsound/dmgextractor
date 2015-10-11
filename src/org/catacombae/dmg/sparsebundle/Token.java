@@ -27,8 +27,8 @@ class Token extends BundleMember {
 
     private final long size;
 
-    public Token(FileAccessor tokenFile) {
-        super(tokenFile);
+    public Token(FileAccessor tokenFile, boolean tokenFileLocked) {
+        super(tokenFile, tokenFileLocked);
 
         try {
             this.size = this.stream.length();
