@@ -111,7 +111,8 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
                 header = CommonCEncryptedEncodingHeader.create(v1header);
                 break;
             case 2:
-                V2Header v2header = new V2Header(backingStream, 0);
+                backingStream.seek(0);
+                V2Header v2header = new V2Header(backingStream);
                 Debug.print("  V2 header:");
                 v2header.print(Debug.ps, "    ");
                 header = CommonCEncryptedEncodingHeader.create(v2header);
@@ -130,41 +131,73 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
         }
          * */
 
-        try {
-            final String pbeAlgorithmName = "PBKDF2WithHmacSHA1"; //"PBEWithHmacSHA1AndDESede";
+        RuntimeException firstException = null;
+        SecretKeySpec curAesKey = null;
+        SecretKeySpec curHmacSha1Key = null;
+        Mac curHmacSha1 = null;
+        Cipher curAesCipher = null;
 
-            // Derive the proper key from our password.
-            PBEKeySpec ks = new PBEKeySpec(password, header.getKdfSalt(),
-                    header.getKdfIterationCount(), 192);
-            SecretKeyFactory fact = SecretKeyFactory.getInstance(pbeAlgorithmName);
-            Key k = fact.generateSecret(ks);
+        for(CommonCEncryptedEncodingHeader.KeyData key : header.getKeys()) {
+            try {
+                final String pbeAlgorithmName = "PBKDF2WithHmacSHA1";
+                // Note: Why doesn't"PBEWithHmacSHA1AndDESede" work?
 
-            byte[] keyData = k.getEncoded();
-            Debug.print("Derived key: 0x" + Util.byteArrayToHexString(keyData));
+                // Derive the proper key from our password.
+                PBEKeySpec ks = new PBEKeySpec(password, key.getKdfSalt(),
+                        key.getKdfIterationCount(), 192);
+                SecretKeyFactory fact =
+                        SecretKeyFactory.getInstance(pbeAlgorithmName);
+                Key k = fact.generateSecret(ks);
 
-            // Set up the cipher
-            final String cipherAlgorithmName = "DESede/CBC/PKCS5Padding";
-            Cipher keyDecryptionCipher = Cipher.getInstance(cipherAlgorithmName);
-            SecretKeyFactory fact2 = SecretKeyFactory.getInstance("DESede");
-            Key k2 = fact2.generateSecret(new DESedeKeySpec(keyData));
+                byte[] keyData = k.getEncoded();
+                Debug.print("Derived key: 0x" +
+                        Util.byteArrayToHexString(keyData));
 
-            // Call the version specific unwrap function.
-            KeySet keys = header.unwrapKeys(k2, keyDecryptionCipher);
-            
-            Debug.print("AES key: 0x" + Util.byteArrayToHexString(keys.getAesKey()));
-            Debug.print("HmacSHA1 key: 0x" + Util.byteArrayToHexString(keys.getHmacSha1Key()));
+                // Set up the cipher
+                final String cipherAlgorithmName = "DESede/CBC/PKCS5Padding";
+                Cipher keyDecryptionCipher =
+                        Cipher.getInstance(cipherAlgorithmName);
+                SecretKeyFactory fact2 = SecretKeyFactory.getInstance("DESede");
+                Key k2 = fact2.generateSecret(new DESedeKeySpec(keyData));
 
-            this.aesKey = new SecretKeySpec(keys.getAesKey(), "AES");
-            this.hmacSha1Key = new SecretKeySpec(keys.getHmacSha1Key(), "HmacSHA1");
+                // Call the version specific unwrap function.
+                KeySet keys = key.unwrapKeys(k2, keyDecryptionCipher);
 
-            keys.clearData(); // No unused keys in memory please.
+                Debug.print("AES key: 0x" +
+                        Util.byteArrayToHexString(keys.getAesKey()));
+                Debug.print("HmacSHA1 key: 0x" +
+                        Util.byteArrayToHexString(keys.getHmacSha1Key()));
 
-            this.hmacSha1 = Mac.getInstance("HmacSHA1");
-            this.hmacSha1.init(hmacSha1Key);
+                curAesKey = new SecretKeySpec(keys.getAesKey(), "AES");
+                curHmacSha1Key =
+                        new SecretKeySpec(keys.getHmacSha1Key(), "HmacSHA1");
 
-            this.aesCipher = Cipher.getInstance("AES/CBC/NoPadding");
-        } catch(Exception e) {
-            throw new RuntimeException("Exception while trying to decrypt keys.", e);
+                keys.clearData(); // No unused keys in memory please.
+
+                curHmacSha1 = Mac.getInstance("HmacSHA1");
+                curHmacSha1.init(curHmacSha1Key);
+
+                curAesCipher = Cipher.getInstance("AES/CBC/NoPadding");
+                break;
+            } catch(Exception e) {
+                if(firstException == null) {
+                    firstException = new RuntimeException("Exception while " +
+                                "trying to decrypt keys.", e);
+                }
+            }
+        }
+
+        if(curAesCipher != null) {
+            aesKey = curAesKey;
+            hmacSha1Key = curHmacSha1Key;
+            hmacSha1 = curHmacSha1;
+            aesCipher = curAesCipher;
+        }
+        else if(firstException != null) {
+            throw firstException;
+        }
+        else {
+            throw new RuntimeException("No keys in header.");
         }
     }
     

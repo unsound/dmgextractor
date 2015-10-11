@@ -43,6 +43,7 @@ import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.util.LinkedList;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import org.catacombae.dmgextractor.Util;
@@ -61,24 +62,8 @@ public abstract class CommonCEncryptedEncodingHeader {
 
     public abstract int getBlockSize();
     public abstract long getBlockDataStart();
-    /**
-     * Returns the salt for the key derivation function.
-     * @return the salt for the key derivation function.
-     */
-    public abstract byte[] getKdfSalt();
 
-    /**
-     * Returns the iteration count for the key derivation function.
-     * @return the iteration count for the key derivation function.
-     */
-    public abstract int getKdfIterationCount();
-
-
-    /**
-     * Returns the initialization vector for the key decryption cipher.
-     * @return the initialization vector for the key decryption cipher.
-     */
-    public abstract byte[] getUnwrapInitializationVector();
+    public abstract KeyData[] getKeys();
 
     /**
      * Returns the amount of bytes at the end of the stream that are not part
@@ -95,10 +80,6 @@ public abstract class CommonCEncryptedEncodingHeader {
      * @return the length of the data that has been encrypted.
      */
     public abstract long getEncryptedDataLength();
-
-    public abstract KeySet unwrapKeys(Key derivedKey, Cipher cph)
-            throws GeneralSecurityException, InvalidKeyException,
-            InvalidAlgorithmParameterException;
 
     public static class KeySet {
         private final byte[] aesKey;
@@ -118,11 +99,38 @@ public abstract class CommonCEncryptedEncodingHeader {
         }
     }
 
+    public static abstract class KeyData {
+        /**
+         * Returns the salt for the key derivation function.
+         * @return the salt for the key derivation function.
+         */
+        public abstract byte[] getKdfSalt();
+
+        /**
+         * Returns the iteration count for the key derivation function.
+         * @return the iteration count for the key derivation function.
+         */
+        public abstract int getKdfIterationCount();
+
+
+        /**
+         * Returns the initialization vector for the key decryption cipher.
+         * @return the initialization vector for the key decryption cipher.
+         */
+        public abstract byte[] getUnwrapInitializationVector();
+
+        public abstract KeySet unwrapKeys(Key derivedKey, Cipher cph)
+                throws GeneralSecurityException, InvalidKeyException,
+                InvalidAlgorithmParameterException;
+    }
+
     private static class V1Implementation extends CommonCEncryptedEncodingHeader {
         private final V1Header header;
+        private final V1KeyDataImplementation keyData;
 
         public V1Implementation(V1Header header) {
             this.header = header;
+            this.keyData = new V1KeyDataImplementation(header);
         }
 
         @Override
@@ -141,6 +149,24 @@ public abstract class CommonCEncryptedEncodingHeader {
         }
 
         @Override
+        public long getEncryptedDataLength() {
+            return header.getDecryptedDataLength(); // Confusion!
+        }
+
+        @Override
+        public KeyData[] getKeys() {
+            return new KeyData[] { keyData };
+        }
+    }
+
+    private static class V1KeyDataImplementation extends KeyData {
+        private V1Header header;
+
+        private V1KeyDataImplementation(V1Header header) {
+            this.header = header;
+        }
+
+        @Override
         public byte[] getKdfSalt() {
             return Util.createCopy(header.getKdfSalt(), 0, header.getKdfSaltLen());
         }
@@ -153,11 +179,6 @@ public abstract class CommonCEncryptedEncodingHeader {
         @Override
         public byte[] getUnwrapInitializationVector() {
             return header.getUnwrapIv();
-        }
-
-        @Override
-        public long getEncryptedDataLength() {
-            return header.getDecryptedDataLength(); // Confusion!
         }
 
         @Override
@@ -210,9 +231,21 @@ public abstract class CommonCEncryptedEncodingHeader {
 
     private static class V2Implementation extends CommonCEncryptedEncodingHeader {
         private final V2Header header;
+        private final V2KeyDataImplementation[] keys;
 
         public V2Implementation(V2Header header) {
             this.header = header;
+
+            LinkedList<V2KeyDataImplementation> keyList =
+                    new LinkedList<V2KeyDataImplementation>();
+            for(V2Header.KeyData kd : header.getKeys()) {
+                if(kd instanceof V2Header.UserKeyData) {
+                    keyList.add(new V2KeyDataImplementation(header,
+                            (V2Header.UserKeyData) kd));
+                }
+            }
+            this.keys = keyList.toArray(
+                    new V2KeyDataImplementation[keyList.size()]);
         }
 
         @Override
@@ -230,28 +263,49 @@ public abstract class CommonCEncryptedEncodingHeader {
             return 0;
         }
 
-        @Override
-        public byte[] getKdfSalt() {
-            return Util.createCopy(header.getKdfSalt(), 0, header.getKdfSaltLen());
-        }
-
-        @Override
-        public int getKdfIterationCount() {
-            return header.getKdfIterationCount();
-        }
-
-        @Override
-        public byte[] getUnwrapInitializationVector() {
-            return Util.createCopy(header.getBlobEncIv(), 0, header.getBlobEncIvSize());
-        }
-
-        private byte[] getEncryptedKeyBlob() {
-            return Util.createCopy(header.getEncryptedKeyblob(), 0, header.getEncryptedKeyblobSize());
-        }
 
         @Override
         public long getEncryptedDataLength() {
             return header.getEncryptedDataLength();
+        }
+
+        @Override
+        public KeyData[] getKeys() {
+            return Util.arrayCopy(keys, new KeyData[keys.length]);
+        }
+    }
+
+    private static class V2KeyDataImplementation extends KeyData {
+        private final V2Header header;
+        private final V2Header.UserKeyData keyData;
+
+        private V2KeyDataImplementation(V2Header header,
+                V2Header.UserKeyData keyData)
+        {
+            this.header = header;
+            this.keyData = keyData;
+        }
+
+        @Override
+        public byte[] getKdfSalt() {
+            return Util.createCopy(keyData.getKdfSalt(), 0,
+                    keyData.getKdfSaltLen());
+        }
+
+        @Override
+        public int getKdfIterationCount() {
+            return keyData.getKdfIterationCount();
+        }
+
+        @Override
+        public byte[] getUnwrapInitializationVector() {
+            return Util.createCopy(keyData.getBlobEncIv(), 0,
+                    keyData.getBlobEncIvSize());
+        }
+
+        private byte[] getEncryptedKeyBlob() {
+            return Util.createCopy(keyData.getEncryptedKeyblob(), 0,
+                    keyData.getEncryptedKeyblobSize());
         }
 
         @Override
