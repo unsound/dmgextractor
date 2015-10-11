@@ -171,21 +171,41 @@ public class V2Header {
         offset += possibleHeaderVersion.length;
 
         stream.readFully(reservedAt12);
+        if(getReservedAt12() != 16) {
+            warning("Previously unseen value at offset " + offset + ": " +
+                    getReservedAt12());
+        }
         offset += reservedAt12.length;
 
         stream.readFully(reservedAt16);
+        if(getReservedAt16() != 5) {
+            warning("Previously unseen value at offset " + offset + ": " +
+                    getReservedAt16());
+        }
         offset += reservedAt16.length;
 
         stream.readFully(reservedAt20);
+        if(getReservedAt20() != 0x80000001) {
+            warning("Previously unseen value at offset " + offset + ": " +
+                    getReservedAt20());
+        }
         offset += reservedAt20.length;
 
         stream.readFully(keyBits);
         offset += keyBits.length;
 
         stream.readFully(reservedAt28);
+        if(getReservedAt28() != 91) {
+            warning("Previously unseen value at offset " + offset + ": " +
+                    getReservedAt28());
+        }
         offset += reservedAt28.length;
 
         stream.readFully(reservedAt32);
+        if(getReservedAt32() != 160) {
+            warning("Previously unseen value at offset " + offset + ": " +
+                    getReservedAt32());
+        }
         offset += reservedAt32.length;
 
         stream.readFully(reservedAt36);
@@ -242,6 +262,11 @@ public class V2Header {
             keyPointers[i] = curPointer;
             keys[i] = curData;
         }
+    }
+
+    private static final void warning(String s) {
+        System.err.println("[" + V2Header.class.getSimpleName() + "] " +
+                "WARNING: " + s);
     }
 
     public int length() {
@@ -388,6 +413,10 @@ public class V2Header {
             int offset = 0;
 
             stream.readFully(keyType);
+            if(getKeyType() != 1 && getKeyType() != 2) {
+                warning("Previously unseen value at offset " + offset + ": " +
+                        getKeyType());
+            }
             offset += keyType.length;
 
             stream.readFully(keyOffset);
@@ -483,9 +512,17 @@ public class V2Header {
             int offset = 0;
 
             stream.readFully(kdfAlgorithm);
+            if(getKdfAlgorithm() != 103) {
+                warning("Previously unseen value for key derivation function " +
+                        "algorithm: " + getKdfAlgorithm());
+            }
             offset += kdfAlgorithm.length;
 
             stream.readFully(kdfPrngAlgorithm);
+            if(getKdfPrngAlgorithm() != 0) {
+                warning("Previously unseen value for prng algorithm: " +
+                        getKdfPrngAlgorithm());
+            }
             offset += kdfPrngAlgorithm.length;
 
             stream.readFully(kdfIterationCount);
@@ -507,12 +544,27 @@ public class V2Header {
             offset += blobEncKeyBits.length;
 
             stream.readFully(blobEncAlgorithm);
+            if(getBlobEncAlgorithm() != 17) {
+                warning("Previously unseen value for key blob encryption " +
+                        "algorithm: " +
+                        getBlobEncAlgorithm());
+            }
             offset += blobEncAlgorithm.length;
 
             stream.readFully(blobEncPadding);
+            if(getBlobEncPadding() != 7) {
+                warning("Previously unseen value for key blob encryption " +
+                        "padding: " +
+                        getBlobEncPadding());
+            }
             offset += blobEncPadding.length;
 
             stream.readFully(blobEncMode);
+            if(getBlobEncMode() != 6) {
+                warning("Previously unseen value for key blob encryption " +
+                        "mode: " +
+                        getBlobEncMode());
+            }
             offset += blobEncMode.length;
 
             stream.readFully(encryptedKeyblobSize);
