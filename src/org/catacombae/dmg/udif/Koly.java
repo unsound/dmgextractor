@@ -27,7 +27,7 @@ public class Koly {
      * struct Koly
      * size: 512 bytes
      * description: 
-     * 
+     *
      * BP   Size   Type       Identifier            Description
      * --------------------------------------------------------
      * 0    4      UInt32     fourCC                           

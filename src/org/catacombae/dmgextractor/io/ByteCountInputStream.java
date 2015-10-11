@@ -30,7 +30,7 @@ public class ByteCountInputStream extends InputStream {
 
     /**
      * Creates a new ByteCountInputStream wrapping <code>is</code>.
-     * 
+     *
      * @param is the underlying InputStream.
      */
     public ByteCountInputStream(InputStream is) {

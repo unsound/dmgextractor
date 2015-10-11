@@ -69,7 +69,7 @@ import org.catacombae.util.Util.Pair;
  * FileVault" slides, published by Jacob Appelbaum and Ralf-Philipp Weinmann, and the source code of
  * the utility vfdecrypt in VileFault, copyright Ralf-Philipp Weinmann, Jacob Appelbaum and
  * Christian Fromme.
- * 
+ *
  * @author <a href="http://www.catacombae.org/" target="_top">Erik Larsson</a>
  */
 public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessStream {
@@ -204,7 +204,7 @@ public class ReadableCEncryptedEncodingStream extends BasicReadableRandomAccessS
     /**
      * Tells whether <code>stream</code> is encoded with CEncryptedEncoding or not. If this method
      * returns true, the stream can be fed to the ReadableCEncryptedEncoding constructor.
-     * 
+     *
      * @param stream the stream to check for the signatures of a CEncryptedEncoding.
      * @return whether <code>stream</code> is encoded with CEncryptedEncoding or not.
      */

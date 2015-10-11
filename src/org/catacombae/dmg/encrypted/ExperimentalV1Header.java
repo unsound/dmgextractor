@@ -26,7 +26,7 @@ public class ExperimentalV1Header {
      * struct ExperimentalV1Header
      * size: 1276 bytes
      * description: 
-     * 
+     *
      * BP    Size   Type          Identifier              Description                                                                 
      * -------------------------------------------------------------------------------------------------------------------------------
      * 0     1*16   uint8_t[16]   unknown0                Unknown data.                                                               

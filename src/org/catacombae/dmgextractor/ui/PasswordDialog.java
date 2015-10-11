@@ -70,7 +70,7 @@ public class PasswordDialog extends JDialog {
      * Shows a dialog, modal to <code>owner</code> which requests a password from the user, halts
      * execution until the password has been entered, and then returns the entered password, or
      * <code>null</code> depending on whether the user clicked the "Ok" or the "Cancel" button.
-     * 
+     *
      * @param parentComponent this dialog's parent component.
      * @param dialogTitle the title of the dialog, printed in the window header.
      * @param messageLine the one line message to display above the password field, for example

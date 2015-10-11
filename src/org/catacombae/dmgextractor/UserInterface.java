@@ -72,7 +72,7 @@ interface UserInterface {
     /**
      * This method should be called to bring up a summary after a finished
      * extraction/simulation process.
-     * 
+     *
      * @param simulation set to true when the extraction was only simulated,
      * false for a real extraction.
      * @param errorsReported the number of errors encountered during the

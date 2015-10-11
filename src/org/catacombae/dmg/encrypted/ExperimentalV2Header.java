@@ -26,7 +26,7 @@ public class ExperimentalV2Header {
      * struct ExperimentalV2Header
      * size: 248 bytes
      * description: 
-     * 
+     *
      * BP   Size  Type         Identifier                     Description                                          
      * ------------------------------------------------------------------------------------------------------------
      * 0    1*8   uint8_t[8]   signature                      Header signature (ASCII: 'encrcdsa').                

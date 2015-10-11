@@ -533,7 +533,7 @@ Attribute attribute() :
 	  (
 	    <WT_DQUOTE> // WithinTag -> Attribute
 	    ( t = <ATTR_DQUOTE_STRING> { value.add(new Attribute.StringComponent(t.image)); } | 
-	      t = <ATTR_REFERENCE> { value.add(new Attribute.ReferenceComponent(t.image)); } )* 
+	      t = <ATTR_REFERENCE> { value.add(new Attribute.ReferenceComponent(t.image)); } )*
 	    <ATTR_DQUOTE> // Attribute -> WithinTag
 	  )
 	  |
