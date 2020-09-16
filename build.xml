@@ -183,6 +183,16 @@
     <jar destfile="${target.hfsxlib.outjar}" basedir="${builddir}" level="9"/>
   </target>
   
+  <!-- TARGET: build-csframework -->
+
+  <target name="build-csframework">
+    <ant antfile="build.xml"
+         dir="external/catacombaeframework"
+         inheritAll="false"/>
+    <copy file="external/catacombaeframework/targets/base/csframework.jar"
+          todir="${java.runtime.library.dir}"
+          overwrite="true"/>
+  </target>
   
   <!-- TARGET: javadoc -->
   
