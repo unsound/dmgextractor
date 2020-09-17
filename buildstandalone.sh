@@ -1,7 +1,5 @@
 #!/bin/sh
 
-SOURCES_DIR=src
-
 error() {
     echo "There were errors..."
     exit 1

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SOURCES_DIR=src
+SOURCES_DIR=src/java
 BUILDTOOLS_CP=lib/buildenumerator.jar
 
 error() {

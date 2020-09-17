@@ -2,7 +2,7 @@
 :begin
 setlocal
 
-set SOURCES_DIR=%~dp0src
+set SOURCES_DIR=%~dp0src\java
 set BUILDTOOLS_CP=%~dp0lib\buildenumerator.jar
 
 pushd %~dp0

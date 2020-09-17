@@ -91,8 +91,6 @@ checkerror $?
 
 copydir lib
 copydir src
-copydir src.JNLP-INF
-copydir src.META-INF
 copydir targets
 
 echo "Removing CVS directories..."

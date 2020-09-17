@@ -2,8 +2,6 @@
 :begin
 setlocal
 
-set SOURCES_DIR=%~dp0src
-
 pushd %~dp0
 
 echo Building with ant...

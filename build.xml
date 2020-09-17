@@ -5,13 +5,13 @@
   <property name="debuglevel" value="source,lines,vars"/>
   <property name="java.target.level" value="1.5"/>
   <property name="java.source.level" value="1.5"/>
-  <property name="java.source.dir" value="src"/>
+  <property name="java.source.dir" value="src/java"/>
   <property name="builddir" value=".antbuild~"/>
   <property name="java.build.library.dir" value="lib"/>
   <property name="java.runtime.library.dir" value="targets/application/lib"/>
-  <property name="target.application.manifest.dir" value="src.META-INF/application"/>
-  <property name="target.standalone.manifest.dir" value="src.META-INF/standalone"/>
-  <property name="target.standalone.jnlp.dir" value="src.JNLP-INF/standalone"/>
+  <property name="target.application.manifest.dir" value="src/META-INF/application"/>
+  <property name="target.standalone.manifest.dir" value="src/META-INF/standalone"/>
+  <property name="target.standalone.jnlp.dir" value="src/JNLP-INF/standalone"/>
   <property name="target.application.outjar" value="targets/application/lib/dmgextractor.jar"/>
   <property name="target.standalone.outjar" value="targets/standalone/dmgextractor-standalone.jar"/>
   <property name="target.hfsxlib.outjar" value="targets/hfsxlib/hfsx_dmglib.jar"/>
