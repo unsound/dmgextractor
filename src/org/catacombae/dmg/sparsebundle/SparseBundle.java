@@ -321,7 +321,7 @@ class SparseBundle {
                     newRaf = new RandomAccessFile(f, "r");
                     newRafSyncStream =
                             new SynchronizedReadableRandomAccessStream(
-                            new ReadableFileStream(newRaf));
+                            new ReadableFileStream(newRaf, f.getPath()));
                 } catch(FileNotFoundException ex) {
                     throw new RuntimeIOException(ex);
                 } catch(RuntimeException ex) {

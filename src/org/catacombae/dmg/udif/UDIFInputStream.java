@@ -33,9 +33,12 @@ public class UDIFInputStream extends InputStream {
     
     /** Constructs a new UDIF input stream from a RandomAccessFile. This is a convenience method, and
 	equal to <code>new UDI*/
-    public UDIFInputStream(RandomAccessFile raf) throws IOException {
-	this(new UDIFRandomAccessStream(raf));
+    public UDIFInputStream(RandomAccessFile raf, String openPath)
+            throws IOException
+    {
+        this(new UDIFRandomAccessStream(raf, openPath));
     }
+
     public UDIFInputStream(UDIFRandomAccessStream dras) throws IOException {
 	this.wrapped = dras;
     }
@@ -131,7 +134,7 @@ public class UDIFInputStream extends InputStream {
 	    System.exit(0);
 	}
 	
-	UDIFInputStream dis = new UDIFInputStream(inRaf);
+        UDIFInputStream dis = new UDIFInputStream(inRaf, inFile.getPath());
 	byte[] buffer = new byte[8192];
 	long bytesExtracted = 0;
 	int bytesRead = dis.read(buffer);

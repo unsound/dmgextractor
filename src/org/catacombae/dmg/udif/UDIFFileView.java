@@ -30,7 +30,9 @@ public class UDIFFileView {
     public UDIFFileView(File file) {
 	try {
 	    //this.file = file;
-	    this.dmgRaf = new ReadableFileStream(new RandomAccessFile(file, "r"));
+            this.dmgRaf =
+                new ReadableFileStream(new RandomAccessFile(file, "r"),
+                file.getPath());
 	} catch(IOException ioe) {
 	    throw new RuntimeIOException(ioe);
 	}

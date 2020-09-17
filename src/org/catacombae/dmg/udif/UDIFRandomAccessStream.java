@@ -43,8 +43,10 @@ public class UDIFRandomAccessStream extends BasicReadableRandomAccessStream {
     
     private static void dbg(String s) { System.err.println(s); }
     
-    public UDIFRandomAccessStream(RandomAccessFile raf) throws RuntimeIOException {
-        this(new ReadableFileStream(raf));
+    public UDIFRandomAccessStream(RandomAccessFile raf, String openPath)
+            throws RuntimeIOException
+    {
+        this(new ReadableFileStream(raf, openPath));
     }
     
     public UDIFRandomAccessStream(ReadableRandomAccessStream stream) throws RuntimeIOException {
@@ -215,7 +217,8 @@ public class UDIFRandomAccessStream extends BasicReadableRandomAccessStream {
 	else {
 	    byte[] buffer = new byte[4096];
 	    UDIFRandomAccessStream dras = 
-		new UDIFRandomAccessStream(new UDIFFile(new ReadableFileStream(new RandomAccessFile(args[0], "r"))));
+                new UDIFRandomAccessStream(new UDIFFile(new ReadableFileStream(
+                new RandomAccessFile(args[0], "r"), args[0])));
 	    FileOutputStream fos = new FileOutputStream(args[1]);
 	    
 	    long totalBytesRead = 0;

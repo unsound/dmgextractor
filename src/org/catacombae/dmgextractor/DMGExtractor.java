@@ -177,7 +177,7 @@ public class DMGExtractor {
 
         if(dmgRaf == null) {
             dmgRaf = new ReadableFileStream(new RandomAccessFile(ses.dmgFile,
-                    "r"));
+                    "r"), ses.dmgFile.getPath());
         }
 
         final boolean encrypted;

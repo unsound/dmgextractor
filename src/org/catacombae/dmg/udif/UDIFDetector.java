@@ -33,8 +33,10 @@ public class UDIFDetector {
      * Convenience method. Equivalent to
      * <code>isUDIFEncoded(new ReadableFileStream(raf));</code>.
      */
-    public static boolean isUDIFEncoded(RandomAccessFile raf) throws RuntimeIOException {
-        return isUDIFEncoded(new ReadableFileStream(raf));
+    public static boolean isUDIFEncoded(RandomAccessFile raf, String openPath)
+            throws RuntimeIOException
+    {
+        return isUDIFEncoded(new ReadableFileStream(raf, openPath));
     }
 
     /**

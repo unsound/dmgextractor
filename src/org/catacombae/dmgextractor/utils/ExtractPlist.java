@@ -37,7 +37,8 @@ public class ExtractPlist {
             return;//System.exit(0);
         }
 
-        UDIFFileView dfw = new UDIFFileView(new ReadableFileStream(inFile));
+        UDIFFileView dfw =
+                new UDIFFileView(new ReadableFileStream(inFile, args[0]));
         byte[] plistData = dfw.getPlistData();
         /*int bytesWritten = */        outStream.write(plistData);
 // 	if(bytesWritten != plistData.length)

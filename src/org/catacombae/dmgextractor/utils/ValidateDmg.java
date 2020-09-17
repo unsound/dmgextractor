@@ -37,7 +37,8 @@ public class ValidateDmg {
             System.out.println("Processing \"" + fn + "\"...");
             try {
                 RandomAccessFile raf = new RandomAccessFile(fn, "r");
-                UDIFFileView dfw = new UDIFFileView(new ReadableFileStream(raf));
+                UDIFFileView dfw =
+                        new UDIFFileView(new ReadableFileStream(raf, fn));
                 Koly koly = dfw.getKoly();
                 ValidateResult vr = validateKoly(raf, koly);
                 String[] errors = vr.getErrors();
