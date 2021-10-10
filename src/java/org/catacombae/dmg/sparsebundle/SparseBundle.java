@@ -80,7 +80,7 @@ class SparseBundle {
                 tokenFile == null || bandsDirFile == null) {
             throw new RuntimeIOException("Some files are missing from the " +
                     "sparse bundle directory (\"" +
-                    sparseBundleDir.getAbsolutePath() + "\".");
+                    sparseBundleDir.getAbsolutePath() + "\").");
         }
         else if(!bandsDirFile.exists() || !bandsDirFile.isDirectory())
             throw new RuntimeIOException("Invalid '" + bandsDirname + "' " +
